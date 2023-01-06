@@ -4,7 +4,6 @@ from scipy import special
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import hermite
-
 # Constants
 
 h = 6.62607015e-34
@@ -89,11 +88,11 @@ def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eig
     H = 4*Ec*tensor(N_op,qeye(2))**2 + 0.5*El*tensor(delta,qeye(2))**2 + EDelta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay())) #Hamiltonian.
     evals,ekets=H.eigenstates(eigvals=eigvals)
 
-    n01 = np.abs(2*e*N_op.matrix_element(ekets[1],ekets[0]))**2
-    phi01 = np.abs(phi_0/2/np.pi*phi_op.matrix_element(ekets[1],ekets[0]))**2
+    N_op01 = tensor(N_op,qeye(2)).matrix_element(ekets[1],ekets[0]) 
+    phi_op01 = tensor(phi_op,qeye(2)).matrix_element(ekets[1],ekets[0])
     # dHdphiExt = np.abs(G_flux.matrix_element(ekets[1],ekets[0]))**2
 
-    matrix_op_sqr_list = np.array([n01,phi01])
+    matrix_op_sqr_list = np.array([N_op01,phi_op01])
     return evals,ekets,matrix_op_sqr_list
 
 
