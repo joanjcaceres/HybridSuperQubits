@@ -1,0 +1,17 @@
+# Ansys eigenmode data file.  Version 2.0
+# Design:     HFSSDesign1
+# Solution:   Setup1 : LastAdaptive
+# Variation:  "box_height='8mm' box_length='8mm' box_width='8mm' chip_length='10740um' chip_width='9740um' distance_end_connector='50um' gate_big_box_size='10um' gate_rectangle_length='40um' gate_separation='2um' gate_small_box_width='1.6um' junction_capacitance='19.341fF' junction_inductance='4.087nH' junction_length='1.6um' junction_separation='0um' junction_width='0.95um' membrane1_left_adapt='0' membrane_separation='0' membrane_size='300um' membrane_thickness='0.1um' patch_big_square_size='14um' patch_small_square_size='6um' patch_square_size='32um' port_membrane1_left_reverse_adapt='1.7e-05' separation_crosses='20um' silicon_thickness='525um' square_size_etching='700um' x_position_connector='3800um' x_position_membrane1='0um' y_position_membrane2='0um'"
+# --------------------------------------------------------------
+#   Mode                        Frequency (GHz)                Q
+# --------------------------------------------------------------
+       0                          14.6173632635             0
+       1                          16.7836696586             0
+       2                          17.3298953566             0
+       3                          17.5466429748             0
+       4                            17.65486855             0
+       5                          17.7181407135             0
+       6                          17.7578011475             0
+       7                          17.7846630148             0
+       8                          17.8042207724             0
+       9                          17.8187095199             0
