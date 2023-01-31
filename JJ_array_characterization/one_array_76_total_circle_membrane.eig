@@ -1,0 +1,17 @@
+# Ansys eigenmode data file.  Version 2.0
+# Design:     HFSSDesign1
+# Solution:   Setup1 : LastAdaptive
+# Variation:  "box_height='8mm' box_length='8mm' box_width='8mm' junction_capacitance='19.341fF' junction_inductance='4.087nH' junction_length='1.6um' junction_width='0.95um' membrane_left_adapt='0' membrane_size='300um' membrane_thickness='0.1um' port_reverse_adapt='2.04e-05' port_reverse_mesh_adapt='2.04e-05' separation_coupling='2um' silicon_thickness='525um' x_position_connector='3800um'"
+# --------------------------------------------------------------
+#   Mode                        Frequency (GHz)                Q
+# --------------------------------------------------------------
+       0    14.6032098071 + 7.06841184593E-05 j           103299
+       1    16.7621621515 + 6.20906124801E-06 j      1.34981e+06
+       2    17.3152746794 + 1.75413426815E-06 j      4.93556e+06
+       3    17.5345515413 + 5.31681276744E-07 j      1.64897e+07
+       4    17.6457136296 + 2.47004135186E-07 j      3.57195e+07
+       5    17.7099396863 + 1.04229358831E-07 j      8.49566e+07
+       6     17.750892321 + 6.14904366612E-08 j      1.44339e+08
+       7    17.7767102648 + 7.73856784847E-11 j      1.14858e+11
+       8    17.7792583003 + 3.27943202727E-08 j      2.71072e+08
+       9    17.7991051232 - 8.48596756969E-07 j      1.04874e+07
