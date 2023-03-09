@@ -87,6 +87,7 @@ def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eig
 
     H = 4*Ec*tensor(N_op,qeye(2))**2 + 0.5*El*tensor(delta,qeye(2))**2 + EDelta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay())) #Hamiltonian.
     evals,ekets=H.eigenstates(eigvals=eigvals)
+    evals = np.real(evals)
 
     N_op01 = tensor(N_op,qeye(2)).matrix_element(ekets[1],ekets[0]) 
     phi_op01 = tensor(phi_op,qeye(2)).matrix_element(ekets[1],ekets[0])
