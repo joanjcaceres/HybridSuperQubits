@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 
-def figure_features(tex=False, font="serif", dpi=180):
+def figure_features(tex=True, font="serif", dpi=180):
     """Customize figure settings.
     Args:
         tex (bool, optional): use LaTeX. Defaults to True.
