@@ -81,19 +81,19 @@ def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eig
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm() #Re(Z) of the Hamiltonian
     ImZ = -(phi_op/2).cosm()*(r*phi_op/2).sinm()+r*(phi_op/2).sinm()*(r*phi_op/2).cosm() ##Im(Z) of the Hamiltonian
 
-    # dReZdflux = (delta/2).sinm()*(r*delta/2).cosm()*(r**2-1)/2 #derivative of Re(Z) wrt the external flux.
-    # dImZdflux = (delta/2).sinm()*(r*delta/2).sinm()*(1-r**2)/2 #derivative of Im(Z) wrt the external flux.
-    # G_flux = EDelta*tensor(-dReZdflux,sigmaz())+tensor(dImZdflux,sigmax())
-
     H = 4*Ec*tensor(N_op,qeye(2))**2 + 0.5*El*tensor(delta,qeye(2))**2 + EDelta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay())) #Hamiltonian.
     evals,ekets=H.eigenstates(eigvals=eigvals)
     evals = np.real(evals)
 
+    dReZdr = 1/2*(r*phi_op*(r*phi_op/2).cosm()*(phi_op/2).sinm()+(-phi_op*(phi_op/2).cosm()+2*(phi_op/2).sinm())*(r*phi_op/2).sinm())
+    dImZdr = -1/2*(r*phi_op/2).cosm()*(phi_op*(phi_op/2).cosm()-2*(phi_op/2).sinm())-1/2*r*phi_op*(phi_op/2).sinm()*(r*phi_op/2).sinm()
+    dHdr = EDelta*(tensor(dReZdr,sigmaz())+tensor(dImZdr,sigmay()))
+
     N_op01 = tensor(N_op,qeye(2)).matrix_element(ekets[1],ekets[0]) 
     phi_op01 = tensor(phi_op,qeye(2)).matrix_element(ekets[1],ekets[0])
-    # dHdphiExt = np.abs(G_flux.matrix_element(ekets[1],ekets[0]))**2
+    dHdr_op01 = dHdr.matrix_element(ekets[1],ekets[0])
 
-    matrix_op_sqr_list = np.array([N_op01,phi_op01])
+    matrix_op_sqr_list = np.array([N_op01,phi_op01,dHdr_op01])
     return evals,ekets,matrix_op_sqr_list
 
 
