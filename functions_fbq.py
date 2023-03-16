@@ -84,7 +84,7 @@ def eigensystem_and_matrix_elements_Josephson(Ec,El,EDelta,phi_ext,r, N = 200, e
     phi_op01 = phi_op.matrix_element(ekets[1],ekets[0])
 
     dH_dr_numerator = np.sqrt(2)*r*(phi_op/2).sinm()**2
-    dH_dr_denominator = (1+r**2+phi_op.cosnm() - r**2*phi_op.cosm()).sqrtm()
+    dH_dr_denominator = (1+r**2+phi_op.cosm() - r**2*phi_op.cosm()).sqrtm()
     dHdr_op01 = (dH_dr_numerator*dH_dr_denominator.inv()).matrix_element(ekets[1],ekets[0])
 
     matrix_op_sqr_list = np.array([N_op01,phi_op01,dHdr_op01],dtype = complex)
