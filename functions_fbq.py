@@ -67,6 +67,29 @@ def wavefunction_phi_fbq_down(EC,EL,phi_list,phi):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n+1,0]
     return np.real(wfunc)
 
+def eigensystem_and_matrix_elements_Josephson(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
+    # Obtain the eigenvalues, eigenkets and the |<1|O|0>|^2 of the n operator, phi operator and dH/dphi_ext operator.
+
+    phi_ZPF=(2.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+
+    delta = phi_op-phi_ext
+
+    H = 4*Ec*N_op**2 + 0.5*El*delta**2 + EDelta*(1-(1-r**2)*(phi_op/2).sinm()**2).sqrtm() #Hamiltonian.
+    evals,ekets=H.eigenstates(eigvals=eigvals)
+    evals = np.real(evals)
+
+    N_op01 = N_op.matrix_element(ekets[1],ekets[0]) 
+    phi_op01 = phi_op.matrix_element(ekets[1],ekets[0])
+
+    dH_dr_numerator = np.sqrt(2)*r*(phi_op/2).sinm()**2
+    dH_dr_denominator = (1+r**2+phi_op.cosnm() - r**2*phi_op.cosm()).sqrtm()
+    dHdr_op01 = (dH_dr_numerator*dH_dr_denominator.inv()).matrix_element(ekets[1],ekets[0])
+
+    matrix_op_sqr_list = np.array([N_op01,phi_op01,dHdr_op01],dtype = complex)
+    return evals,ekets,matrix_op_sqr_list
+
 
 # COHERENCE TIME CALCULATION
 
