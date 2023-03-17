@@ -108,15 +108,15 @@ def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eig
     evals,ekets=H.eigenstates(eigvals=eigvals)
     evals = np.real(evals)
 
-    # dReZdr = 1/2*(r*phi_op*(r*phi_op/2).cosm()*(phi_op/2).sinm()+(-phi_op*(phi_op/2).cosm()+2*(phi_op/2).sinm())*(r*phi_op/2).sinm())
-    # dImZdr = -1/2*(r*phi_op/2).cosm()*(phi_op*(phi_op/2).cosm()-2*(phi_op/2).sinm())-1/2*r*phi_op*(phi_op/2).sinm()*(r*phi_op/2).sinm()
-    # dHdr = EDelta*(tensor(dReZdr,sigmaz())+tensor(dImZdr,sigmay()))
+    dReZdr = 1/2*(r*phi_op*(r*phi_op/2).cosm()*(phi_op/2).sinm()+(-phi_op*(phi_op/2).cosm()+2*(phi_op/2).sinm())*(r*phi_op/2).sinm())
+    dImZdr = -1/2*(r*phi_op/2).cosm()*(phi_op*(phi_op/2).cosm()-2*(phi_op/2).sinm())-1/2*r*phi_op*(phi_op/2).sinm()*(r*phi_op/2).sinm()
+    dHdr = EDelta*(tensor(dReZdr,sigmaz())+tensor(dImZdr,sigmay()))
 
     N_op01 = tensor(N_op,qeye(2)).matrix_element(ekets[1],ekets[0]) 
     phi_op01 = tensor(phi_op,qeye(2)).matrix_element(ekets[1],ekets[0])
-    # dHdr_op01 = dHdr.matrix_element(ekets[1],ekets[0])
+    dHdr_op01 = dHdr.matrix_element(ekets[1],ekets[0])
 
-    matrix_op_sqr_list = np.array([N_op01,phi_op01])#,dHdr_op01])
+    matrix_op_sqr_list = np.array([N_op01,phi_op01,dHdr_op01])
     return evals,ekets,matrix_op_sqr_list
 
 
