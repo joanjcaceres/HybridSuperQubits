@@ -1,5 +1,5 @@
 from qutip import *
-from tqdm import tqdm
+# from tqdm import tqdm
 from scipy import special
 import numpy as np
 from scipy.interpolate import interp1d
@@ -268,7 +268,7 @@ def eigensystem_flux(r,phase_list, EC,EL,EDelta, N = 200,eigvals = 0, interpol =
     evalsf_list=[]
     eketsf_list=[]
 
-    for phi_ext in tqdm(phase_list):
+    for phi_ext in phase_list:
 
         evals,ekets = eigensystem_fbq(EC,EL,EDelta,phi_ext,r, N)
         
@@ -315,7 +315,7 @@ def eigensystem_r(phi_ext,r_list, EL,EC,EDelta, N = 200,eigvals = 0):
     evalsr_list=[]
     eketsr_list=[]
 
-    for r in tqdm(r_list):
+    for r in r_list:
         
         evals,ekets = eigensystem_fbq(EC,EL,EDelta,phi_ext,r, N)
         
