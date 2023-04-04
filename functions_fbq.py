@@ -31,10 +31,9 @@ def eigensystem_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 def eigenenergies_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # ONLY EIGENVALUES OF THE FERMIONIC-BOSONIC QUBIT 
 
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
-
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
     ImZ = -(phi_op/2).cosm()*(r*phi_op/2).sinm()+r*(phi_op/2).sinm()*(r*phi_op/2).cosm()
@@ -48,14 +47,14 @@ def phi_n(EC,EL, n: int,phi_list):
     # CONVERT THE FOCK SPACE STATES IN HARMONIC OSCILLATOR WAVEFUNCTIONS
 
     phi_ZPF=(8.0 * EC / EL) ** 0.25      
-    return 1/np.sqrt(phi_ZPF)/np.sqrt(2**n *1.0* np.math.factorial(n)) * np.exp(-(phi_list/phi_ZPF)**2 / 2.0) * np.polyval(hermite(n), (phi_list/phi_ZPF))
+    return 1/np.sqrt(np.sqrt(np.pi)*(2**n)*1.0 * np.math.factorial(n)) * np.exp(-(phi_list/phi_ZPF)**2 / 2.0) * np.polyval(hermite(n), (phi_list/phi_ZPF))
 
 
 def wavefunction_phi_fbq_up(EC,EL,phi_list,phi):
     # Wavefunction(\varphi) FOR \sigmaz = +1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(70):
+    for n in range(150):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n,0]
     return np.abs(wfunc)
 
@@ -63,7 +62,7 @@ def wavefunction_phi_fbq_down(EC,EL,phi_list,phi):
     # Wavefunction(\varphi) FOR \sigmaz = -1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(70):
+    for n in range(150):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n+1,0]
     return np.abs(wfunc)
 
