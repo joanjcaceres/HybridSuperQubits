@@ -47,7 +47,7 @@ def phi_n(EC,EL, n: int,phi_list):
     # CONVERT THE FOCK SPACE STATES IN HARMONIC OSCILLATOR WAVEFUNCTIONS
 
     phi_ZPF=(8.0 * EC / EL) ** 0.25      
-    return 1/np.sqrt(np.sqrt(np.pi)*(2**n)*phi_ZPF * np.math.factorial(n)) * np.exp(-(phi_list/phi_ZPF)**2 / 2.0) * np.polyval(hermite(n), (phi_list/phi_ZPF))
+    return 1/np.sqrt(np.sqrt(np.pi)*(2**n) * 1.0* phi_ZPF * np.math.factorial(n)) * np.exp(-(phi_list/phi_ZPF)**2 / 2.0) * np.polyval(hermite(n), (phi_list/phi_ZPF))
 
 
 def wavefunction_phi_fbq_up(EC,EL,phi_list,phi):
