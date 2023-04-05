@@ -54,7 +54,7 @@ def wavefunction_phi_fbq_up(EC,EL,phi_list,phi):
     # Wavefunction(\varphi) FOR \sigmaz = +1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(150):
+    for n in range(100):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n,0]
     return np.abs(wfunc)
 
@@ -62,7 +62,7 @@ def wavefunction_phi_fbq_down(EC,EL,phi_list,phi):
     # Wavefunction(\varphi) FOR \sigmaz = -1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(150):
+    for n in range(100):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n+1,0]
     return np.abs(wfunc)
 
