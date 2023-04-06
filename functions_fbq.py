@@ -18,7 +18,7 @@ def eigensystem_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF* np.sqrt(2)
 
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
@@ -33,7 +33,7 @@ def eigenenergies_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF*np.sqrt(2)
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
     ImZ = -(phi_op/2).cosm()*(r*phi_op/2).sinm()+r*(phi_op/2).sinm()*(r*phi_op/2).cosm()
@@ -54,7 +54,7 @@ def wavefunction_phi_fbq_up(EC,EL,phi_list,phi,N):
     # Wavefunction(\varphi) FOR \sigmaz = +1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(np.int(N/2)):
+    for n in range(np.int(N/2)+1):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n,0]
     return wfunc
 
