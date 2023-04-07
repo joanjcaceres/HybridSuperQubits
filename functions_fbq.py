@@ -18,7 +18,7 @@ def eigensystem_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF* np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/ np.sqrt(2)
 
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
@@ -33,7 +33,7 @@ def eigenenergies_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF*np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
     ImZ = -(phi_op/2).cosm()*(r*phi_op/2).sinm()+r*(phi_op/2).sinm()*(r*phi_op/2).cosm()
@@ -71,7 +71,7 @@ def eigensystem_and_matrix_elements_Josephson(Ec,El,EDelta,phi_ext,r, N = 200, e
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF *np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF /np.sqrt(2)
 
     delta = phi_op-phi_ext
 
@@ -97,7 +97,7 @@ def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eig
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF*np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
 
     delta = phi_op-phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm() #Re(Z) of the Hamiltonian
@@ -124,7 +124,7 @@ def eigensystem_and_gamma_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF*np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
 
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
@@ -235,7 +235,7 @@ def S_Andreev_1f(E01):
 def eigenenergies_bloch(Ec,El,Ej,phi_ext, N = 200, eigvals = 0):
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF / np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF *np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF /np.sqrt(2)
 
     delta = phi_op-phi_ext
     H = 4*Ec*N_op**2+0.5*El*(delta)**2-Ej*(phi_op/2).cosm()
@@ -245,7 +245,7 @@ def eigenenergies_bloch(Ec,El,Ej,phi_ext, N = 200, eigvals = 0):
 def eigensystem_fluxonium(Ec,El,Ej,phi_ext, N = 200, eigvals = 0):
     phi_ZPF=(8.0 * Ec / El) ** 0.25
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF / np.sqrt(2)
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF *np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF /np.sqrt(2)
 
     delta = phi_op-phi_ext
     H = 4*Ec*N_op**2+0.5*El*(delta)**2-Ej*(phi_op).cosm()
@@ -261,7 +261,7 @@ def eigensystem_flux(r,phase_list, EC,EL,EDelta, N = 200,eigvals = 0, interpol =
     
     #definition of the quantum operator
     N_op  = 1j * (destroy(N).dag() - destroy(N)) / (phi_ZPF/ np.sqrt(2))
-    phi_op= (destroy(N).dag() + destroy(N))  * phi_ZPF *np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N))  * phi_ZPF /np.sqrt(2)
     
     #creation of the range of the flux and the list that will save the matrix elements of different operators.
     evalsf_list=[]
