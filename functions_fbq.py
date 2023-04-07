@@ -23,7 +23,7 @@ def eigensystem_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
     ImZ = -(phi_op/2).cosm()*(r*phi_op/2).sinm()+r*(phi_op/2).sinm()*(r*phi_op/2).cosm()
-    H = 4*Ec*tensor(N_op**2,qeye(2)) + 0.5*El*tensor((delta)**2,qeye(2)) + EDelta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay())) #Hamiltonian.
+    H = 4*Ec*tensor(N_op**2,qeye(2)) + 0.5*El*tensor((delta)**2,qeye(2)) - EDelta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay())) #Hamiltonian.
     evals,ekets=H.eigenstates(eigvals=eigvals)
     return evals,ekets
 
