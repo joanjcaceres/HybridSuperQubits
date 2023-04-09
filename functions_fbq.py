@@ -56,7 +56,7 @@ def wavefunction_phi_fbq_up(EC,EL,phi_list,phi,N):
     wfunc = np.zeros(len(phi_list),dtype = complex)
     for n in range(np.int(N/2)+1):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n,0]
-    return np.real(wfunc)
+    return wfunc
 
 def wavefunction_phi_fbq_down(EC,EL,phi_list,phi,N):
     # Wavefunction(\varphi) FOR \sigmaz = -1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
@@ -64,7 +64,7 @@ def wavefunction_phi_fbq_down(EC,EL,phi_list,phi,N):
     wfunc = np.zeros(len(phi_list),dtype = complex)
     for n in range(np.int(N/2)):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n+1,0]
-    return np.real(wfunc)
+    return wfunc
 
 def eigensystem_and_matrix_elements_Josephson(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # Obtain the eigenvalues, eigenkets and the |<1|O|0>|^2 of the n operator, phi operator and dH/dphi_ext operator.
