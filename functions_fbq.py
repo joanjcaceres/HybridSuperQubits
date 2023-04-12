@@ -16,9 +16,9 @@ phi_0 = h/2/e
 def eigensystem_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # EIGENVALUES AND EIGENSTATES OF THE FERMIONIC-BOSONIC QUBIT 
 
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/ np.sqrt(2)
 
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
@@ -31,10 +31,9 @@ def eigensystem_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
 def eigenenergies_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # ONLY EIGENVALUES OF THE FERMIONIC-BOSONIC QUBIT 
 
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
-
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
     ImZ = -(phi_op/2).cosm()*(r*phi_op/2).sinm()+r*(phi_op/2).sinm()*(r*phi_op/2).cosm()
@@ -48,31 +47,31 @@ def phi_n(EC,EL, n: int,phi_list):
     # CONVERT THE FOCK SPACE STATES IN HARMONIC OSCILLATOR WAVEFUNCTIONS
 
     phi_ZPF=(8.0 * EC / EL) ** 0.25      
-    return 1/np.sqrt(phi_ZPF)/np.sqrt(2**n *1.0* np.math.factorial(n)) * np.exp(-(phi_list/phi_ZPF)**2 / 2.0) * np.polyval(hermite(n), (phi_list/phi_ZPF))
+    return 1/np.sqrt(np.sqrt(np.pi)*(2**n) * 1.0* phi_ZPF * np.math.factorial(n)) * np.exp(-(phi_list/phi_ZPF)**2 / 2.0) * np.polyval(hermite(n), (phi_list/phi_ZPF))
 
 
-def wavefunction_phi_fbq_up(EC,EL,phi_list,phi):
+def wavefunction_phi_fbq_up(EC,EL,phi_list,phi,N):
     # Wavefunction(\varphi) FOR \sigmaz = +1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(70):
+    for n in range(np.int(N/2)+1):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n,0]
     return wfunc
 
-def wavefunction_phi_fbq_down(EC,EL,phi_list,phi):
+def wavefunction_phi_fbq_down(EC,EL,phi_list,phi,N):
     # Wavefunction(\varphi) FOR \sigmaz = -1 OF AN EIGENSTATE OF THE Fermionic-Bosonic Qubit.
 
     wfunc = np.zeros(len(phi_list),dtype = complex)
-    for n in range(70):
+    for n in range(np.int(N/2)):
         wfunc = wfunc + phi_n(EC,EL,n,phi_list)*phi.full()[2*n+1,0]
     return wfunc
 
 def eigensystem_and_matrix_elements_Josephson(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # Obtain the eigenvalues, eigenkets and the |<1|O|0>|^2 of the n operator, phi operator and dH/dphi_ext operator.
 
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF /np.sqrt(2)
 
     delta = phi_op-phi_ext
 
@@ -96,9 +95,9 @@ def eigensystem_and_matrix_elements_Josephson(Ec,El,EDelta,phi_ext,r, N = 200, e
 def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # Obtain the eigenvalues, eigenkets and the |<1|O|0>|^2 of the n operator, phi operator and dH/dphi_ext operator.
 
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
 
     delta = phi_op-phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm() #Re(Z) of the Hamiltonian
@@ -123,9 +122,9 @@ def eigensystem_and_matrix_elements_sqr_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eig
 def eigensystem_and_gamma_fbq(Ec,El,EDelta,phi_ext,r, N = 200, eigvals = 0):
     # Obtain the eigenvalues, eigenkets, Gamma_1 and the matrix_elements_{01} of the n, phi and sigma_z operators
 
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF /np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF/np.sqrt(2)
 
     delta = phi_op - phi_ext
     ReZ = (phi_op/2).cosm()*(r*phi_op/2).cosm()+r*(phi_op/2).sinm()*(r*phi_op/2).sinm()
@@ -234,9 +233,9 @@ def S_Andreev_1f(E01):
 
 # EIGENENERGIES OF THE BLOCHNIUM (take care of the factor /2 in the cos)
 def eigenenergies_bloch(Ec,El,Ej,phi_ext, N = 200, eigvals = 0):
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF / 2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF / np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF /np.sqrt(2)
 
     delta = phi_op-phi_ext
     H = 4*Ec*N_op**2+0.5*El*(delta)**2-Ej*(phi_op/2).cosm()
@@ -244,9 +243,9 @@ def eigenenergies_bloch(Ec,El,Ej,phi_ext, N = 200, eigvals = 0):
     return evals
 
 def eigensystem_fluxonium(Ec,El,Ej,phi_ext, N = 200, eigvals = 0):
-    phi_ZPF=(2.0 * Ec / El) ** 0.25
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF / 2
-    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF
+    phi_ZPF=(8.0 * Ec / El) ** 0.25
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / phi_ZPF / np.sqrt(2)
+    phi_op= (destroy(N).dag() + destroy(N)) * phi_ZPF /np.sqrt(2)
 
     delta = phi_op-phi_ext
     H = 4*Ec*N_op**2+0.5*El*(delta)**2-Ej*(phi_op).cosm()
@@ -261,8 +260,8 @@ def eigensystem_flux(r,phase_list, EC,EL,EDelta, N = 200,eigvals = 0, interpol =
     phi_ZPF=(8.0 * EC / EL) ** 0.25
     
     #definition of the quantum operator
-    N_op  = 1j * (destroy(N).dag() - destroy(N)) / (phi_ZPF * np.sqrt(2))
-    phi_op= (destroy(N).dag() + destroy(N)) / np.sqrt(2) * phi_ZPF
+    N_op  = 1j * (destroy(N).dag() - destroy(N)) / (phi_ZPF/ np.sqrt(2))
+    phi_op= (destroy(N).dag() + destroy(N))  * phi_ZPF /np.sqrt(2)
     
     #creation of the range of the flux and the list that will save the matrix elements of different operators.
     evalsf_list=[]
