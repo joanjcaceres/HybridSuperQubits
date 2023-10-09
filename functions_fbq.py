@@ -1,5 +1,5 @@
 from qutip import *
-# from tqdm import tqdm
+from tqdm.notebook import tqdm
 from scipy import special
 import numpy as np
 from scipy.interpolate import interp1d
