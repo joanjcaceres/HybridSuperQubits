@@ -12,11 +12,8 @@ Before you begin, ensure you have met the following requirements:
 
 ### Using Anaconda and environment.yml (Recommended)
 
-1. **Install Git**
 
-    If Git is not already installed, you can install it by following the instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
-
-2. **Choose a Directory for the Project**
+1. **Choose a Directory for the Project**
 
     Open Anaconda Prompt and navigate to the directory where you want to clone the repository.
 
@@ -24,19 +21,19 @@ Before you begin, ensure you have met the following requirements:
     cd path/to/directory
     ```
 
-3. **Clone the Repository**
+2. **Clone the Repository**
 
     ```bash
     git clone https://github.com/joanjcaceres/Fermionic-bosonic-qubit
     ```
 
-4. **Navigate to the Project Directory**
+3. **Navigate to the Project Directory**
 
     ```bash
     cd Fermionic-bosonic-qubit
     ```
 
-5. **(Optional) Rename `environment.yml`**
+4. **(Optional) Rename `environment.yml`**
 
     If you wish to give the Conda environment your own name, you can edit the first line of `environment.yml`:
 
@@ -44,7 +41,7 @@ Before you begin, ensure you have met the following requirements:
     name: your_custom_name
     ```
 
-6. **Create and Activate the Conda Environment**
+5. **Create and Activate the Conda Environment**
 
     Create a new Conda environment from the `environment.yml` file:
 
