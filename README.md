@@ -10,7 +10,7 @@ Before you begin, ensure you have met the following requirements:
 
 ## Installation
 
-### Using Anaconda and `environment.yml` (Recommended)
+### Using Anaconda and environment.yml (Recommended)
 
 1. **Install Git**
 
