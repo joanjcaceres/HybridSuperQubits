@@ -18,7 +18,7 @@ Before you begin, ensure you have met the following requirements:
 
 2. **Choose a Directory for the Project**
 
-    Navigate to the directory where you want to clone the repository.
+    Open Anaconda Prompt and navigate to the directory where you want to clone the repository.
 
     ```bash
     cd path/to/directory
