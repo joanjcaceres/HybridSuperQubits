@@ -1,4 +1,4 @@
-# Ferbo simulation
+# Fermionic-bosonic-qubit
 
 This package allows to simulate the Fermionic-Bosonic qubit.
 

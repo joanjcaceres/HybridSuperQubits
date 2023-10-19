@@ -61,7 +61,7 @@ class Ferbo:
         matrix_element = operator.matrix_element(eigenstates[i],eigenstates[j])
         return matrix_element
     
-    def get_operator_matrix_element_vs_phase(self, operator: Qobj, eigvals=0, i=0, j=1, phi_ext_array = np.linspace(-2*np.pi,2*np.pi,100)):
+    def get_operator_matrix_element_vs_external_phase(self, operator: Qobj, eigvals=0, i=0, j=1, phi_ext_array = np.linspace(-2*np.pi,2*np.pi,100)):
         matrix_elements = []
         for phi_ext in phi_ext_array:
             self.phi_ext = phi_ext
