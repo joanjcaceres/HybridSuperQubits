@@ -52,10 +52,10 @@ Before you begin, ensure you have met the following requirements:
     conda env create -f environment.yml
     ```
 
-    Activate the environment. Replace `your_custom_name` with the name you specified, or use the default name if you didn't change it:
+    Activate the environment. Replace `ferbo` with the name you specified, or use the default name if you didn't change it:
 
     ```bash
-    conda activate your_custom_name
+    conda activate ferbo
     ```
 
 
