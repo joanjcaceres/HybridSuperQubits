@@ -1,4 +1,7 @@
 import numpy as np
+from tqdm.notebook import tqdm
+from concurrent.futures import ThreadPoolExecutor
+import copy
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay
 
 class Ferbo:
@@ -24,10 +27,10 @@ class Ferbo:
         phi_zpf = (8.0 * self.Ec / self.El) ** 0.25
         n_operator = 1j * (destroy(dimension).dag() - destroy(dimension)) / phi_zpf /np.sqrt(2)
         phase_operator = (destroy(dimension).dag() + destroy(dimension)) * phi_zpf/ np.sqrt(2)
-        
-        delta = phase_operator - self.phi_ext
         ReZ = (phase_operator/2).cosm()*(self.r*phase_operator/2).cosm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).sinm()
         ImZ = -(phase_operator/2).cosm()*(self.r*phase_operator/2).sinm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).cosm()
+        
+        delta = phase_operator - self.phi_ext
         hamiltonian = 4*self.Ec*tensor(n_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
         return hamiltonian
     
@@ -35,12 +38,18 @@ class Ferbo:
         hamiltonian = self.get_hamiltonian(dimension = dimension)
         eigenenergies = hamiltonian.eigenenergies(eigvals=eigvals)
         return np.real(eigenenergies)
-    
-    def get_eigenenergies_vs_phase(self, dimension = 100, eigvals=6, phi_ext_array = np.linspace(-2*np.pi,2*np.pi,100)) -> np.ndarray:
+
+    def get_eigenenergies_vs_phase(self, dimension=100, eigvals=6, phi_ext_array=np.linspace(-2*np.pi, 2*np.pi, 100)) -> np.ndarray:
         eigenenergies = []
-        for phi_ext in phi_ext_array:
-            self.phi_ext = phi_ext
-            eigenenergies.append(self.get_eigenenergies(dimension = dimension, eigvals=eigvals))
+        
+        def task(phi_ext):
+            local_self = copy.deepcopy(self)
+            local_self.phi_ext = phi_ext
+            return local_self.get_eigenenergies(dimension=dimension, eigvals=eigvals)
+        
+        with ThreadPoolExecutor() as executor:
+            eigenenergies = list(executor.map(task, phi_ext_array))
+            
         return np.array(eigenenergies)
     
     def get_eigenenergies_vs_r(self, dimension = 100, eigvals=6, r_array = np.linspace(0,1,100)) -> np.ndarray:
