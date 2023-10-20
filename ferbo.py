@@ -12,13 +12,28 @@ class Ferbo:
         self.phi_ext = phi_ext
         self.dimension = dimension
 
-        self.phi_zpf = (8.0 * self.Ec / self.El) ** 0.25
-        self.charge_number_operator = 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / self.phi_zpf /np.sqrt(2)
-        self.phase_operator = (destroy(self.dimension).dag() + destroy(self.dimension)) * self.phi_zpf/ np.sqrt(2)
-        self.ReZ = (self.phase_operator/2).cosm()*(self.r*self.phase_operator/2).cosm()+self.r*(self.phase_operator/2).sinm()*(self.r*self.phase_operator/2).sinm()
-        self.ImZ = -(self.phase_operator/2).cosm()*(self.r*self.phase_operator/2).sinm()+self.r*(self.phase_operator/2).sinm()*(self.r*self.phase_operator/2).cosm()
+    @property
+    def phi_zpf(self):
+        return (8.0 * self.Ec / self.El) ** 0.25
 
-    def get_hamiltonian(self) -> Qobj:
+    @property
+    def charge_number_operator(self):
+        return 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / self.phi_zpf /np.sqrt(2)
+    
+    @property
+    def phase_operator(self):
+        return (destroy(self.dimension).dag() + destroy(self.dimension)) * self.phi_zpf/ np.sqrt(2)
+
+    @property
+    def ReZ(self):
+        return (self.phase_operator/2).cosm()*(self.r*self.phase_operator/2).cosm()+self.r*(self.phase_operator/2).sinm()*(self.r*self.phase_operator/2).sinm()
+    
+    @property
+    def ImZ(self):
+        return -(self.phase_operator/2).cosm()*(self.r*self.phase_operator/2).sinm()+self.r*(self.phase_operator/2).sinm()*(self.r*self.phase_operator/2).cosm()
+        
+    @property
+    def hamiltonian(self) -> Qobj:
         delta = self.phase_operator - self.phi_ext
         hamiltonian = 4*self.Ec*tensor(self.charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(self.ReZ,sigmaz())+tensor(self.ImZ,sigmay()))
         return hamiltonian
@@ -106,6 +121,29 @@ class Ferbo:
             plot_eigenenergies(El_array, eigenenergies, r"$E_L$ (GHz)")
         return eigenenergies
     
+    def get_phase_matrix_element_vs_El(self, state_i=0, state_j=1, El_array = np.linspace(0.05,0.5,100), plot = True):
+        matrix_elements = np.zeros(len(El_array), dtype=complex)
+        for k, El in enumerate(tqdm(El_array)):
+            phi_zpf = (8.0 * self.Ec / El) ** 0.25
+            charge_number_operator = 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / phi_zpf /np.sqrt(2)
+            phase_operator = (destroy(self.dimension).dag() + destroy(self.dimension)) * phi_zpf/ np.sqrt(2)
+            ReZ = (phase_operator/2).cosm()*(self.r*phase_operator/2).cosm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).sinm()
+            ImZ = -(phase_operator/2).cosm()*(self.r*phase_operator/2).sinm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).cosm()
+            delta = phase_operator - self.phi_ext
+            hamiltonian = 4*self.Ec*tensor(charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
+            eigenstates = hamiltonian.eigenstates(eigvals=max(state_i,state_j) + 1)[1]
+
+            matrix_elements[k] = phase_operator.matrix_element(eigenstates[state_i],eigenstates[state_j])
+
+        if plot == True:
+            matrix_elements = np.abs(matrix_elements)
+            x_label = f"$E_L$ (GHz)"
+            y_label = f"$\\langle {state_i} | \\hat \\varphi | {state_j} \\rangle$ (rad)"
+            plot_figure(El_array, matrix_elements, x_label, y_label)
+        return matrix_elements
+
+
+
     def get_eigensystem(self, dimension = 100, eigvals=0):
         hamiltonian = self.get_hamiltonian(dimension=dimension)
         eigenenergies, eigenstates = hamiltonian.eigenstates(eigvals=eigvals)
@@ -132,9 +170,16 @@ class Ferbo:
         return np.array(matrix_elements)
 
 def plot_eigenenergies(x_value, eigenenergies, x_label):
+    plt.figure()
     for i in range(eigenenergies.shape[1]):
         plt.plot(x_value, eigenenergies[:,i])
     plt.xlabel(x_label)
     plt.ylabel("Eigenenergies (GHz)")
     plt.show()
 
+def plot_figure(x_value, y_value, x_label, y_label):
+    plt.figure()
+    plt.plot(x_value, y_value)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.show()
