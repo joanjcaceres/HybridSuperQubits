@@ -1,185 +1,108 @@
+import inspect
+import functools
 import numpy as np
+from typing import Dict
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay
 
-class Ferbo:
-    def __init__(self, Ec, El, Delta, r = 0.05, phi_ext = 0, dimension = 100):
-        self.Ec = Ec
-        self.El = El
-        self.Delta = Delta
-        self.r = r
-        self.phi_ext = phi_ext
-        self.dimension = dimension
 
-    @property
-    def phi_zpf(self):
-        return (8.0 * self.Ec / self.El) ** 0.25
+@functools.lru_cache(maxsize=None)
+def phi_zpf(Ec, El):
+    return (8.0 * Ec / El) ** 0.25
 
-    @property
-    def charge_number_operator(self):
-        return 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / self.phi_zpf /np.sqrt(2)
+@functools.lru_cache(maxsize=None)
+def charge_number_operator(Ec, El, dimension) -> Qobj:
+    return 1j * (destroy(dimension).dag() - destroy(dimension)) / phi_zpf(Ec, El) / np.sqrt(2)
+
+@functools.lru_cache(maxsize=None)
+def phase_operator(Ec, El, dimension) -> Qobj:
+    return (destroy(dimension).dag() + destroy(dimension)) * phi_zpf(Ec, El) / np.sqrt(2)
+
+OPERATOR_FUNCTIONS = {
+    'charge_number': charge_number_operator,
+    'phase': phase_operator,
+}
+
+@functools.lru_cache(maxsize=None)
+def ReZ(Ec, El, r: float, dimension) -> Qobj:
+    phase_op = phase_operator(Ec, El, dimension)
+    return (phase_op/2).cosm()*(r*phase_op/2).cosm() + r*(phase_op/2).sinm()*(r*phase_op/2).sinm()
+
+@functools.lru_cache(maxsize=None)
+def ImZ(Ec, El, r, dimension) -> Qobj:
+    phase_op = phase_operator(Ec, El, dimension)
+    return -(phase_op/2).cosm()*(r*phase_op/2).sinm() + r*(phase_op/2).sinm()*(r*phase_op/2).cosm()
+
+@functools.lru_cache(maxsize=None)
+def delta(Ec, El, phi_ext, dimension):
+    return phase_operator(Ec, El, dimension) - phi_ext
+
+@functools.lru_cache(maxsize=None)
+def hamiltonian(Ec, El, Delta, r, phi_ext: float, dimension = 100) -> Qobj:
+    charge_op = charge_number_operator(Ec, El, dimension)
+    ReZ_val = ReZ(Ec, El, r, dimension)
+    ImZ_val = ImZ(Ec, El, r, dimension)
+    delta_val = delta(Ec, El, phi_ext, dimension)
+    return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) + Delta*(tensor(ReZ_val, sigmaz()) + tensor(ImZ_val, sigmay()))
+
+def eigenenergies_vs_parameter(parameter_name, parameter_values, fixed_params: Dict[str, float], eigvals=6, plot = True, filename=None) -> np.ndarray:
+    if parameter_name not in ["Ec", "El", "Delta", "phi_ext", "r"]:
+            raise ValueError("parameter_name must be one of the following: 'Ec', 'El', 'Delta', 'phi_ext', 'r'")
+    eigenenergies = np.zeros((len(parameter_values), eigvals))
+    for i, param_value in enumerate(tqdm(parameter_values)):
+        # Actualizar el valor del parámetro variable
+        params = fixed_params.copy()
+        params[parameter_name] = param_value
+        # Calcular las autoenergías
+        h = hamiltonian(**params)
+        eigenenergies[i] = np.real(h.eigenenergies(eigvals=eigvals))
     
-    @property
-    def phase_operator(self):
-        return (destroy(self.dimension).dag() + destroy(self.dimension)) * self.phi_zpf/ np.sqrt(2)
-
-    @property
-    def ReZ(self):
-        return (self.phase_operator/2).cosm()*(self.r*self.phase_operator/2).cosm()+self.r*(self.phase_operator/2).sinm()*(self.r*self.phase_operator/2).sinm()
+    if plot:
+        ylabel = 'Eigenenergies'
+        title = f'Eigenenergies vs {parameter_name}'
+        plot_vs_parameter(parameter_values, eigenenergies, parameter_name, ylabel, title, filename)
     
-    @property
-    def ImZ(self):
-        return -(self.phase_operator/2).cosm()*(self.r*self.phase_operator/2).sinm()+self.r*(self.phase_operator/2).sinm()*(self.r*self.phase_operator/2).cosm()
-        
-    @property
-    def hamiltonian(self) -> Qobj:
-        delta = self.phase_operator - self.phi_ext
-        hamiltonian = 4*self.Ec*tensor(self.charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(self.ReZ,sigmaz())+tensor(self.ImZ,sigmay()))
-        return hamiltonian
+    return eigenenergies
+
+def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator_name: str,fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
+    matrix_elements = np.zeros(len(parameter_values), dtype=complex)
+    operator_function = OPERATOR_FUNCTIONS.get(operator_name)
+    if operator_function is None:
+        raise ValueError(f"Unknown operator name: {operator_name}")
     
-    def get_eigenenergies(self, phi_ext, eigvals=0) -> np.ndarray:
-        delta = self.phase_operator - phi_ext
-        hamiltonian = 4*self.Ec*tensor(self.charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(self.ReZ,sigmaz())+tensor(self.ImZ,sigmay()))
-        eigenenergies = hamiltonian.eigenenergies(eigvals=eigvals)
-        return np.real(eigenenergies)
-    
-    def get_eigenenergies_vs_external_phase(self, phi_ext_array=np.linspace(-2*np.pi, 2*np.pi, 100), eigvals=6, plot=True) -> np.ndarray:
-        eigenenergies = []
-        for phi_ext in tqdm(phi_ext_array):
-            delta = self.phase_operator - phi_ext
-            hamiltonian = 4*self.Ec*tensor(self.charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(self.ReZ,sigmaz())+tensor(self.ImZ,sigmay()))
-            eigenenergies.append(np.real(hamiltonian.eigenenergies(eigvals=eigvals)))
+    for k, param_value in enumerate(tqdm(parameter_values)):
+        params = fixed_params.copy()
+        params[parameter_name] = param_value
+        filtered_params = filter_args(operator_function, params)
+        h = hamiltonian(**params)
+        eigenstates = h.eigenstates(eigvals=max(state_i, state_j) + 1)[1]
+        operator = operator_function(**filtered_params)
+        matrix_elements[k] = operator.matrix_element(eigenstates[state_i], eigenstates[state_j])
 
-        eigenenergies = np.array(eigenenergies)
-        if plot == True:
-            plot_eigenenergies(phi_ext_array, eigenenergies, r"External phase  $\varphi_{ext}$ (rad)")
-        return eigenenergies
-    
-    def get_eigenenergies_vs_r(self, r_array = np.linspace(0,1,100), eigvals=6, plot=True) -> np.ndarray:
-        eigenenergies = []
-        delta = self.phase_operator - self.phi_ext
-        for r in tqdm(r_array):
-            ReZ = (self.phase_operator/2).cosm()*(r*self.phase_operator/2).cosm()+r*(self.phase_operator/2).sinm()*(r*self.phase_operator/2).sinm()
-            ImZ = -(self.phase_operator/2).cosm()*(r*self.phase_operator/2).sinm()+r*(self.phase_operator/2).sinm()*(r*self.phase_operator/2).cosm()
-            hamiltonian = 4*self.Ec*tensor(self.charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
-            eigenenergies.append(np.real(hamiltonian.eigenenergies(eigvals=eigvals)))
+    if plot:
+        ylabel = f'Matrix Elements of {operator_name}'
+        title = f'Matrix Elements of {operator_name} vs {parameter_name}'
+        plot_vs_parameter(parameter_values, np.abs(matrix_elements), parameter_name, ylabel, title, filename)
 
-        eigenenergies = np.array(eigenenergies)
-        if plot == True:
-            plot_eigenenergies(r_array, eigenenergies, r"$r$")
-        return eigenenergies
-    
-    def get_eigenenergies_vs_Ec(self, Ec_array, eigvals=6, plot=True) -> np.ndarray:
-        eigenenergies = []
-        for Ec in tqdm(Ec_array):
-            phi_zpf = (8.0 * Ec / self.El) ** 0.25
-            charge_number_operator = 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / phi_zpf /np.sqrt(2)
-            phase_operator = (destroy(self.dimension).dag() + destroy(self.dimension)) * phi_zpf/ np.sqrt(2)
-            ReZ = (phase_operator/2).cosm()*(self.r*phase_operator/2).cosm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).sinm()
-            ImZ = -(phase_operator/2).cosm()*(self.r*phase_operator/2).sinm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).cosm()
-            delta = phase_operator - self.phi_ext
-            hamiltonian = 4*Ec*tensor(charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
-            eigenenergies.append(np.real(hamiltonian.eigenenergies(eigvals=eigvals)))
+    return matrix_elements
 
-        eigenenergies = np.array(eigenenergies)
-        if plot == True:
-            plot_eigenenergies(Ec_array, eigenenergies, r"$E_c$ (GHz)")
-        return eigenenergies
-    
-    def get_eigenenergies_vs_Delta(self, Delta_array, eigvals=6, plot=True) -> np.ndarray:
-        eigenenergies = []
-        for Delta in tqdm(Delta_array):
-            phi_zpf = (8.0 * self.Ec / self.El) ** 0.25
-            charge_number_operator = 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / phi_zpf /np.sqrt(2)
-            phase_operator = (destroy(self.dimension).dag() + destroy(self.dimension)) * phi_zpf/ np.sqrt(2)
-            ReZ = (phase_operator/2).cosm()*(self.r*phase_operator/2).cosm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).sinm()
-            ImZ = -(phase_operator/2).cosm()*(self.r*phase_operator/2).sinm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).cosm()
-            delta = phase_operator - self.phi_ext
-            hamiltonian = 4*self.Ec*tensor(charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
-            eigenenergies.append(np.real(hamiltonian.eigenenergies(eigvals=eigvals)))
+def filter_args(func, params):
+    """ Filtra un diccionario de argumentos para incluir solo los que necesita una función. """
+    sig = inspect.signature(func)
+    return {k: v for k, v in params.items() if k in sig.parameters}
 
-        eigenenergies = np.array(eigenenergies)
-        if plot == True:
-            plot_eigenenergies(Delta_array, eigenenergies, r"$\Delta_{eff}$ (GHz)")
-        return eigenenergies
-
-    def get_eigenenergies_vs_El(self, El_array, eigvals=6, plot=True) -> np.ndarray:
-        eigenenergies = []
-        for El in tqdm(El_array):
-            phi_zpf = (8.0 * self.Ec / El) ** 0.25
-            charge_number_operator = 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / phi_zpf /np.sqrt(2)
-            phase_operator = (destroy(self.dimension).dag() + destroy(self.dimension)) * phi_zpf/ np.sqrt(2)
-            ReZ = (phase_operator/2).cosm()*(self.r*phase_operator/2).cosm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).sinm()
-            ImZ = -(phase_operator/2).cosm()*(self.r*phase_operator/2).sinm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).cosm()
-            delta = phase_operator - self.phi_ext
-            hamiltonian = 4*self.Ec*tensor(charge_number_operator**2,qeye(2)) + 0.5*El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
-            eigenenergies.append(np.real(hamiltonian.eigenenergies(eigvals=eigvals)))
-
-        eigenenergies = np.array(eigenenergies)
-        if plot == True:
-            plot_eigenenergies(El_array, eigenenergies, r"$E_L$ (GHz)")
-        return eigenenergies
-    
-    def get_phase_matrix_element_vs_El(self, state_i=0, state_j=1, El_array = np.linspace(0.05,0.5,100), plot = True):
-        matrix_elements = np.zeros(len(El_array), dtype=complex)
-        for k, El in enumerate(tqdm(El_array)):
-            phi_zpf = (8.0 * self.Ec / El) ** 0.25
-            charge_number_operator = 1j * (destroy(self.dimension).dag() - destroy(self.dimension)) / phi_zpf /np.sqrt(2)
-            phase_operator = (destroy(self.dimension).dag() + destroy(self.dimension)) * phi_zpf/ np.sqrt(2)
-            ReZ = (phase_operator/2).cosm()*(self.r*phase_operator/2).cosm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).sinm()
-            ImZ = -(phase_operator/2).cosm()*(self.r*phase_operator/2).sinm()+self.r*(phase_operator/2).sinm()*(self.r*phase_operator/2).cosm()
-            delta = phase_operator - self.phi_ext
-            hamiltonian = 4*self.Ec*tensor(charge_number_operator**2,qeye(2)) + 0.5*self.El*tensor((delta)**2,qeye(2)) + self.Delta*(tensor(ReZ,sigmaz())+tensor(ImZ,sigmay()))
-            eigenstates = hamiltonian.eigenstates(eigvals=max(state_i,state_j) + 1)[1]
-
-            matrix_elements[k] = phase_operator.matrix_element(eigenstates[state_i],eigenstates[state_j])
-
-        if plot == True:
-            matrix_elements = np.abs(matrix_elements)
-            x_label = f"$E_L$ (GHz)"
-            y_label = f"$\\langle {state_i} | \\hat \\varphi | {state_j} \\rangle$ (rad)"
-            plot_figure(El_array, matrix_elements, x_label, y_label)
-        return matrix_elements
-
-
-
-    def get_eigensystem(self, dimension = 100, eigvals=0):
-        hamiltonian = self.get_hamiltonian(dimension=dimension)
-        eigenenergies, eigenstates = hamiltonian.eigenstates(eigvals=eigvals)
-        return eigenenergies, np.real(eigenstates)
-    
-    def get_operator_matrix_element(self, operator: Qobj, eigvals=0, i=0, j=1):
-        hamiltonian = self.get_hamiltonian(dimension=100)
-        eigenstates = hamiltonian.eigenstates(eigvals=eigvals)[1]
-        matrix_element = operator.matrix_element(eigenstates[i],eigenstates[j])
-        return matrix_element
-    
-    def get_operator_matrix_element_vs_external_phase(self, operator: Qobj, eigvals=0, i=0, j=1, phi_ext_array = np.linspace(-2*np.pi,2*np.pi,100)):
-        matrix_elements = []
-        for phi_ext in phi_ext_array:
-            self.phi_ext = phi_ext
-            matrix_elements.append(self.get_operator_matrix_element(operator=operator, eigvals=eigvals, i=i, j=j))
-        return np.array(matrix_elements)
-    
-    def get_operator_matrix_element_vs_r(self, operator: Qobj, eigvals=0, i=0, j=1, r_array = np.linspace(0,1,100)):
-        matrix_elements = []
-        for r in r_array:
-            self.r = r
-            matrix_elements.append(self.get_operator_matrix_element(operator=operator, eigvals=eigvals, i=i, j=j))
-        return np.array(matrix_elements)
-
-def plot_eigenenergies(x_value, eigenenergies, x_label):
-    plt.figure()
-    for i in range(eigenenergies.shape[1]):
-        plt.plot(x_value, eigenenergies[:,i])
-    plt.xlabel(x_label)
-    plt.ylabel("Eigenenergies (GHz)")
+def plot_vs_parameter(x_values, y_values, parameter_name, ylabel, title=None, filename=None):
+    plt.close('all')
+    fig, ax = plt.subplots()
+    ax.plot(x_values, y_values)
+    ax.set_xlabel(parameter_name)
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    if filename:
+        fig.savefig(filename)
     plt.show()
 
-def plot_figure(x_value, y_value, x_label, y_label):
-    plt.figure()
-    plt.plot(x_value, y_value)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.show()
+
