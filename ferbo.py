@@ -79,18 +79,14 @@ def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator
         raise ValueError(f"Unknown operator name: {operator_name}")
 
     params = fixed_params.copy()
-    filtered_params = filter_args(operator_function, params)
-    if parameter_name not in filtered_params:
-        operator = operator_function(**filtered_params)
 
     for k, param_value in enumerate(tqdm(parameter_values)):
         params[parameter_name] = param_value
         h = hamiltonian(**params)
         eigvalues, eigenstates = h.eigenstates(eigvals=eigvals)
         eigenenergies[k] = np.real(eigvalues)
-        if parameter_name in filtered_params:
-            filtered_params[parameter_name] = param_value
-            operator = operator_function(**filtered_params)
+        filtered_params = filter_args(operator_function, params)
+        operator = operator_function(**filtered_params)
         matrix_elements[k] = operator.matrix_element(eigenstates[state_i], eigenstates[state_j])
 
     if plot:
