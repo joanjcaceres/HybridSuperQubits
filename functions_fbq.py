@@ -200,7 +200,7 @@ def S_capacitive(Ec,E01):
     def Q_cap(E01):
         return (0.35e6*(6e9/E01)**0.15)
 
-    Cj = e**2/2/Ec/h
+    Cj = e**2/2/Ec/h    
     return 2*hbar/Cj/Q_cap(E01)*Temp_factor(E01)
 
 def S_inductive(El,E01):

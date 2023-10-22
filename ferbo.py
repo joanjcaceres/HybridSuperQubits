@@ -4,7 +4,7 @@ import numpy as np
 from typing import Dict
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
-from multiprocessing import Pool
+from scipy.constants import hbar
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay
 
 
@@ -23,6 +23,11 @@ def phase_operator(Ec, El, dimension) -> Qobj:
 OPERATOR_FUNCTIONS = {
     'charge_number': charge_number_operator,
     'phase': phase_operator,
+}
+
+OPERATOR_LABELS = {
+    'charge_number': r'\hat{n}',
+    'phase': r'\hat{\varphi}',
 }
 
 @functools.lru_cache(maxsize=None)
@@ -51,11 +56,10 @@ def eigenenergies_vs_parameter(parameter_name, parameter_values, fixed_params: D
     if parameter_name not in ["Ec", "El", "Delta", "phi_ext", "r"]:
             raise ValueError("parameter_name must be one of the following: 'Ec', 'El', 'Delta', 'phi_ext', 'r'")
     eigenenergies = np.zeros((len(parameter_values), eigvals))
+
+    params = fixed_params.copy()
     for i, param_value in enumerate(tqdm(parameter_values)):
-        # Actualizar el valor del parámetro variable
-        params = fixed_params.copy()
         params[parameter_name] = param_value
-        # Calcular las autoenergías
         h = hamiltonian(**params)
         eigenenergies[i] = np.real(h.eigenenergies(eigvals=eigvals))
     
@@ -67,26 +71,44 @@ def eigenenergies_vs_parameter(parameter_name, parameter_values, fixed_params: D
     return eigenenergies
 
 def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator_name: str,fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
+    eigvals = max(state_i, state_j) + 1
     matrix_elements = np.zeros(len(parameter_values), dtype=complex)
+    eigenenergies = np.zeros((len(parameter_values), eigvals))
     operator_function = OPERATOR_FUNCTIONS.get(operator_name)
     if operator_function is None:
         raise ValueError(f"Unknown operator name: {operator_name}")
-    
-    for k, param_value in enumerate(tqdm(parameter_values)):
-        params = fixed_params.copy()
-        params[parameter_name] = param_value
-        filtered_params = filter_args(operator_function, params)
-        h = hamiltonian(**params)
-        eigenstates = h.eigenstates(eigvals=max(state_i, state_j) + 1)[1]
+
+    params = fixed_params.copy()
+    filtered_params = filter_args(operator_function, params)
+    if parameter_name not in filtered_params:
         operator = operator_function(**filtered_params)
+
+    for k, param_value in enumerate(tqdm(parameter_values)):
+        params[parameter_name] = param_value
+        h = hamiltonian(**params)
+        eigvalues, eigenstates = h.eigenstates(eigvals=eigvals)
+        eigenenergies[k] = np.real(eigvalues)
+        if parameter_name in filtered_params:
+            filtered_params[parameter_name] = param_value
+            operator = operator_function(**filtered_params)
         matrix_elements[k] = operator.matrix_element(eigenstates[state_i], eigenstates[state_j])
 
     if plot:
-        ylabel = f'Matrix Elements of {operator_name}'
-        title = f'Matrix Elements of {operator_name} vs {parameter_name}'
-        plot_vs_parameter(parameter_values, np.abs(matrix_elements), parameter_name, ylabel, title, filename)
+        operator_label = OPERATOR_LABELS.get(operator_name, operator_name)
+        ylabel = rf'$|\langle {state_i} | {operator_label} | {state_j} \rangle|^2$'
+        title = rf'{ylabel} vs {parameter_name}'
+        plot_vs_parameter(parameter_values, np.abs(matrix_elements)**2, parameter_name, ylabel, title, filename)
 
-    return matrix_elements
+    return matrix_elements, eigenenergies
+
+def t1_vs_parameter(parameter_name: str, parameter_values, operator_name, spectral_density, fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
+    matrix_elements, eigenenergies = matrix_elements_vs_parameter(parameter_name, parameter_values, operator_name, fixed_params, state_i, state_j, plot=False)
+    t1 = hbar**2/np.abs(matrix_elements)**2/spectral_density(eigenenergies)
+    if plot:
+        ylabel = f'T1'
+        title = f'T1 vs {parameter_name}'
+        plot_vs_parameter(parameter_values, t1, parameter_name, ylabel, title, filename)
+    return t1
 
 def filter_args(func, params):
     """ Filtra un diccionario de argumentos para incluir solo los que necesita una función. """
