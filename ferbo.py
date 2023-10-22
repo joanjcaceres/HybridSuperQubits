@@ -17,12 +17,20 @@ def charge_number_operator(Ec, El, dimension) -> Qobj:
     return 1j * (destroy(dimension).dag() - destroy(dimension)) / phi_zpf(Ec, El) / np.sqrt(2)
 
 @functools.lru_cache(maxsize=None)
+def charge_number_operator_total(Ec, El, dimension) -> Qobj:
+    return tensor(charge_number_operator(Ec, El, dimension), qeye(2))
+
+@functools.lru_cache(maxsize=None)
 def phase_operator(Ec, El, dimension) -> Qobj:
     return (destroy(dimension).dag() + destroy(dimension)) * phi_zpf(Ec, El) / np.sqrt(2)
 
+@functools.lru_cache(maxsize=None)
+def phase_operator_total(Ec, El, dimension) -> Qobj:
+    return tensor(phase_operator(Ec, El, dimension), qeye(2))
+
 OPERATOR_FUNCTIONS = {
-    'charge_number': charge_number_operator,
-    'phase': phase_operator,
+    'charge_number': charge_number_operator_total,
+    'phase': phase_operator_total,
 }
 
 OPERATOR_LABELS = {
