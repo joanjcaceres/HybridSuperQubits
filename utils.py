@@ -1,51 +1,47 @@
-from qutip import Qobj
-import scipy.sparse as sp
-import numpy as np
+import inspect
+import matplotlib.pyplot as plt
 
-def cos_phi(N, phi_ext, m = 1):
-    """
-    Compute the cosine phi operator matrix in a complex sparse representation.
+def filter_args(func, params):
+    """ Filtra un diccionario de argumentos para incluir solo los que necesita una función. """
+    sig = inspect.signature(func)
+    return {k: v for k, v in params.items() if k in sig.parameters}
 
-    The operator is calculated based on the given system size N and external phase factor phi_ext. 
+def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, titles=None, common_title=None, figsize=None, filename=None, single_plot=False, **kwargs):
+    plt.close('all')
+    
+    num_plots = len(x_values_list)
+    
+    if figsize is None:
+        figsize = (2.5 * num_plots, 6)
+    
+    fig, ax = plt.subplots(1, num_plots if not single_plot else 1, figsize=figsize, **kwargs)
+    
+    if num_plots == 1 or single_plot:
+        ax = [ax]
+    
+    sharey = kwargs.get('sharey', False)
+    
+    for i in range(num_plots):
+        ax[0 if single_plot else i].plot(x_values_list[i], y_values_list[i], label=titles[i] if single_plot else None)
+        
+        if not sharey or i == 0:
+            ax[0 if single_plot else i].set_ylabel(ylabels[i])
+        
+        if not single_plot:
+            ax[i].set_xlabel(parameter_names[i])
+            if titles:
+                ax[i].set_title(titles[i])
+    
+    if single_plot:
+        ax[0].set_xlabel(parameter_names[0])
+        ax[0].legend()
+        
+    if common_title:
+        fig.suptitle(common_title)
 
-    Parameters
-    ----------
-    N : int
-        The size of the matrix to be created.
-    phi_ext : float
-        The external phase factor.
-    m : int, optional
-        The diagonal offset. Default is 1.
-
-    Returns
-    -------
-    Qobj
-        The cosine phi operator represented as a QuTiP Qobj with the CSR sparse matrix format.
-    """
-    diags = [np.exp(1j*phi_ext/2)*np.ones(N-m,dtype=int),np.exp(-1j*phi_ext/2)*np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
-    return Qobj(T, isherm=True)/2
-
-def sin_phi(N, phi_ext, m = 1):
-    """
-    Compute the sine phi operator matrix in a complex sparse representation.
-
-    The operator is calculated based on the given system size N and external phase factor phi_ext.
-
-    Parameters
-    ----------
-    N : int
-        The size of the matrix to be created.
-    phi_ext : float
-        The external phase factor.
-    m : int, optional
-        The diagonal offset. Default is 1.
-
-    Returns
-    -------
-    Qobj
-        The sine phi operator represented as a QuTiP Qobj with the CSR sparse matrix format.
-    """
-    diags = [np.exp(1j*phi_ext/2)*np.ones(N-m,dtype=int),-np.exp(-1j*phi_ext/2)*np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
-    return Qobj(T, isherm=True) /2/1j 
+    fig.tight_layout()
+    
+    if filename:
+        fig.savefig(filename)
+    
+    plt.show()
