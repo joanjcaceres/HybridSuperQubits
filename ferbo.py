@@ -1,10 +1,9 @@
-import inspect
 import functools
 import numpy as np
 from typing import Dict
 from tqdm.notebook import tqdm
-import matplotlib.pyplot as plt
 from scipy.constants import hbar
+from utils import filter_args, plot_vs_parameters
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay
 
 
@@ -74,7 +73,7 @@ def eigenenergies_vs_parameter(parameter_name, parameter_values, fixed_params: D
     if plot:
         ylabel = 'Eigenenergies'
         title = f'Eigenenergies vs {parameter_name}'
-        plot_vs_parameter(parameter_values, eigenenergies, parameter_name, ylabel, title, filename)
+        plot_vs_parameters(parameter_values, eigenenergies, parameter_name, ylabel, title, filename)
     
     return eigenenergies
 
@@ -101,7 +100,7 @@ def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator
         operator_label = OPERATOR_LABELS.get(operator_name, operator_name)
         ylabel = rf'$|\langle {state_i} | {operator_label} | {state_j} \rangle|^2$'
         title = rf'{ylabel} vs {parameter_name}'
-        plot_vs_parameter(parameter_values, np.abs(matrix_elements)**2, parameter_name, ylabel, title, filename)
+        plot_vs_parameters(parameter_values, np.abs(matrix_elements)**2, parameter_name, ylabel, title, filename)
 
     return matrix_elements, eigenenergies
 
@@ -111,24 +110,5 @@ def t1_vs_parameter(parameter_name: str, parameter_values, operator_name, spectr
     if plot:
         ylabel = f'T1'
         title = f'T1 vs {parameter_name}'
-        plot_vs_parameter(parameter_values, t1, parameter_name, ylabel, title, filename)
+        plot_vs_parameters(parameter_values, t1, parameter_name, ylabel, title, filename)
     return t1
-
-def filter_args(func, params):
-    """ Filtra un diccionario de argumentos para incluir solo los que necesita una función. """
-    sig = inspect.signature(func)
-    return {k: v for k, v in params.items() if k in sig.parameters}
-
-def plot_vs_parameter(x_values, y_values, parameter_name, ylabel, title=None, filename=None):
-    plt.close('all')
-    fig, ax = plt.subplots()
-    ax.plot(x_values, y_values)
-    ax.set_xlabel(parameter_name)
-    ax.set_ylabel(ylabel)
-    if title:
-        ax.set_title(title)
-    if filename:
-        fig.savefig(filename)
-    plt.show()
-
-
