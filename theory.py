@@ -35,16 +35,21 @@ def bloch_andreev_hamiltonian(Ej: float, r: float, Ec: float, q: float, N: int) 
 
     return matrix
 
-def andreev_bloch_waves(phi: float, Ej: float, r: float, Ec: float, q: float, N: int):
+import numpy as np
+
+
+def andreev_bloch_waves(phi: float, Ej: float, r: float, Ec: float, q: float, N: int) -> np.ndarray:
+
     hamiltonian = bloch_andreev_hamiltonian(Ej = Ej, r = r, Ec = Ec, q = q, N = N)
     _, eigenvectors = np.linalg.eigh(hamiltonian)
+    eigenvectors_reshaped = eigenvectors.reshape(2*(N+1), -1, 2)
 
-    q_vals = (np.arange(-N, N + 2) // 2) / 2
-    factors = np.exp(1j * q_vals * phi)
+    # q_vals = np.arange(-N, N + 2) / 2
+    # factors = np.exp(1j * q_vals * phi)
 
-    andreev_bloch_eigenvectors = eigenvectors * factors
+    # andreev_bloch_eigenvectors = eigenvectors * factors
 
-    return andreev_bloch_eigenvectors
+    return eigenvectors_reshaped
 
 def omega_matrix(Ej: float, r: float, Ec: float, q: float, N: int):
     q_list = np.linspace(0,1/2,100)
