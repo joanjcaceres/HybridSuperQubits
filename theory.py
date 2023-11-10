@@ -44,12 +44,12 @@ def andreev_bloch_waves(phi: float, Ej: float, r: float, Ec: float, q: float, N:
     _, eigenvectors = np.linalg.eigh(hamiltonian)
     eigenvectors_reshaped = eigenvectors.reshape(2*(N+1), -1, 2)
 
-    # q_vals = np.arange(-N, N + 2) / 2
-    # factors = np.exp(1j * q_vals * phi)
+    m_vals = np.arange(-N/2, N/2 + 1)
+    factor = np.exp(1j * m_vals/2 * phi)
 
     # andreev_bloch_eigenvectors = eigenvectors * factors
 
-    return eigenvectors_reshaped
+    return eigenvectors_reshaped,factor
 
 def omega_matrix(Ej: float, r: float, Ec: float, q: float, N: int):
     q_list = np.linspace(0,1/2,100)
