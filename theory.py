@@ -16,6 +16,7 @@ def bloch_andreev_hamiltonian(Ej: float, r: float, Ec: float, q: float, N: int) 
     Returns:
     - np.ndarray: Generated matrix.
     """
+    #TODO: Create two loops on for n in N and another sigma in {0,1} for the spin to make it more clear.
     dimension = 2 * (N + 1)
     matrix = np.zeros((dimension, dimension))
 
@@ -35,21 +36,19 @@ def bloch_andreev_hamiltonian(Ej: float, r: float, Ec: float, q: float, N: int) 
 
     return matrix
 
-import numpy as np
-
 
 def andreev_bloch_waves(phi: float, Ej: float, r: float, Ec: float, q: float, N: int) -> np.ndarray:
 
     hamiltonian = bloch_andreev_hamiltonian(Ej = Ej, r = r, Ec = Ec, q = q, N = N)
     _, eigenvectors = np.linalg.eigh(hamiltonian)
-    eigenvectors_reshaped = eigenvectors.reshape(2*(N+1), -1, 2)
+    # eigenvectors_reshaped = eigenvectors.reshape(2*(N+1), -1, 2)
 
-    m_vals = np.arange(-N/2, N/2 + 1)
+    m_vals = np.arange(-N//2, N//2 + 1)
     factor = np.exp(1j * m_vals/2 * phi)
 
-    # andreev_bloch_eigenvectors = eigenvectors * factors
-
-    return eigenvectors_reshaped,factor
+    bloch_waves = [eigenvector * factor[:,np.newaxis] for eigenvector in eigenvectors_reshaped]
+    bloch_waves = np.array(bloch_waves)
+    return bloch_waves
 
 def omega_matrix(Ej: float, r: float, Ec: float, q: float, N: int):
     q_list = np.linspace(0,1/2,100)
