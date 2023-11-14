@@ -2,12 +2,13 @@ import numpy as np
 
 # All the function below are valid for the Andreev Hamiltonian.
 
-def bloch_andreev_hamiltonian(Ej: float, r: float, Ec: float, q: float, N: int) -> np.ndarray:
+def bloch_waves_generator(Ej: float, phase:float, r: float, Ec: float, q: float, Nmax: int) -> np.ndarray:
     """
     Generate the matrix representation of the Andreev Hamiltonian in the Bloch waves representation.
 
     Parameters:
     - Ej (float): Josephson energy.
+    - phase (float): Phase.
     - r (float): Reflectivity.
     - Ec (float): Charging energy.
     - q (float): Quasimomentum.
@@ -16,25 +17,34 @@ def bloch_andreev_hamiltonian(Ej: float, r: float, Ec: float, q: float, N: int) 
     Returns:
     - np.ndarray: Generated matrix.
     """
-    #TODO: Create two loops on for n in N and another sigma in {0,1} for the spin to make it more clear.
-    dimension = 2 * (N + 1)
+    dimension = 2 * (2* Nmax + 1)
     matrix = np.zeros((dimension, dimension))
 
-    for i, idx in enumerate(range(-N, N + 2)):
+    G = np.repeat(np.arange(-Nmax, Nmax + 1),2) / 2
+    q_vals = q - G
+    matrix[np.diag_indices(dimension)] = 4 * Ec * q_vals ** 2
 
-        q_val = q - (idx // 2) / 2
-        matrix[i, i] = 4 * Ec * q_val ** 2
+    off_diag1 = np.zeros(dimension - 1)
+    off_diag1[1::2] = -r * Ej / 2
+    np.fill_diagonal(matrix[1:], off_diag1)
+    np.fill_diagonal(matrix[:, 1:], off_diag1)
 
-        if i + 1 < dimension:
-            matrix[i, i + 1] = matrix[i + 1, i] = (-r * Ej / 2) if idx % 2 != 0 else 0
+    off_diag2 = np.zeros(dimension - 2)
+    off_diag2[::2] = Ej / 2
+    off_diag2[1::2] = -Ej / 2
+    np.fill_diagonal(matrix[2:], off_diag2)
+    np.fill_diagonal(matrix[:, 2:], off_diag2)
 
-        if i + 2 < dimension:
-            matrix[i, i + 2] = matrix[i + 2, i] = (Ej / 2) if idx % 2 == 0 else (-Ej / 2)
+    off_diag3 = np.zeros(dimension - 3)
+    off_diag3[::2] = r * Ej / 2
+    np.fill_diagonal(matrix[3:], off_diag3)
+    np.fill_diagonal(matrix[:, 3:], off_diag3)
 
-        if i + 3 < dimension:
-            matrix[i, i + 3] = matrix[i + 3, i] = (r * Ej / 2) if idx % 2 == 0 else 0
+    eigvals,eigvecs = np.linalg.eigh(matrix)
+    phase_factor = np.exp(1j * G * phase)
+    bloch_waves = phase_factor * eigvecs
 
-    return matrix
+    return bloch_waves
 
 
 def andreev_bloch_waves(phi: float, Ej: float, r: float, Ec: float, q: float, N: int) -> np.ndarray:
