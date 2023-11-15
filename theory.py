@@ -16,25 +16,25 @@ def bloch_waves_generator(Ej: float, phase:float, r: float, Ec: float, q: float,
     - np.ndarray: Generated matrix.
     """
     dimension = 2 * (2* Nmax + 1)
-    matrix = np.zeros((dimension, dimension))
+    matrix = np.zeros((dimension, dimension), dtype=np.complex128)
     N_list = np.arange(-Nmax, Nmax + 1) / 2
 
     G = np.repeat(N_list,2)  #this results in i.e.: [...,-1/2,-1/2,0/2,0/2,1/2,1/2,...]
     q_vals = q - G
     matrix[np.diag_indices(dimension)] = 4 * Ec * q_vals ** 2
 
-    off_diag1 = np.zeros(dimension - 1)
+    off_diag1 = np.zeros(dimension - 1, dtype=np.complex128)
     off_diag1[1::2] = -r * Ej / 2 # interleaved with zeros.
     np.fill_diagonal(matrix[1:], off_diag1)
     np.fill_diagonal(matrix[:, 1:], off_diag1)
 
-    off_diag2 = np.zeros(dimension - 2)
+    off_diag2 = np.zeros(dimension - 2, dtype=np.complex128)
     off_diag2[::2] = Ej / 2
     off_diag2[1::2] = -Ej / 2
     np.fill_diagonal(matrix[2:], off_diag2)
     np.fill_diagonal(matrix[:, 2:], off_diag2)
 
-    off_diag3 = np.zeros(dimension - 3)
+    off_diag3 = np.zeros(dimension - 3, dtype=np.complex128)
     off_diag3[::2] = r * Ej / 2 # interleaved with zeros.
     np.fill_diagonal(matrix[3:], off_diag3)
     np.fill_diagonal(matrix[:, 3:], off_diag3)
