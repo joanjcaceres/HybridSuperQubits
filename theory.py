@@ -1,7 +1,5 @@
 import numpy as np
 
-# All the function below are valid for the Andreev Hamiltonian.
-
 def bloch_waves_generator(Ej: float, phase:float, r: float, Ec: float, q: float, Nmax: int) -> np.ndarray:
     """
     Generate the matrix representation of the Andreev Hamiltonian in the Bloch waves representation.
@@ -19,13 +17,14 @@ def bloch_waves_generator(Ej: float, phase:float, r: float, Ec: float, q: float,
     """
     dimension = 2 * (2* Nmax + 1)
     matrix = np.zeros((dimension, dimension))
+    N_list = np.arange(-Nmax, Nmax + 1) / 2
 
-    G = np.repeat(np.arange(-Nmax, Nmax + 1),2) / 2
+    G = np.repeat(N_list,2)  #this results in i.e.: [...,-1/2,-1/2,0/2,0/2,1/2,1/2,...]
     q_vals = q - G
     matrix[np.diag_indices(dimension)] = 4 * Ec * q_vals ** 2
 
     off_diag1 = np.zeros(dimension - 1)
-    off_diag1[1::2] = -r * Ej / 2
+    off_diag1[1::2] = -r * Ej / 2 # interleaved with zeros.
     np.fill_diagonal(matrix[1:], off_diag1)
     np.fill_diagonal(matrix[:, 1:], off_diag1)
 
@@ -36,13 +35,14 @@ def bloch_waves_generator(Ej: float, phase:float, r: float, Ec: float, q: float,
     np.fill_diagonal(matrix[:, 2:], off_diag2)
 
     off_diag3 = np.zeros(dimension - 3)
-    off_diag3[::2] = r * Ej / 2
+    off_diag3[::2] = r * Ej / 2 # interleaved with zeros.
     np.fill_diagonal(matrix[3:], off_diag3)
     np.fill_diagonal(matrix[:, 3:], off_diag3)
 
     eigvals,eigvecs = np.linalg.eigh(matrix)
-    phase_factor = np.exp(1j * G * phase)
-    bloch_waves = phase_factor * eigvecs
+    eigvecs_reshaped = eigvecs.reshape(dimension, dimension//2, 2)
+    phase_factor = np.exp(1j * N_list * phase)
+    bloch_waves = np.einsum('ijk,j->ik',eigvecs_reshaped,phase_factor)
 
     return bloch_waves
 
