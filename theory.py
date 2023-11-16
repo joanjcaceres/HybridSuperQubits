@@ -40,11 +40,8 @@ def bloch_waves_generator(Ej: float, phase:float, r: float, Ec: float, q: float,
     np.fill_diagonal(matrix[:, 3:], off_diag3)
 
     eigvals,eigvecs = np.linalg.eigh(matrix)
-    eigvecs_reshaped = eigvecs.reshape(dimension, dimension//2, 2)
-    phase_factor = np.exp(1j * N_list * phase)
-    bloch_waves = np.einsum('ijk,j->ik',eigvecs_reshaped,phase_factor)
 
-    return eigvals, bloch_waves
+    return np.real(eigvals), eigvecs
 
 
 def andreev_bloch_waves(phi: float, Ej: float, r: float, Ec: float, q: float, N: int) -> np.ndarray:
