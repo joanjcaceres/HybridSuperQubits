@@ -2,7 +2,8 @@ import functools
 import numpy as np
 from typing import Dict
 from tqdm.notebook import tqdm
-from scipy.constants import hbar
+from scipy.constants import hbar, e, k
+from scipy.interpolate import UnivariateSpline
 from utils import filter_args, plot_vs_parameters
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay
 
@@ -27,14 +28,25 @@ def phase_operator(Ec, El, dimension) -> Qobj:
 def phase_operator_total(Ec, El, dimension) -> Qobj:
     return tensor(phase_operator(Ec, El, dimension), qeye(2))
 
+@functools.lru_cache(maxsize=None)
+def dHdr_operator(Ec, El, r, Delta, dimension) -> Qobj:
+    phase_op = phase_operator(Ec, El, dimension)
+    dReZdr = 1/2*(r*phase_op*(r*phase_op/2).cosm()*(phase_op/2).sinm()+(-phase_op*(phase_op/2).cosm()+2*(phase_op/2).sinm())*(r*phase_op/2).sinm())
+    dImZdr = -1/2*(r*phase_op/2).cosm()*(phase_op*(phase_op/2).cosm()-2*(phase_op/2).sinm())-1/2*r*phase_op*(phase_op/2).sinm()*(r*phase_op/2).sinm()
+    return Delta*(tensor(dReZdr,sigmaz())+tensor(dImZdr,sigmay()))
+
 OPERATOR_FUNCTIONS = {
+    #TODO: Include the operator dH/dr
     'charge_number': charge_number_operator_total,
     'phase': phase_operator_total,
+    'phase': dHdr_operator,
 }
 
 OPERATOR_LABELS = {
+    #TODO: Include the operator dH/dr
     'charge_number': r'\hat{n}',
     'phase': r'\hat{\varphi}',
+    'dHdr': r'\hat{\partial H /\partial r}'
 }
 
 @functools.lru_cache(maxsize=None)
@@ -77,6 +89,27 @@ def eigenenergies_vs_parameter(parameter_name, parameter_values, fixed_params: D
     
     return eigenenergies
 
+def eigensytem_vs_parameter(parameter_name, parameter_values, fixed_params: Dict[str, float], eigvals=2, plot = True, filename=None) -> np.ndarray:
+    if parameter_name not in ["Ec", "El", "Delta", "phi_ext", "r"]:
+            raise ValueError("parameter_name must be one of the following: 'Ec', 'El', 'Delta', 'phi_ext', 'r'")
+    eigenenergies = np.zeros((len(parameter_values), eigvals))
+    eigenstates = []
+
+    params = fixed_params.copy()
+    for i, param_value in enumerate(tqdm(parameter_values)):
+        params[parameter_name] = param_value
+        h = hamiltonian(**params)
+        eigenenergy, states = h.eigenstates(eigvals = eigvals)
+        eigenenergies[i] = np.real(eigenenergy)
+        eigenstates.append(states)
+    
+    if plot:
+        ylabel = 'Eigenenergies'
+        title = f'Eigenenergies vs {parameter_name}'
+        plot_vs_parameters(parameter_values, eigenenergies, parameter_name, ylabel, title, filename)
+    
+    return eigenenergies, eigenstates
+
 def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator_name: str,fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
     eigvals = max(state_i, state_j) + 1
     matrix_elements = np.zeros(len(parameter_values), dtype=complex)
@@ -104,11 +137,36 @@ def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator
 
     return matrix_elements, eigenenergies
 
+def derivative_eigenenergies(parameter_name, parameter_values, fixed_params: Dict[str, float], eigvals=2):
+
+    energies = eigenenergies_vs_parameter('phi_ext', parameter_values, fixed_params, eigvals, plot=False)
+
+    # TODO: Make it general for any different transition
+    energy_transition = energies[:, 1] - energies[:, 0]
+  
+    # Crear splines para suavizar y derivar las energías
+    spline_01 = UnivariateSpline(parameter_values, energy_transition, k=4, s=0)
+
+    # Calcular la primera y segunda derivada
+    first_derivative_01 = spline_01.derivative(n=1)
+    second_derivative_01 = spline_01.derivative(n=2)
+
+    # Evaluar las derivadas en los valores del parámetro
+    first_derivatives_01 = first_derivative_01(parameter_values)
+    second_derivatives_01 = second_derivative_01(parameter_values)
+
+    ylabel = [r'$\left | \partial f_{01}/\partial \varphi_{ext} \right |^2$',
+              r'$\left | \partial^2 f_{01}/\partial \varphi_{ext}^2 \right | ^2$']
+    plot_vs_parameters(parameter_values, [first_derivatives_01**2,second_derivatives_01**2], [parameter_name]*2, ylabel)
+
+    return first_derivatives_01, second_derivatives_01
+
 def t1_vs_parameter(parameter_name: str, parameter_values, operator_name, spectral_density, fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
-    matrix_elements, eigenenergies = matrix_elements_vs_parameter(parameter_name, parameter_values, operator_name, fixed_params, state_i, state_j, plot=False)
-    t1 = hbar**2/np.abs(matrix_elements)**2/spectral_density(eigenenergies)
-    if plot:
-        ylabel = f'T1'
-        title = f'T1 vs {parameter_name}'
-        plot_vs_parameters(parameter_values, t1, parameter_name, ylabel, title, filename)
-    return t1
+    raise NotImplementedError
+    # matrix_elements, eigenenergies = matrix_elements_vs_parameter(parameter_name, parameter_values, operator_name, fixed_params, state_i, state_j, plot=False)
+    # t1 = hbar**2/np.abs(matrix_elements)**2/spectral_density(eigenenergies)
+    # if plot:
+    #     ylabel = f'T1'
+    #     title = f'T1 vs {parameter_name}'
+    #     plot_vs_parameters(parameter_values, t1, parameter_name, ylabel, title, filename)
+    # return t1
