@@ -1,8 +1,8 @@
 import numpy as np
 
-def eingensystem_hamiltonian(Ej: float, phase:float, r: float, Ec: float, q: float, Nmax: int) -> np.ndarray:
+def eingensystem_hamiltonian(Ej: float, r: float, Ec: float, q: float, Nmax: int) -> np.ndarray:
     """
-    Generate the matrix representation of the Andreev Hamiltonian in the Bloch waves representation.
+    Generate the matrix representation of the Andreev Hamiltonian in the Bloch vector representation.
 
     Parameters:
     - Ej (float): Josephson energy.
@@ -17,9 +17,9 @@ def eingensystem_hamiltonian(Ej: float, phase:float, r: float, Ec: float, q: flo
     """
     dimension = 2 * (2* Nmax + 1)
     matrix = np.zeros((dimension, dimension), dtype=np.complex128)
-    N_list = np.arange(-Nmax, Nmax + 1) / 2
+    N_list = np.arange(-Nmax, Nmax + 1)
 
-    G = np.repeat(N_list,2)  #this results in i.e.: [...,-1/2,-1/2,0/2,0/2,1/2,1/2,...]
+    G = np.repeat(N_list,2) / 2 # this results in i.e.: [...,-1/2,-1/2,0/2,0/2,1/2,1/2,...]
     q_vals = q - G
     matrix[np.diag_indices(dimension)] = 4 * Ec * q_vals ** 2
 
