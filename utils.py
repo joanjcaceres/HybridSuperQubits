@@ -25,7 +25,7 @@ def filter_args(func, params):
     # are present in the parameters of the function 'func'
     return {k: v for k, v in params.items() if k in sig.parameters}
 
-def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, titles=None, common_title=None, figsize=None, filename=None, single_plot=False, **kwargs):
+def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, titles=None, common_title=None, figsize=None, filename=None, single_plot=False, log_scale=False, **kwargs):
     plt.close('all')
     # if we want to make more than one plot, y_values_list have to be a list.
     num_plots = len(y_values_list) if isinstance(y_values_list, list) else 1
@@ -46,6 +46,9 @@ def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, t
     sharey = kwargs.get('sharey', False)
     for i in range(num_plots):
         ax[0 if single_plot else i].plot(x_values_list, y_values_list[i])
+
+        if log_scale:
+            ax[0 if single_plot else i].set_xscale('log')
         
         if not sharey or i == 0:
             ax[0 if single_plot else i].set_ylabel(ylabels[i])
