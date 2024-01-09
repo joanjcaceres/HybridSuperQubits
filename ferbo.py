@@ -39,7 +39,7 @@ OPERATOR_FUNCTIONS = {
     #TODO: Include the operator dH/dr
     'charge_number': charge_number_operator_total,
     'phase': phase_operator_total,
-    'phase': dHdr_operator,
+    'dHdr': dHdr_operator,
 }
 
 OPERATOR_LABELS = {
@@ -110,7 +110,7 @@ def eigensytem_vs_parameter(parameter_name, parameter_values, fixed_params: Dict
     
     return eigenenergies, eigenstates
 
-def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator_name: str,fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
+def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator_name: str,fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None,  **kwargs):
     eigvals = max(state_i, state_j) + 1
     matrix_elements = np.zeros(len(parameter_values), dtype=complex)
     eigenenergies = np.zeros((len(parameter_values), eigvals))
@@ -133,7 +133,7 @@ def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator
         operator_label = OPERATOR_LABELS.get(operator_name, operator_name)
         ylabel = rf'$|\langle {state_i} | {operator_label} | {state_j} \rangle|^2$'
         title = rf'{ylabel} vs {parameter_name}'
-        plot_vs_parameters(parameter_values, np.abs(matrix_elements)**2, parameter_name, ylabel, title, filename)
+        plot_vs_parameters(parameter_values, np.abs(matrix_elements)**2, parameter_name, ylabel, title, filename, **kwargs)
 
     return matrix_elements, eigenenergies
 
