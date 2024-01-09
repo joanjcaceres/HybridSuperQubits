@@ -41,7 +41,7 @@ def resonance_model3(j, cg_over_cj , geo_L):
     fp = 1/np.sqrt(Cjj*(Ljj+geo_L))/2/np.pi
     return fp * np.sqrt((1-np.cos(j*np.pi/N))/(1-np.cos(j*np.pi/N) + cg_over_cj/2))
 
-def frequency_array(N,Cjj,Ljj,Cg,Cin,Cout):
+def frequency_array(N,Cjj,Ljj,Cg,Cin,Cout,Cg_big):
 
     # Eigensolution of the linearized circuit matrix for a Josephson junction chain with the following parameters:
     # N: number of junctions
@@ -58,14 +58,15 @@ def frequency_array(N,Cjj,Ljj,Cg,Cin,Cout):
     #   https://journals.aps.org/prb/abstract/10.1103/PhysRevB.92.104508
 
     def C_matrix(N,Cjj,Cg,Cin,Cout):
-            matrix_diagonals = [np.ones(N-1)*(-Cjj),(2*Cjj+Cg)*np.ones(N),np.ones(N-1)*(-Cjj)]
+            matrix_diagonals = [np.ones(N)*(-Cjj),(2*Cjj+Cg)*np.ones(N+1),np.ones(N)*(-Cjj)]
             matrix = diags(matrix_diagonals,offsets=[-1,0,1]).toarray()
             matrix[0,0] = Cjj + Cin
             matrix[-1,-1] = Cjj + Cout
+            matrix[N//2, N//2] = 2*Cjj+Cg_big
             return matrix
         
     def L_inv_matrix(N,Ljj):
-        matrix_diagonals = [(-1/Ljj)*np.ones(N-1),(2/Ljj)*np.ones(N),(-1/Ljj)*np.ones(N-1)]
+        matrix_diagonals = [(-1/Ljj)*np.ones(N),(2/Ljj)*np.ones(N+1),(-1/Ljj)*np.ones(N)]
         matrix = diags(matrix_diagonals,[-1,0,1]).toarray()
         matrix[0,0] = 1/Ljj
         matrix[-1,-1] = 1/Ljj
