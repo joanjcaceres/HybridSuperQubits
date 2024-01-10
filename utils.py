@@ -2,6 +2,13 @@ import inspect
 import matplotlib.pyplot as plt
 import numpy as np
 
+def smart_round(num, n):
+    if num == 0:
+        return 0
+    else:
+        from math import floor, log10
+        return round(num, -floor(log10(abs(num))) + (n - 1))
+
 def filter_args(func, params):
     """
     Filters a dictionary of arguments to include only those that are required by a given function.
