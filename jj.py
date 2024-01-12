@@ -34,7 +34,7 @@ def frequency_array_fit4(params):
 def frequency_array_fit5(params):
      Cjj, Cg,Cg_big = params
      #To change the values below each time to fit
-     N = 150
+     N = 600
      Ljj = 4.1e-9
      return frequency_array_Cgbig_half(N,Cjj,Ljj,Cg,Cg_big,Cin=0,Cout = 0)[1:8]
 
@@ -302,3 +302,7 @@ def frequency_array_Cgbig_phi0_impedance(N,Cjj,Ljj,Cg,Cg_big,Cin,Cout):
 
     impedance_array = np.array(impedance_array)
     return resonances/2/np.pi, impedance_array
+
+def phase_slip_rate(wp,El,N=150):
+    Es = np.sqrt(2/np.pi) * np.sqrt(8*El*N/wp)* (const.hbar * wp) * np.exp(-8*El*N/wp)
+    return np.pi * np.sqrt(N)*Es/const.h
