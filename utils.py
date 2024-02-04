@@ -32,15 +32,15 @@ def filter_args(func, params):
     # are present in the parameters of the function 'func'
     return {k: v for k, v in params.items() if k in sig.parameters}
 
-def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, titles=None, common_title=None, figsize=None, filename=None, single_plot=False, log_scale=False, **kwargs):
+def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, titles=None, common_title=None, filename=None, single_plot=False, log_scale=False, **kwargs):
     plt.close('all')
     # if we want to make more than one plot, y_values_list have to be a list.
     num_plots = len(y_values_list) if isinstance(y_values_list, list) else 1
-    print(num_plots)
+    figsize = kwargs.get('figsize', None)
     if figsize is None:
         figsize = (6, 6) if num_plots == 1 else (2.5 * num_plots, 6)
     
-    fig, ax = plt.subplots(1, num_plots if not single_plot else 1, figsize=figsize, **kwargs)
+    fig, ax = plt.subplots(1, num_plots if not single_plot else 1, **kwargs)
     
     if num_plots == 1 or single_plot:
         ax = [ax]
@@ -78,3 +78,37 @@ def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, t
         fig.savefig(filename)
     
     plt.show()
+
+def plot_style():
+    plt.rcParams.update(
+            {
+                "font.size": 16,
+                "font.family": "serif",
+                "text.usetex": True,
+                "figure.subplot.top": 0.9,
+                "figure.subplot.right": 0.9,
+                "figure.subplot.left": 0.15,
+                "figure.subplot.bottom": 0.12,
+                "figure.subplot.hspace": 0.4,
+                # "savefig.dpi": dpi,
+                "savefig.format": "png",
+                "axes.titlesize": 16,
+                "axes.labelsize": 18,
+                "axes.axisbelow": True,
+                "xtick.direction": "in",
+                "ytick.direction": "in",
+                "xtick.major.size": 5,
+                "xtick.minor.size": 2.25,
+                "xtick.major.pad": 7.5,
+                "xtick.minor.pad": 7.5,
+                "ytick.major.pad": 7.5,
+                "ytick.minor.pad": 7.5,
+                "ytick.major.size": 5,
+                "ytick.minor.size": 2.25,
+                "xtick.labelsize": 16,
+                "ytick.labelsize": 16,
+                "legend.fontsize": 16,
+                "legend.framealpha": 1,
+                "figure.titlesize": 16,
+                "lines.linewidth": 2,
+            })
