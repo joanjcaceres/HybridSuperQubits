@@ -29,7 +29,7 @@ def phase_operator_total(Ec, El, dimension) -> Qobj:
     return tensor(phase_operator(Ec, El, dimension), qeye(2))
 
 @functools.lru_cache(maxsize=None)
-def dHdr_operator(Ec, El, r, Delta, dimension, model = "zazunov") -> Qobj:
+def dHdr_operator(Ec, El, r, Delta, dimension, model = "jrl") -> Qobj:
     phase_op = phase_operator(Ec, El, dimension)
 
     if model == 'zazunov':
@@ -38,17 +38,26 @@ def dHdr_operator(Ec, El, r, Delta, dimension, model = "zazunov") -> Qobj:
         return Delta*(tensor(dReZdr,sigmaz())+tensor(dImZdr,sigmay()))
     elif model == 'jrl':
         return -Delta*tensor((phase_op/2).sinm(),sigmay())
+    
+@functools.lru_cache(maxsize=None)
+def dHder_operator(Delta, dimension, model = "jrl") -> Qobj:
+    if model == 'zazunov':
+        raise ValueError(f'Not valid for the Zazunov model.')
+    elif model == 'jrl':
+        return - Delta*tensor(qeye(dimension),sigmax())
 
 OPERATOR_FUNCTIONS = {
     'charge_number': charge_number_operator_total,
     'phase': phase_operator_total,
     'dHdr': dHdr_operator,
+    'dHder': dHder_operator,
 }
 
 OPERATOR_LABELS = {
     'charge_number': r'\hat{n}',
     'phase': r'\hat{\varphi}',
-    'dHdr': r'\hat{\partial H /\partial r}'
+    'dHdr': r'\hat{\partial H /\partial r}',
+    'dHder': r'\hat{\partial H /\partial \varepsilon_r}'
 }
 
 @functools.lru_cache(maxsize=None)
@@ -60,28 +69,28 @@ def ReZ(Ec, El, r: float, dimension) -> Qobj:
 @functools.lru_cache(maxsize=None)
 def ImZ(Ec, El, r, dimension) -> Qobj:
     phase_op = phase_operator(Ec, El, dimension)
-    # return r*(phase_op/2).sinm()
     return -(phase_op/2).cosm()*(r*phase_op/2).sinm() + r*(phase_op/2).sinm()*(r*phase_op/2).cosm()
+    # return r*(phase_op/2).sinm()
 
 @functools.lru_cache(maxsize=None)
 def jrl_potential(Ec, El, r, er, dimension) -> Qobj:
     phase_op = phase_operator(Ec, El, dimension)
-    return tensor((phase_op/2).cosm(),sigmax()) + r*tensor((phase_op/2).sinm(),sigmay()) - er*tensor(qeye(dimension),sigmaz())
-    # return  tensor((phase_op/2).cosm(),sigmaz()) - er*tensor(qeye(dimension),sigmax()) + r* tensor((phase_op/2).sinm(),sigmay()) 
+    # return tensor((phase_op/2).cosm(),sigmax()) + r*tensor((phase_op/2).sinm(),sigmay()) - er*tensor(qeye(dimension),sigmaz())
+    return  tensor((phase_op/2).cosm(),sigmaz()) - er*tensor(qeye(dimension),sigmax()) + r* tensor((phase_op/2).sinm(),sigmay()) 
 
 @functools.lru_cache(maxsize=None)
 def delta(Ec, El, phi_ext, dimension):
     return phase_operator(Ec, El, dimension) - phi_ext
 
 @functools.lru_cache(maxsize=None)
-def hamiltonian(Ec, El, Delta, r, phi_ext: float, er=0, dimension = 100, model = 'ferbo') -> Qobj:
+def  hamiltonian(Ec, El, Delta, r, phi_ext: float, er=0, dimension = 100, model = 'ferbo') -> Qobj:
     charge_op = charge_number_operator(Ec, El, dimension)
     delta_val = delta(Ec, El, phi_ext, dimension)
 
     if model == 'zazunov':
         ReZ_val = ReZ(Ec, El, r, dimension)
         ImZ_val = ImZ(Ec, El, r, dimension)
-        return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) + Delta*(tensor(ReZ_val, sigmaz()) + tensor(ImZ_val, sigmay()))
+        return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) - Delta*(tensor(ReZ_val, sigmaz()) + tensor(ImZ_val, sigmay()))
     elif model == 'jrl': #Josephson Resonance level
         return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) - Delta*jrl_potential(Ec, El, r, er, dimension)
 
@@ -94,7 +103,9 @@ def eigen_vs_parameter(parameter_name, parameter_values, fixed_params: Dict[str,
     eigenstates = [] if calculate_states else None
 
     params = fixed_params.copy()
-    for i, param_value in enumerate(tqdm(parameter_values)):
+    # for i, param_value in enumerate(tqdm(parameter_values)):
+    for i, param_value in enumerate(parameter_values):
+
         params[parameter_name] = param_value
         h = hamiltonian(**params)
         if calculate_states:
@@ -114,7 +125,7 @@ def eigen_vs_parameter(parameter_name, parameter_values, fixed_params: Dict[str,
 
 def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator_name: str, fixed_params: Dict[str, float], state_i=0, state_j=1, plot=True, filename=None, **kwargs):
     # Asegúrate de que state_i y state_j estén cubiertos en los cálculos de eigen
-    eigvals = max(state_i, state_j) + 1
+    eigvals = kwargs.get('eigvals', max(state_i, state_j) + 1)
 
     # Utiliza la función existente para obtener las eigenenergías y eigenestados
     eigenenergies, eigenstates = eigen_vs_parameter(parameter_name, parameter_values, fixed_params, eigvals=eigvals, calculate_states=True, plot=False)
@@ -146,29 +157,42 @@ def matrix_elements_vs_parameter(parameter_name: str, parameter_values, operator
     return matrix_elements, eigenenergies
 
 
-def derivative_eigenenergies(parameter_name, parameter_values, fixed_params: Dict[str, float], eigvals=2):
+def derivative_eigenenergies(external_param, parameter_name, parameter_values, fixed_params: Dict[str, float], eigvals=2, plot=True):
 
-    energies = eigen_vs_parameter('phi_ext', parameter_values, fixed_params, eigvals,calculate_states = False, plot=False)
+    ext_name = OPERATOR_LABELS.get(external_param, r'\lambda')
+    ylabel = [rf'$\left | \partial f_{{01}}/\partial {ext_name} \right |^2$',
+              rf'$\left | \partial^2 f_{{01}}/\partial {ext_name}^2 \right | ^2$']
+    
+    if parameter_name == external_param and parameter_name in ['phi_ext','r','er']:
+        energies = eigen_vs_parameter(parameter_name, parameter_values, fixed_params, eigvals,calculate_states = False, plot=False)
+        energy_transition = energies[:, 1] - energies[:, 0]
+        spline_01 = UnivariateSpline(parameter_values, energy_transition, k=4, s=0)
+        first_derivative_01 = spline_01.derivative(n=1)
+        second_derivative_01 = spline_01.derivative(n=2)
 
-    # TODO: Make it general for any different transition
-    energy_transition = energies[:, 1] - energies[:, 0]
-  
-    # Crear splines para suavizar y derivar las energías
-    spline_01 = UnivariateSpline(parameter_values, energy_transition, k=4, s=0)
+        df01_dextparam = first_derivative_01(parameter_values)
+        d2f01_dextparam2 = second_derivative_01(parameter_values)
 
-    # Calcular la primera y segunda derivada
-    first_derivative_01 = spline_01.derivative(n=1)
-    second_derivative_01 = spline_01.derivative(n=2)
+    else:
+        h = 0.001
+        aux_fixed_params = fixed_params.copy()
+        energies_center = eigen_vs_parameter(parameter_name, parameter_values, aux_fixed_params, eigvals,calculate_states = False, plot=False)
+        aux_fixed_params[external_param] = fixed_params[external_param] - h
+        energies_lower = eigen_vs_parameter(parameter_name, parameter_values, aux_fixed_params, eigvals,calculate_states = False, plot=False)
+        aux_fixed_params[external_param] = fixed_params[external_param] + h
+        energies_higher = eigen_vs_parameter(parameter_name, parameter_values, aux_fixed_params, eigvals,calculate_states = False, plot=False)
+        f01_center = energies_center[:,1] - energies_center[:,0]
+        f01_higher = energies_higher[:,1] - energies_higher[:,0]
+        f01_lower = energies_lower[:,1] - energies_lower[:,0]
 
-    # Evaluar las derivadas en los valores del parámetro
-    first_derivatives_01 = first_derivative_01(parameter_values)
-    second_derivatives_01 = second_derivative_01(parameter_values)
+        df01_dextparam = (f01_higher - f01_lower)/2/h
+        d2f01_dextparam2 = (f01_higher - 2*f01_center + f01_lower)/h**2
 
-    ylabel = [r'$\left | \partial f_{01}/\partial \varphi_{ext} \right |^2$',
-              r'$\left | \partial^2 f_{01}/\partial \varphi_{ext}^2 \right | ^2$']
-    plot_vs_parameters(parameter_values, [first_derivatives_01**2,second_derivatives_01**2], [parameter_name]*2, ylabel)
+    if plot:
+        plot_vs_parameters(parameter_values, [df01_dextparam,d2f01_dextparam2], [parameter_name]*2, ylabel)
 
-    return first_derivatives_01, second_derivatives_01
+    return df01_dextparam,d2f01_dextparam2
+
 
 def t1_vs_parameter(parameter_name: str, parameter_values, operator_name, spectral_density, fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
     raise NotImplementedError
