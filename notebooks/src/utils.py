@@ -4,6 +4,8 @@ import scipy.stats
 import scqubits as sq
 from scipy.optimize import differential_evolution
 
+phi0 = const.h/2/const.e
+
 Ec_area = 0.98
 Ej_over_area = 22.7
 El_per_junction = 33
@@ -27,6 +29,7 @@ def fluxo(params, **kwargs):
     This function computes the hamiltonian based on experimental constrains given in params.
     """
     small_jj_area, n_junctions,flux = params
+
     n_junctions = n_junctions*100
     Ec_small_jj = Ec_area/small_jj_area
     Ec_JJA = const.e**2/const.h/2/(n_junctions*C0_jja)*1e-9
@@ -49,6 +52,7 @@ def optimizer(params):
     return Gamma2
 
 def optimal_fluxonium(bounds):
+    #TODO: Add the bounds as a dictionary to be more understandable.
     result = differential_evolution(func=optimizer,bounds=bounds) #optimizing the T2 of the fluxonium.
     print(result)
     return fluxo(result.x)
