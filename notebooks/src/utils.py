@@ -5,12 +5,12 @@ import scqubits as sq
 from scipy.optimize import differential_evolution
 
 phi0 = const.h/2/const.e/2/np.pi
+f_temp = const.k*0.015/const.h*1e-9
 
 Ec_area = 0.49
 Ej_over_area = 48.5
 El_per_junction = 35.4
 C0_jja = 53e-18
-Cj_jja = 28.8e-15
 
 def fluxo(params, **kwargs):
     """
@@ -47,13 +47,16 @@ def optimizer(params):
                             )
 
     #TODO: Change with a better function to solve the problem of the anharmonicity continuiously
-    if np.abs(fluxonium.anharmonicity()) < 0.100:
-        Gamma2 = Gamma2*100
+
+    if np.abs(fluxonium.anharmonicity()) or fluxonium.anharmonicity()+fluxonium.E01 < 0.100:
+        Gamma2 = Gamma2*1e3
+
     return Gamma2
 
 def optimal_fluxonium(bounds):
     #TODO: Add the bounds as a dictionary to be more understandable.
-    result = differential_evolution(func=optimizer,bounds=bounds) #optimizing the T2 of the fluxonium.
+    bounds_list = list(bounds.values())
+    result = differential_evolution(func=optimizer,bounds=bounds_list) #optimizing the T2 of the fluxonium.
     print(result)
     return fluxo(result.x)
 
