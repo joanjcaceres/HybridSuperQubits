@@ -48,6 +48,11 @@ def optimizer(params):
         Gamma2 = Gamma2*100
     return Gamma2
 
+def optimal_fluxonium(bounds):
+    result = differential_evolution(func=optimizer,bounds=bounds) #optimizing the T2 of the fluxonium.
+    print(result)
+    return fluxo(result.x)
+
 # def calculation_C_JJA(C0, Cj, n):
 #     n = int(n)
 #     if n == 0:
