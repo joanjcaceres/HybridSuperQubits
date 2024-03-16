@@ -4,6 +4,11 @@ import scipy.stats
 import scqubits as sq
 from scipy.optimize import differential_evolution
 
+Ec_area = 0.98
+Ej_over_area = 22.7
+El_per_junction = 33
+C0_jja = 53e-18
+Cj_jja = 28.8e-15
 
 def fluxo(params, **kwargs):
     """
@@ -23,11 +28,6 @@ def fluxo(params, **kwargs):
     """
     small_jj_area, n_junctions,flux = params
     n_junctions = n_junctions*100
-    Ec_area = 0.98
-    Ej_over_area = 22.7
-    El_per_junction = 33
-    C0_jja = 53e-18
-    Cj_jja = 28.8e-15
     Ec_small_jj = Ec_area/small_jj_area
     Ec_JJA = const.e**2/const.h/2/(n_junctions*C0_jja)*1e-9
     Ec = scipy.stats.hmean([Ec_small_jj, Ec_JJA])
