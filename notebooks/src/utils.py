@@ -4,11 +4,11 @@ import scipy.stats
 import scqubits as sq
 from scipy.optimize import differential_evolution
 
-phi0 = const.h/2/const.e
+phi0 = const.h/2/const.e/2/np.pi
 
-Ec_area = 0.98
-Ej_over_area = 22.7
-El_per_junction = 33
+Ec_area = 0.49
+Ej_over_area = 48.5
+El_per_junction = 35.4
 C0_jja = 53e-18
 Cj_jja = 28.8e-15
 
