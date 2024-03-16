@@ -63,29 +63,65 @@ class FluxoniumManager():
         bounds_list = list(bounds.values())
         self.result = differential_evolution(func=self._Gamma2,bounds=bounds_list) #optimizing the T2 of the fluxonium.
         self.optimal_fluxonium = self.fluxonium_creator(self.result.x)
+        self.flux_array = np.linspace(self.optimal_fluxonium.flux-0.5,self.optimal_fluxonium.flux + 0.5, 51)
     
-    def plot_evals_vs_flux(self, resonator_freq, plasma_freq):
-
+    def plot_evals_vs_flux(self, resonator_freq, plasma_freq= None, ax = None, evals_count=6):
         if self.optimal_fluxonium is None:
             raise RuntimeError("minimizer must be run successfully before plotting.")
         
         fluxonium = self.optimal_fluxonium
+        if ax is None:
+            fig,ax = plt.subplots(1,1)
+            fig.suptitle(f'Ec: {np.round(fluxonium.EC,3)}, El: {np.round(fluxonium.EL,3)}, Ej: {np.round(fluxonium.EJ,3)}')
 
-        flux_array = np.linspace(fluxonium.flux-0.5,fluxonium.flux + 0.5,101)
-        spec = fluxonium.get_spectrum_vs_paramvals(param_name='flux',param_vals=flux_array, subtract_ground=True)
 
-        fig,ax = plt.subplots(1,1)
-        fig.suptitle(f'Ec: {np.round(fluxonium.EC,3)}, El: {np.round(fluxonium.EL,3)}, Ej: {np.round(fluxonium.EJ,3)}')
-        ax.plot(np.linspace(0,1,101),spec.energy_table)
-        ax.plot(flux_array, spec.energy_table[:,0]+resonator_freq*np.ones_like(flux_array), color='k', linestyle='--', label = r'$|1g\rangle$')
-        ax.plot(flux_array, spec.energy_table[:,1]+resonator_freq*np.ones_like(flux_array), color='k',linestyle='dotted', label = r'$|1e\rangle$')
-        ax.plot(flux_array, spec.energy_table[:,0]+plasma_freq*np.ones_like(flux_array), color='k', label = r'$\omega_p/2\pi$')
-        ax.plot(flux_array, spec.energy_table[:,0]+f_temp*np.ones_like(flux_array), color='red',linestyle='dotted', label = r'$f_{temp}$')
+        spec = fluxonium.get_spectrum_vs_paramvals(param_name='flux',param_vals=self.flux_array, evals_count=evals_count, subtract_ground=True)
+        self.evals_fluxonium_vs_flux = spec.energy_table
+
+        ax.plot(self.flux_array,spec.energy_table)
+        ax.plot(self.flux_array, spec.energy_table[:,0]+resonator_freq*np.ones_like(self.flux_array), color='k', linestyle='--', label = r'$|1g\rangle$')
+        ax.plot(self.flux_array, spec.energy_table[:,1]+resonator_freq*np.ones_like(self.flux_array), color='k',linestyle='dotted', label = r'$|1e\rangle$')
+        ax.plot(self.flux_array, spec.energy_table[:,0]+f_temp*np.ones_like(self.flux_array), color='red',linestyle='dotted', label = r'$f_{temp}$')
+        if plasma_freq:
+            ax.plot(self.flux_array, spec.energy_table[:,0]+plasma_freq*np.ones_like(self.flux_array), color='k', label = r'$\omega_p/2\pi$')
 
         ax.legend()
         ax.set_xlabel(r'$\Phi_{ext}/\Phi_0$')
         ax.set_ylabel(r'Energy (GHz)')
-        plt.show()
+
+    def fluxonium_resonator_creator(self, resonator_frequency, EL_resonator, beta) -> sq.Circuit:
+        '''
+        beta: Part of the fluxonium inductance that is shared to the resonator.
+        '''
+        self.resonator_frequency = resonator_frequency
+        EC_jja_readout = self.resonator_frequency**2/8/EL_resonator
+
+        zp_yaml = f"""
+        branches:
+        - ["JJ", 1,2, {self.optimal_fluxonium.EJ}, {self.optimal_fluxonium.EC}]
+        - ["L", 2,3, {self.optimal_fluxonium.EL/(1-beta)}]
+        # coupling inductance
+        - ["L", 1,3, {self.optimal_fluxonium.EL/beta}]
+        # jja antenna readout
+        - ["L", 3,4, {EL_resonator}]
+        - ["C", 4,1, {EC_jja_readout}]
+        """
+        self.fluxonium_resonator = sq.Circuit(zp_yaml, from_file=False, ext_basis='discretized') #it works with both ext_basis.
+        self.fluxonium_resonator.Φ1 = self.optimal_fluxonium.flux
+        return self.fluxonium_resonator
+    
+    def plot_evals_fluxonium_resonator_vs_flux(self, resonator_frequency, EL_resonator, beta,evals_count=10, ax=None):
+        if ax is None:
+            fig,ax = plt.subplots(1,1)
+        if not hasattr(self, 'fluxonium_resonator'):
+            self.fluxonium_resonator_creator(resonator_frequency, EL_resonator, beta)
+
+        spec = self.fluxonium_resonator.get_spectrum_vs_paramvals(param_name='Φ1',param_vals=self.flux_array,evals_count=evals_count, subtract_ground=True)
+        self.evals_fluxonium_resonator_vs_flux = spec.energy_table
+        ax.plot(self.flux_array,self.evals_fluxonium_resonator_vs_flux)
+        ax.set_xlabel(r'$\Phi_{ext}/\Phi_0$')
+        ax.set_ylabel(r'Energy (GHz)')
+
 
 # def calculation_C_JJA(C0, Cj, n):
 #     n = int(n)
