@@ -6,12 +6,16 @@ import matplotlib.pyplot as plt
 from scipy.optimize import differential_evolution
 
 phi0 = const.h/2/const.e/2/np.pi
+Rq = const.h/(2*const.e)**2
 f_temp = const.k*0.015/const.h*1e-9
 
 Ec_area = 0.49
 Ej_over_area = 48.5
 El_per_junction = 35.4
+
 C0_jja = 53e-18
+Lj_per_junction = 4.62e-9
+Z_c0 = np.sqrt(Lj_per_junction/C0_jja)
 
 class FluxoniumManager():
     def __init__(self):
@@ -89,16 +93,17 @@ class FluxoniumManager():
         ax.set_xlabel(r'$\Phi_{ext}/\Phi_0$')
         ax.set_ylabel(r'Energy (GHz)')
 
-    def fluxonium_resonator_creator(self, resonator_frequency, EL_resonator, beta) -> sq.Circuit:
+    def fluxonium_resonator_creator(self, resonator_frequency, beta) -> sq.Circuit:
         '''
         beta: Part of the fluxonium inductance that is shared to the resonator.
         Notes:
             Only valid by the moment when you have a JJA based readout resonator.
         '''
         self.resonator_frequency = resonator_frequency
-        EC_jja_readout = self.resonator_frequency**2/8/EL_resonator
+        EL_jja_resonator = resonator_frequency*Rq/Z_c0/2/np.pi**2 #Only valid when N >> pi
+        EC_jja_readout = self.resonator_frequency**2/8/EL_jja_resonator
         EL_shared = self.optimal_fluxonium.EL/beta
-        EL_only_resonator = scipy.stats.hmean([EL_resonator, EL_shared])
+        EL_only_resonator = 1/(1/EL_jja_resonator - 1/EL_shared)
 
         zp_yaml = f"""
         branches:
@@ -114,11 +119,10 @@ class FluxoniumManager():
         self.fluxonium_resonator.Φ1 = self.optimal_fluxonium.flux
         return self.fluxonium_resonator
     
-    def plot_evals_fluxonium_resonator_vs_flux(self, resonator_frequency, EL_resonator, beta,evals_count=10, ax=None):
+    def plot_evals_fluxonium_resonator_vs_flux(self, resonator_frequency, beta,evals_count=10, ax=None):
         if ax is None:
             fig,ax = plt.subplots(1,1)
-            
-        self.fluxonium_resonator_creator(resonator_frequency, EL_resonator, beta)
+        self.fluxonium_resonator_creator(resonator_frequency, beta)
 
         spec = self.fluxonium_resonator.get_spectrum_vs_paramvals(param_name='Φ1',param_vals=self.flux_array,evals_count=evals_count, subtract_ground=True)
         self.evals_fluxonium_resonator_vs_flux = spec.energy_table
