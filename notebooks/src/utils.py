@@ -92,18 +92,22 @@ class FluxoniumManager():
     def fluxonium_resonator_creator(self, resonator_frequency, EL_resonator, beta) -> sq.Circuit:
         '''
         beta: Part of the fluxonium inductance that is shared to the resonator.
+        Notes:
+            Only valid by the moment when you have a JJA based readout resonator.
         '''
         self.resonator_frequency = resonator_frequency
         EC_jja_readout = self.resonator_frequency**2/8/EL_resonator
+        EL_shared = self.optimal_fluxonium.EL/beta
+        EL_only_resonator = scipy.stats.hmean([EL_resonator, EL_shared])
 
         zp_yaml = f"""
         branches:
         - ["JJ", 1,2, {self.optimal_fluxonium.EJ}, {self.optimal_fluxonium.EC}]
         - ["L", 2,3, {self.optimal_fluxonium.EL/(1-beta)}]
         # coupling inductance
-        - ["L", 1,3, {self.optimal_fluxonium.EL/beta}]
+        - ["L", 1,3, {EL_shared}]
         # jja antenna readout
-        - ["L", 3,4, {EL_resonator}]
+        - ["L", 3,4, {EL_only_resonator}]
         - ["C", 4,1, {EC_jja_readout}]
         """
         self.fluxonium_resonator = sq.Circuit(zp_yaml, from_file=False, ext_basis='discretized') #it works with both ext_basis.
@@ -113,8 +117,8 @@ class FluxoniumManager():
     def plot_evals_fluxonium_resonator_vs_flux(self, resonator_frequency, EL_resonator, beta,evals_count=10, ax=None):
         if ax is None:
             fig,ax = plt.subplots(1,1)
-        if not hasattr(self, 'fluxonium_resonator'):
-            self.fluxonium_resonator_creator(resonator_frequency, EL_resonator, beta)
+            
+        self.fluxonium_resonator_creator(resonator_frequency, EL_resonator, beta)
 
         spec = self.fluxonium_resonator.get_spectrum_vs_paramvals(param_name='Φ1',param_vals=self.flux_array,evals_count=evals_count, subtract_ground=True)
         self.evals_fluxonium_resonator_vs_flux = spec.energy_table
