@@ -2,7 +2,7 @@ import numpy as np
 import scipy.constants as const
 from scipy.integrate import nquad
 
-def calculate_mutual(size:list[float],offset_position:list[float], flux_line_length:float, flux_line_width:float) -> float:
+def calculate_mutual(loop_size:list[float],offset_position:list[float], flux_line_length:float, flux_line_width:float) -> float:
     """
     Calculates the mutual inductance between a rectangular loop and a triangular flux line.
 
@@ -11,7 +11,7 @@ def calculate_mutual(size:list[float],offset_position:list[float], flux_line_len
     triangle located at the origin (0,0) of the coordinate system.
 
     Parameters:
-    - size: A list of two floats representing the size of the rectangle in micrometers. The format is [width, height].
+    - loop_size: A list of two floats representing the size of the rectangle in micrometers. The format is [width, height].
     - offset_position: A list of two floats indicating the coordinates (in micrometers) of the rectangle's corner 
       closest to the origin (0,0). The format is [x_offset, y_offset].
     - flux_line_length: The length of one side of the triangular flux line along the y-axis, in micrometers.
@@ -32,10 +32,10 @@ def calculate_mutual(size:list[float],offset_position:list[float], flux_line_len
     integrand = lambda x,y,l,w : (x-w) / np.sqrt((x-w)**2 + (y - l)**2)**3 - (x-w) / np.sqrt((x-w)**2 + (y + l)**2)**3
 
     ranges =[
-        [offset_position[0], offset_position[0]+ size[0]],
-        [offset_position[1], offset_position[1]+ size[1]],
+        [offset_position[0], offset_position[0]+ loop_size[0]],
+        [offset_position[1], offset_position[1]+ loop_size[1]],
         [0,flux_line_length],
-        [0,flux_line_width]
+        [-flux_line_width/2,flux_line_width/2]
     ]
 
     result = nquad(integrand, ranges)
