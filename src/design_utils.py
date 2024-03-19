@@ -1,22 +1,28 @@
 import numpy as np
-from scipy.integrate import tplquad
+import scipy.constants as const
+from scipy.integrate import nquad
 
-# Define the function to be integrated
-def integrand(l, y, x):
-    return x / (x**2 + (y - l)**2) - x / (x**2 + (y + l)**2)
 
-# Define the function that calculates the triple integral
-def f(a, b, d, xi, L):
-    # Constants
-    mu_0 = 1.25e-6
-    pi = np.pi
-    # Integration limits
-    x_lower = d
-    x_upper = d + b
-    y_lower = lambda x: xi
-    y_upper = lambda x: xi + a
-    l_lower = lambda x, y: 0
-    l_upper = lambda x, y: L
-    # Triple integral
-    result, error = tplquad(integrand, x_lower, x_upper, y_lower, y_upper, l_lower, l_upper, args=(xi, L))
-    return (mu_0 / (4 * pi)) * result
+def calculate_mutual(size:list[float],offset_position:list[float], flux_line_length:float) -> list[float]:
+    '''
+    TODO: Improve the documentation.
+    units in micrometer! if not there will be errors of rounding.
+    only valid for the moment for rectangles.
+    TODO: Add for the case when you have a set of points.
+    It considers the center point of the flux line as the (0,0).
+    size: Size of the rectangle like (x,y)
+    offset_position: The coordinate of the corner closest to the (0,0)
+    flux_line_length: Length considering along the y axis.
+    '''
+    
+    integrand = lambda x,y,l : x / np.sqrt(x**2 + (y - l)**2)**3 - x / np.sqrt(x**2 + (y + l)**2)**3
+
+    ranges =[
+        [offset_position[0], offset_position[0]+ size[0]],
+        [offset_position[1], offset_position[1]+ size[1]],
+        [0,flux_line_length]
+    ]
+
+    result = nquad(integrand, ranges)
+
+    return const.mu_0/4/np.pi/2 * result[0] * 1e-6
