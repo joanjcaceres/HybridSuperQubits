@@ -34,7 +34,7 @@ def calculate_mutual(loop_size:list[float],offset_position:list[float], flux_lin
     ranges =[
         [offset_position[0], offset_position[0]+ loop_size[0]],
         [offset_position[1], offset_position[1]+ loop_size[1]],
-        [0,flux_line_length],
+        [0,flux_line_length/2],
         [-flux_line_width/2,flux_line_width/2]
     ]
 
