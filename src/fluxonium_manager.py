@@ -70,8 +70,8 @@ class FluxoniumManager():
         self.flux_array = np.linspace(self.optimal_fluxonium.flux-0.5,self.optimal_fluxonium.flux + 0.5, 51)
     
     def plot_evals_vs_flux(self, resonator_freq, plasma_freq= None, ax = None, evals_count=6):
-        if self.optimal_fluxonium is None:
-            raise RuntimeError("minimizer must be run successfully before plotting.")
+        # if self.optimal_fluxonium is None:
+        #     raise RuntimeError("minimizer must be run successfully before plotting.")
         
         fluxonium = self.optimal_fluxonium
         if ax is None:
