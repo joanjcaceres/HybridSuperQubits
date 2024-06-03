@@ -1,0 +1,11 @@
+global: &resonancia
+  chale: 12
+
+Pepito: hola
+Loro:
+  <<: *resonancia
+  pp: ojio
+Cara: *resonancia
+
+pp:
+  kk: 13
