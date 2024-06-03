@@ -1,0 +1,752 @@
+children:
+- attributes: {row: 1}
+  path: FBW10S4_204062-children\FBW10S4_204063.txt
+- attributes: {row: 2}
+  path: FBW10S4_204062-children\FBW10S4_204064.txt
+- attributes: {row: 3}
+  path: FBW10S4_204062-children\FBW10S4_204065.txt
+- attributes: {row: 4}
+  path: FBW10S4_204062-children\FBW10S4_204066.txt
+- attributes: {row: 5}
+  path: FBW10S4_204062-children\FBW10S4_204067.txt
+- attributes: {row: 6}
+  path: FBW10S4_204062-children\FBW10S4_204068.txt
+- attributes: {row: 7}
+  path: FBW10S4_204062-children\FBW10S4_204069.txt
+- attributes: {row: 8}
+  path: FBW10S4_204062-children\FBW10S4_204070.txt
+- attributes: {row: 9}
+  path: FBW10S4_204062-children\FBW10S4_204071.txt
+- attributes: {row: 10}
+  path: FBW10S4_204062-children\FBW10S4_204072.txt
+- attributes: {row: 11}
+  path: FBW10S4_204062-children\FBW10S4_204073.txt
+- attributes: {row: 12}
+  path: FBW10S4_204062-children\FBW10S4_204074.txt
+- attributes: {row: 13}
+  path: FBW10S4_204062-children\FBW10S4_204075.txt
+- attributes: {row: 14}
+  path: FBW10S4_204062-children\FBW10S4_204076.txt
+- attributes: {row: 15}
+  path: FBW10S4_204062-children\FBW10S4_204077.txt
+- attributes: {row: 16}
+  path: FBW10S4_204062-children\FBW10S4_204078.txt
+- attributes: {row: 17}
+  path: FBW10S4_204062-children\FBW10S4_204079.txt
+- attributes: {row: 18}
+  path: FBW10S4_204062-children\FBW10S4_204080.txt
+- attributes: {row: 19}
+  path: FBW10S4_204062-children\FBW10S4_204081.txt
+- attributes: {row: 20}
+  path: FBW10S4_204062-children\FBW10S4_204082.txt
+- attributes: {row: 21}
+  path: FBW10S4_204062-children\FBW10S4_204083.txt
+- attributes: {row: 22}
+  path: FBW10S4_204062-children\FBW10S4_204084.txt
+- attributes: {row: 23}
+  path: FBW10S4_204062-children\FBW10S4_204085.txt
+- attributes: {row: 24}
+  path: FBW10S4_204062-children\FBW10S4_204086.txt
+- attributes: {row: 25}
+  path: FBW10S4_204062-children\FBW10S4_204087.txt
+- attributes: {row: 26}
+  path: FBW10S4_204062-children\FBW10S4_204088.txt
+- attributes: {row: 27}
+  path: FBW10S4_204062-children\FBW10S4_204089.txt
+- attributes: {row: 28}
+  path: FBW10S4_204062-children\FBW10S4_204090.txt
+- attributes: {row: 29}
+  path: FBW10S4_204062-children\FBW10S4_204091.txt
+- attributes: {row: 30}
+  path: FBW10S4_204062-children\FBW10S4_204092.txt
+- attributes: {row: 31}
+  path: FBW10S4_204062-children\FBW10S4_204093.txt
+- attributes: {row: 32}
+  path: FBW10S4_204062-children\FBW10S4_204094.txt
+- attributes: {row: 33}
+  path: FBW10S4_204062-children\FBW10S4_204095.txt
+- attributes: {row: 34}
+  path: FBW10S4_204062-children\FBW10S4_204096.txt
+- attributes: {row: 35}
+  path: FBW10S4_204062-children\FBW10S4_204097.txt
+- attributes: {row: 36}
+  path: FBW10S4_204062-children\FBW10S4_204098.txt
+- attributes: {row: 37}
+  path: FBW10S4_204062-children\FBW10S4_204099.txt
+- attributes: {row: 38}
+  path: FBW10S4_204062-children\FBW10S4_204100.txt
+- attributes: {row: 39}
+  path: FBW10S4_204062-children\FBW10S4_204101.txt
+- attributes: {row: 40}
+  path: FBW10S4_204062-children\FBW10S4_204102.txt
+- attributes: {row: 41}
+  path: FBW10S4_204062-children\FBW10S4_204103.txt
+- attributes: {row: 42}
+  path: FBW10S4_204062-children\FBW10S4_204104.txt
+- attributes: {row: 43}
+  path: FBW10S4_204062-children\FBW10S4_204105.txt
+- attributes: {row: 44}
+  path: FBW10S4_204062-children\FBW10S4_204106.txt
+- attributes: {row: 45}
+  path: FBW10S4_204062-children\FBW10S4_204107.txt
+- attributes: {row: 46}
+  path: FBW10S4_204062-children\FBW10S4_204108.txt
+- attributes: {row: 47}
+  path: FBW10S4_204062-children\FBW10S4_204109.txt
+- attributes: {row: 48}
+  path: FBW10S4_204062-children\FBW10S4_204110.txt
+- attributes: {row: 49}
+  path: FBW10S4_204062-children\FBW10S4_204111.txt
+- attributes: {row: 50}
+  path: FBW10S4_204062-children\FBW10S4_204112.txt
+- attributes: {row: 51}
+  path: FBW10S4_204062-children\FBW10S4_204113.txt
+- attributes: {row: 52}
+  path: FBW10S4_204062-children\FBW10S4_204114.txt
+- attributes: {row: 53}
+  path: FBW10S4_204062-children\FBW10S4_204115.txt
+- attributes: {row: 54}
+  path: FBW10S4_204062-children\FBW10S4_204116.txt
+- attributes: {row: 55}
+  path: FBW10S4_204062-children\FBW10S4_204117.txt
+- attributes: {row: 56}
+  path: FBW10S4_204062-children\FBW10S4_204118.txt
+- attributes: {row: 57}
+  path: FBW10S4_204062-children\FBW10S4_204119.txt
+- attributes: {row: 58}
+  path: FBW10S4_204062-children\FBW10S4_204120.txt
+- attributes: {row: 59}
+  path: FBW10S4_204062-children\FBW10S4_204121.txt
+- attributes: {row: 60}
+  path: FBW10S4_204062-children\FBW10S4_204122.txt
+- attributes: {row: 61}
+  path: FBW10S4_204062-children\FBW10S4_204123.txt
+- attributes: {row: 62}
+  path: FBW10S4_204062-children\FBW10S4_204124.txt
+- attributes: {row: 63}
+  path: FBW10S4_204062-children\FBW10S4_204125.txt
+- attributes: {row: 64}
+  path: FBW10S4_204062-children\FBW10S4_204126.txt
+- attributes: {row: 65}
+  path: FBW10S4_204062-children\FBW10S4_204127.txt
+- attributes: {row: 66}
+  path: FBW10S4_204062-children\FBW10S4_204128.txt
+- attributes: {row: 67}
+  path: FBW10S4_204062-children\FBW10S4_204129.txt
+- attributes: {row: 68}
+  path: FBW10S4_204062-children\FBW10S4_204130.txt
+- attributes: {row: 69}
+  path: FBW10S4_204062-children\FBW10S4_204131.txt
+- attributes: {row: 70}
+  path: FBW10S4_204062-children\FBW10S4_204132.txt
+- attributes: {row: 71}
+  path: FBW10S4_204062-children\FBW10S4_204133.txt
+- attributes: {row: 72}
+  path: FBW10S4_204062-children\FBW10S4_204134.txt
+- attributes: {row: 73}
+  path: FBW10S4_204062-children\FBW10S4_204135.txt
+- attributes: {row: 74}
+  path: FBW10S4_204062-children\FBW10S4_204136.txt
+- attributes: {row: 75}
+  path: FBW10S4_204062-children\FBW10S4_204137.txt
+- attributes: {row: 76}
+  path: FBW10S4_204062-children\FBW10S4_204138.txt
+- attributes: {row: 77}
+  path: FBW10S4_204062-children\FBW10S4_204139.txt
+- attributes: {row: 78}
+  path: FBW10S4_204062-children\FBW10S4_204140.txt
+- attributes: {row: 79}
+  path: FBW10S4_204062-children\FBW10S4_204141.txt
+- attributes: {row: 80}
+  path: FBW10S4_204062-children\FBW10S4_204142.txt
+- attributes: {row: 81}
+  path: FBW10S4_204062-children\FBW10S4_204143.txt
+- attributes: {row: 82}
+  path: FBW10S4_204062-children\FBW10S4_204144.txt
+- attributes: {row: 83}
+  path: FBW10S4_204062-children\FBW10S4_204145.txt
+- attributes: {row: 84}
+  path: FBW10S4_204062-children\FBW10S4_204146.txt
+- attributes: {row: 85}
+  path: FBW10S4_204062-children\FBW10S4_204147.txt
+- attributes: {row: 86}
+  path: FBW10S4_204062-children\FBW10S4_204148.txt
+- attributes: {row: 87}
+  path: FBW10S4_204062-children\FBW10S4_204149.txt
+- attributes: {row: 88}
+  path: FBW10S4_204062-children\FBW10S4_204150.txt
+- attributes: {row: 89}
+  path: FBW10S4_204062-children\FBW10S4_204151.txt
+- attributes: {row: 90}
+  path: FBW10S4_204062-children\FBW10S4_204152.txt
+- attributes: {row: 91}
+  path: FBW10S4_204062-children\FBW10S4_204153.txt
+- attributes: {row: 92}
+  path: FBW10S4_204062-children\FBW10S4_204154.txt
+- attributes: {row: 93}
+  path: FBW10S4_204062-children\FBW10S4_204155.txt
+- attributes: {row: 94}
+  path: FBW10S4_204062-children\FBW10S4_204156.txt
+- attributes: {row: 95}
+  path: FBW10S4_204062-children\FBW10S4_204157.txt
+- attributes: {row: 96}
+  path: FBW10S4_204062-children\FBW10S4_204158.txt
+- attributes: {row: 97}
+  path: FBW10S4_204062-children\FBW10S4_204159.txt
+- attributes: {row: 98}
+  path: FBW10S4_204062-children\FBW10S4_204160.txt
+- attributes: {row: 99}
+  path: FBW10S4_204062-children\FBW10S4_204161.txt
+- attributes: {row: 100}
+  path: FBW10S4_204062-children\FBW10S4_204162.txt
+- attributes: {row: 101}
+  path: FBW10S4_204062-children\FBW10S4_204163.txt
+- attributes: {row: 102}
+  path: FBW10S4_204062-children\FBW10S4_204164.txt
+- attributes: {row: 103}
+  path: FBW10S4_204062-children\FBW10S4_204165.txt
+- attributes: {row: 104}
+  path: FBW10S4_204062-children\FBW10S4_204166.txt
+- attributes: {row: 105}
+  path: FBW10S4_204062-children\FBW10S4_204167.txt
+- attributes: {row: 106}
+  path: FBW10S4_204062-children\FBW10S4_204168.txt
+- attributes: {row: 107}
+  path: FBW10S4_204062-children\FBW10S4_204169.txt
+- attributes: {row: 108}
+  path: FBW10S4_204062-children\FBW10S4_204170.txt
+- attributes: {row: 109}
+  path: FBW10S4_204062-children\FBW10S4_204171.txt
+- attributes: {row: 110}
+  path: FBW10S4_204062-children\FBW10S4_204172.txt
+- attributes: {row: 111}
+  path: FBW10S4_204062-children\FBW10S4_204173.txt
+- attributes: {row: 112}
+  path: FBW10S4_204062-children\FBW10S4_204174.txt
+- attributes: {row: 113}
+  path: FBW10S4_204062-children\FBW10S4_204175.txt
+- attributes: {row: 114}
+  path: FBW10S4_204062-children\FBW10S4_204176.txt
+- attributes: {row: 115}
+  path: FBW10S4_204062-children\FBW10S4_204177.txt
+- attributes: {row: 116}
+  path: FBW10S4_204062-children\FBW10S4_204178.txt
+- attributes: {row: 117}
+  path: FBW10S4_204062-children\FBW10S4_204179.txt
+- attributes: {row: 118}
+  path: FBW10S4_204062-children\FBW10S4_204180.txt
+- attributes: {row: 119}
+  path: FBW10S4_204062-children\FBW10S4_204181.txt
+- attributes: {row: 120}
+  path: FBW10S4_204062-children\FBW10S4_204182.txt
+- attributes: {row: 121}
+  path: FBW10S4_204062-children\FBW10S4_204183.txt
+- attributes: {row: 122}
+  path: FBW10S4_204062-children\FBW10S4_204184.txt
+- attributes: {row: 123}
+  path: FBW10S4_204062-children\FBW10S4_204185.txt
+- attributes: {row: 124}
+  path: FBW10S4_204062-children\FBW10S4_204186.txt
+- attributes: {row: 125}
+  path: FBW10S4_204062-children\FBW10S4_204187.txt
+- attributes: {row: 126}
+  path: FBW10S4_204062-children\FBW10S4_204188.txt
+- attributes: {row: 127}
+  path: FBW10S4_204062-children\FBW10S4_204189.txt
+- attributes: {row: 128}
+  path: FBW10S4_204062-children\FBW10S4_204190.txt
+- attributes: {row: 129}
+  path: FBW10S4_204062-children\FBW10S4_204191.txt
+- attributes: {row: 130}
+  path: FBW10S4_204062-children\FBW10S4_204192.txt
+- attributes: {row: 131}
+  path: FBW10S4_204062-children\FBW10S4_204193.txt
+- attributes: {row: 132}
+  path: FBW10S4_204062-children\FBW10S4_204194.txt
+- attributes: {row: 133}
+  path: FBW10S4_204062-children\FBW10S4_204195.txt
+- attributes: {row: 134}
+  path: FBW10S4_204062-children\FBW10S4_204196.txt
+- attributes: {row: 135}
+  path: FBW10S4_204062-children\FBW10S4_204197.txt
+- attributes: {row: 136}
+  path: FBW10S4_204062-children\FBW10S4_204198.txt
+- attributes: {row: 137}
+  path: FBW10S4_204062-children\FBW10S4_204199.txt
+- attributes: {row: 138}
+  path: FBW10S4_204062-children\FBW10S4_204200.txt
+- attributes: {row: 139}
+  path: FBW10S4_204062-children\FBW10S4_204201.txt
+- attributes: {row: 140}
+  path: FBW10S4_204062-children\FBW10S4_204202.txt
+- attributes: {row: 141}
+  path: FBW10S4_204062-children\FBW10S4_204203.txt
+- attributes: {row: 142}
+  path: FBW10S4_204062-children\FBW10S4_204204.txt
+- attributes: {row: 143}
+  path: FBW10S4_204062-children\FBW10S4_204205.txt
+- attributes: {row: 144}
+  path: FBW10S4_204062-children\FBW10S4_204206.txt
+- attributes: {row: 145}
+  path: FBW10S4_204062-children\FBW10S4_204207.txt
+- attributes: {row: 146}
+  path: FBW10S4_204062-children\FBW10S4_204208.txt
+- attributes: {row: 147}
+  path: FBW10S4_204062-children\FBW10S4_204209.txt
+- attributes: {row: 148}
+  path: FBW10S4_204062-children\FBW10S4_204210.txt
+- attributes: {row: 149}
+  path: FBW10S4_204062-children\FBW10S4_204211.txt
+- attributes: {row: 150}
+  path: FBW10S4_204062-children\FBW10S4_204212.txt
+- attributes: {row: 151}
+  path: FBW10S4_204062-children\FBW10S4_204213.txt
+- attributes: {row: 152}
+  path: FBW10S4_204062-children\FBW10S4_204214.txt
+- attributes: {row: 153}
+  path: FBW10S4_204062-children\FBW10S4_204215.txt
+- attributes: {row: 154}
+  path: FBW10S4_204062-children\FBW10S4_204216.txt
+- attributes: {row: 155}
+  path: FBW10S4_204062-children\FBW10S4_204217.txt
+- attributes: {row: 156}
+  path: FBW10S4_204062-children\FBW10S4_204218.txt
+- attributes: {row: 157}
+  path: FBW10S4_204062-children\FBW10S4_204219.txt
+- attributes: {row: 158}
+  path: FBW10S4_204062-children\FBW10S4_204220.txt
+- attributes: {row: 159}
+  path: FBW10S4_204062-children\FBW10S4_204221.txt
+- attributes: {row: 160}
+  path: FBW10S4_204062-children\FBW10S4_204222.txt
+- attributes: {row: 161}
+  path: FBW10S4_204062-children\FBW10S4_204223.txt
+- attributes: {row: 162}
+  path: FBW10S4_204062-children\FBW10S4_204224.txt
+- attributes: {row: 163}
+  path: FBW10S4_204062-children\FBW10S4_204225.txt
+- attributes: {row: 164}
+  path: FBW10S4_204062-children\FBW10S4_204226.txt
+- attributes: {row: 165}
+  path: FBW10S4_204062-children\FBW10S4_204227.txt
+- attributes: {row: 166}
+  path: FBW10S4_204062-children\FBW10S4_204228.txt
+- attributes: {row: 167}
+  path: FBW10S4_204062-children\FBW10S4_204229.txt
+- attributes: {row: 168}
+  path: FBW10S4_204062-children\FBW10S4_204230.txt
+- attributes: {row: 169}
+  path: FBW10S4_204062-children\FBW10S4_204231.txt
+- attributes: {row: 170}
+  path: FBW10S4_204062-children\FBW10S4_204232.txt
+- attributes: {row: 171}
+  path: FBW10S4_204062-children\FBW10S4_204233.txt
+- attributes: {row: 172}
+  path: FBW10S4_204062-children\FBW10S4_204234.txt
+- attributes: {row: 173}
+  path: FBW10S4_204062-children\FBW10S4_204235.txt
+- attributes: {row: 174}
+  path: FBW10S4_204062-children\FBW10S4_204236.txt
+- attributes: {row: 175}
+  path: FBW10S4_204062-children\FBW10S4_204237.txt
+- attributes: {row: 176}
+  path: FBW10S4_204062-children\FBW10S4_204238.txt
+- attributes: {row: 177}
+  path: FBW10S4_204062-children\FBW10S4_204239.txt
+- attributes: {row: 178}
+  path: FBW10S4_204062-children\FBW10S4_204240.txt
+- attributes: {row: 179}
+  path: FBW10S4_204062-children\FBW10S4_204241.txt
+- attributes: {row: 180}
+  path: FBW10S4_204062-children\FBW10S4_204242.txt
+- attributes: {row: 181}
+  path: FBW10S4_204062-children\FBW10S4_204243.txt
+- attributes: {row: 182}
+  path: FBW10S4_204062-children\FBW10S4_204244.txt
+- attributes: {row: 183}
+  path: FBW10S4_204062-children\FBW10S4_204245.txt
+- attributes: {row: 184}
+  path: FBW10S4_204062-children\FBW10S4_204246.txt
+- attributes: {row: 185}
+  path: FBW10S4_204062-children\FBW10S4_204247.txt
+- attributes: {row: 186}
+  path: FBW10S4_204062-children\FBW10S4_204248.txt
+- attributes: {row: 187}
+  path: FBW10S4_204062-children\FBW10S4_204249.txt
+- attributes: {row: 188}
+  path: FBW10S4_204062-children\FBW10S4_204250.txt
+- attributes: {row: 189}
+  path: FBW10S4_204062-children\FBW10S4_204251.txt
+- attributes: {row: 190}
+  path: FBW10S4_204062-children\FBW10S4_204252.txt
+- attributes: {row: 191}
+  path: FBW10S4_204062-children\FBW10S4_204253.txt
+- attributes: {row: 192}
+  path: FBW10S4_204062-children\FBW10S4_204254.txt
+- attributes: {row: 193}
+  path: FBW10S4_204062-children\FBW10S4_204255.txt
+- attributes: {row: 194}
+  path: FBW10S4_204062-children\FBW10S4_204256.txt
+- attributes: {row: 195}
+  path: FBW10S4_204062-children\FBW10S4_204257.txt
+- attributes: {row: 196}
+  path: FBW10S4_204062-children\FBW10S4_204258.txt
+- attributes: {row: 197}
+  path: FBW10S4_204062-children\FBW10S4_204259.txt
+- attributes: {row: 198}
+  path: FBW10S4_204062-children\FBW10S4_204260.txt
+- attributes: {row: 199}
+  path: FBW10S4_204062-children\FBW10S4_204261.txt
+- attributes: {row: 200}
+  path: FBW10S4_204062-children\FBW10S4_204262.txt
+- attributes: {row: 201}
+  path: FBW10S4_204062-children\FBW10S4_204263.txt
+- attributes: {row: 202}
+  path: FBW10S4_204062-children\FBW10S4_204264.txt
+- attributes: {row: 203}
+  path: FBW10S4_204062-children\FBW10S4_204265.txt
+- attributes: {row: 204}
+  path: FBW10S4_204062-children\FBW10S4_204266.txt
+- attributes: {row: 205}
+  path: FBW10S4_204062-children\FBW10S4_204267.txt
+- attributes: {row: 206}
+  path: FBW10S4_204062-children\FBW10S4_204268.txt
+- attributes: {row: 207}
+  path: FBW10S4_204062-children\FBW10S4_204269.txt
+- attributes: {row: 208}
+  path: FBW10S4_204062-children\FBW10S4_204270.txt
+- attributes: {row: 209}
+  path: FBW10S4_204062-children\FBW10S4_204271.txt
+- attributes: {row: 210}
+  path: FBW10S4_204062-children\FBW10S4_204272.txt
+- attributes: {row: 211}
+  path: FBW10S4_204062-children\FBW10S4_204273.txt
+- attributes: {row: 212}
+  path: FBW10S4_204062-children\FBW10S4_204274.txt
+- attributes: {row: 213}
+  path: FBW10S4_204062-children\FBW10S4_204275.txt
+- attributes: {row: 214}
+  path: FBW10S4_204062-children\FBW10S4_204276.txt
+- attributes: {row: 215}
+  path: FBW10S4_204062-children\FBW10S4_204277.txt
+- attributes: {row: 216}
+  path: FBW10S4_204062-children\FBW10S4_204278.txt
+- attributes: {row: 217}
+  path: FBW10S4_204062-children\FBW10S4_204279.txt
+- attributes: {row: 218}
+  path: FBW10S4_204062-children\FBW10S4_204280.txt
+- attributes: {row: 219}
+  path: FBW10S4_204062-children\FBW10S4_204281.txt
+- attributes: {row: 220}
+  path: FBW10S4_204062-children\FBW10S4_204282.txt
+- attributes: {row: 221}
+  path: FBW10S4_204062-children\FBW10S4_204283.txt
+- attributes: {row: 222}
+  path: FBW10S4_204062-children\FBW10S4_204284.txt
+- attributes: {row: 223}
+  path: FBW10S4_204062-children\FBW10S4_204285.txt
+- attributes: {row: 224}
+  path: FBW10S4_204062-children\FBW10S4_204286.txt
+- attributes: {row: 225}
+  path: FBW10S4_204062-children\FBW10S4_204287.txt
+- attributes: {row: 226}
+  path: FBW10S4_204062-children\FBW10S4_204288.txt
+- attributes: {row: 227}
+  path: FBW10S4_204062-children\FBW10S4_204289.txt
+- attributes: {row: 228}
+  path: FBW10S4_204062-children\FBW10S4_204290.txt
+- attributes: {row: 229}
+  path: FBW10S4_204062-children\FBW10S4_204291.txt
+- attributes: {row: 230}
+  path: FBW10S4_204062-children\FBW10S4_204292.txt
+- attributes: {row: 231}
+  path: FBW10S4_204062-children\FBW10S4_204293.txt
+- attributes: {row: 232}
+  path: FBW10S4_204062-children\FBW10S4_204294.txt
+- attributes: {row: 233}
+  path: FBW10S4_204062-children\FBW10S4_204295.txt
+- attributes: {row: 234}
+  path: FBW10S4_204062-children\FBW10S4_204296.txt
+- attributes: {row: 235}
+  path: FBW10S4_204062-children\FBW10S4_204297.txt
+- attributes: {row: 236}
+  path: FBW10S4_204062-children\FBW10S4_204298.txt
+- attributes: {row: 237}
+  path: FBW10S4_204062-children\FBW10S4_204299.txt
+- attributes: {row: 238}
+  path: FBW10S4_204062-children\FBW10S4_204300.txt
+- attributes: {row: 239}
+  path: FBW10S4_204062-children\FBW10S4_204301.txt
+- attributes: {row: 240}
+  path: FBW10S4_204062-children\FBW10S4_204302.txt
+- attributes: {row: 241}
+  path: FBW10S4_204062-children\FBW10S4_204303.txt
+- attributes: {row: 242}
+  path: FBW10S4_204062-children\FBW10S4_204304.txt
+- attributes: {row: 243}
+  path: FBW10S4_204062-children\FBW10S4_204305.txt
+- attributes: {row: 244}
+  path: FBW10S4_204062-children\FBW10S4_204306.txt
+- attributes: {row: 245}
+  path: FBW10S4_204062-children\FBW10S4_204307.txt
+- attributes: {row: 246}
+  path: FBW10S4_204062-children\FBW10S4_204308.txt
+meta:
+  creationTime: 1715705394.2590501
+  dataType: !!python/name:numpy.float64 ''
+  defaults: {}
+  description: ''
+  fieldMap: {flux: 0}
+  fieldNames: [flux]
+  filename: \\132.166.23.175\room8a-data\FERBO\FB_W10_S4\run2\FBW10S4_204062.txt
+  index: 246
+  length: 246
+  modificationTime: 1715718861.504047
+  name: FBW10S4_204062
+  tags: ''
+parameters: {}
+tablefilename: FBW10S4_204062.txt
+version: '1.0'
+#end of header
+flux
+2.175
+2.1765
+2.178
+2.1795
+2.181
+2.1825
+2.184
+2.1855
+2.187
+2.1885
+2.19
+2.1915
+2.193
+2.1945
+2.196
+2.1975
+2.199
+2.2005
+2.202
+2.2035
+2.205
+2.2065
+2.208
+2.2095
+2.211
+2.2125
+2.214
+2.2155
+2.217
+2.2185
+2.22
+2.2215
+2.223
+2.2245
+2.226
+2.2275
+2.229
+2.2305
+2.232
+2.2335
+2.235
+2.2365
+2.238
+2.2395
+2.241
+2.2425
+2.244
+2.2455
+2.247
+2.2485
+2.25
+2.2515
+2.253
+2.2545
+2.256
+2.2575
+2.259
+2.2605
+2.262
+2.2635
+2.265
+2.2665
+2.268
+2.2695
+2.271
+2.2725
+2.274
+2.2755
+2.277
+2.2785
+2.28
+2.2815
+2.283
+2.2845
+2.286
+2.2875
+2.289
+2.2905
+2.292
+2.2935
+2.295
+2.2965
+2.298
+2.2995
+2.301
+2.3025
+2.304
+2.3055
+2.307
+2.3085
+2.31
+2.3115
+2.313
+2.3145
+2.316
+2.3175
+2.319
+2.3205
+2.322
+2.3235
+2.325
+2.3265
+2.328
+2.3295
+2.331
+2.3325
+2.334
+2.3355
+2.337
+2.3385
+2.34
+2.3415
+2.343
+2.3445
+2.346
+2.3475
+2.349
+2.3505
+2.352
+2.3535
+2.355
+2.3565
+2.358
+2.3595
+2.361
+2.3625
+2.364
+2.3655
+2.367
+2.3685
+2.37
+2.3715
+2.373
+2.3745
+2.376
+2.3775
+2.379
+2.3805
+2.382
+2.3835
+2.385
+2.3865
+2.388
+2.3895
+2.391
+2.3925
+2.394
+2.3955
+2.397
+2.3985
+2.4
+2.4015
+2.403
+2.4045
+2.406
+2.4075
+2.409
+2.4105
+2.412
+2.4135
+2.415
+2.4165
+2.418
+2.4195
+2.421
+2.4225
+2.424
+2.4255
+2.427
+2.4285
+2.43
+2.4315
+2.433
+2.4345
+2.436
+2.4375
+2.439
+2.4405
+2.442
+2.4435
+2.445
+2.4465
+2.448
+2.4495
+2.451
+2.4525
+2.454
+2.4555
+2.457
+2.4585
+2.46
+2.4615
+2.463
+2.4645
+2.466
+2.4675
+2.469
+2.4705
+2.472
+2.4735
+2.475
+2.4765
+2.478
+2.4795
+2.481
+2.4825
+2.484
+2.4855
+2.487
+2.4885
+2.49
+2.4915
+2.493
+2.4945
+2.496
+2.4975
+2.499
+2.5005
+2.502
+2.5035
+2.505
+2.5065
+2.508
+2.5095
+2.511
+2.5125
+2.514
+2.5155
+2.517
+2.5185
+2.52
+2.5215
+2.523
+2.5245
+2.526
+2.5275
+2.529
+2.5305
+2.532
+2.5335
+2.535
