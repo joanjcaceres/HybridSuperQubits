@@ -1,6 +1,7 @@
 import os
 import re
 from scipy.integrate import nquad
+import scipy.constants as const
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -346,42 +347,40 @@ def plot_1d_line(datasets, x_key, y_key, z_key, fixed_x=None, fixed_y=None, tole
 
 def read_parameters(lines):
     in_parameters_section = False
-    parameters_lines = []
+    parameters = {}
 
     for line in lines:
-        if line.strip().startswith('parameters:'):
-            in_parameters_section = True
-            # Remove 'parameters: {' and any surrounding spaces
-            parameters_lines.append(line.strip().replace('parameters: {', '').strip())
-        elif in_parameters_section:
-            # Remove the closing brace and any surrounding spaces
-            if '}' in line:
-                parameters_lines.append(line.strip().replace('}', '').strip())
-                break
-            else:
-                parameters_lines.append(line.strip())
-
-    if parameters_lines:
-        # Join all the lines of parameters into a single string
-        parameters_str = ' '.join(parameters_lines)
+        stripped_line = line.strip()
         
-        # Convert the string into a dictionary
-        parameters = {}
-        items = parameters_str.split(', ')
-        for item in items:
-            key_value = item.split(': ')
-            if len(key_value) == 2:
-                key, value = key_value
-                # Convert values to float where possible
-                try:
-                    value = float(value)
-                except ValueError:
-                    pass
-                parameters[key] = value
+        # Start reading parameters after the line containing 'parameters:'
+        if stripped_line == 'parameters:':
+            in_parameters_section = True
+            continue
+        
+        # Stop reading if '#end of header' is reached
+        if stripped_line == '#end of header':
+            break
 
-        return parameters
-    else:
-        return None
+        # Process only lines within the 'parameters' section that are indented
+        if in_parameters_section and line.startswith('  '):  # Assuming parameters are indented with two spaces
+            if ':' in line:
+                key_value_pair = line.strip().split(': ', 1)
+                if len(key_value_pair) == 2:
+                    key, value = key_value_pair
+                    # Remove potential trailing commas and spaces
+                    value = value.rstrip(', ')
+                    # Try to handle values that are numerical or lists
+                    try:
+                        if '[' in value and ']' in value:  # Handles list values
+                            value = eval(value)  # Safely evaluate the string to a Python list
+                        else:
+                            value = float(value)
+                    except ValueError:
+                        pass  # Keep the value as is if it's not a number or list
+                    
+                    parameters[key] = value
+
+    return parameters if parameters else None
 
 def last_measurement(directory):
     max_number = None
