@@ -165,7 +165,7 @@ def load_data_and_metadata(file_path):
     return datasets, metadata
 
 
-def plot_phase_map(data_dict, x_key, y_key, z_key, title='Phase Map', correct_horizontal=False, correct_vertical=False, fig=None, ax=None, **kwargs):
+def plot3D(data_dict, x_key, y_key, z_key, title='Phase Map', flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None, **kwargs):
     """
     Plot a 2D phase map using the provided X-axis values, Y-axis values, and Z-axis matrix.
 
@@ -193,17 +193,17 @@ def plot_phase_map(data_dict, x_key, y_key, z_key, title='Phase Map', correct_ho
     if x_data.ndim == 1:
         Y = y_data
         X = np.tile(x_data, (Y.shape[1], 1)).T
-        if correct_horizontal:
-            z_data = average_and_subtract_horizontal(z_data)
-        if correct_vertical:
-            z_data = average_and_subtract_vertical(z_data)
+        if flatten_horizontal:
+            z_data = flatten_horizontal(z_data)
+        if flatten_vertical:
+            z_data = flatten_vertical(z_data)
     elif y_data.ndim == 1: # In case it's inverted the axis.
         X = x_data
         Y = np.tile(y_data, (X.shape[1], 1)).T
-        if correct_vertical:
-            z_data = average_and_subtract_horizontal(z_data)
-        if correct_horizontal:
-            z_data = average_and_subtract_vertical(z_data)
+        if flatten_vertical:
+            z_data = flatten_horizontal(z_data)
+        if flatten_horizontal:
+            z_data = flatten_vertical(z_data)
 
     # Plot using pcolormesh
     vmin = kwargs.pop('vmin', None)
@@ -217,7 +217,7 @@ def plot_phase_map(data_dict, x_key, y_key, z_key, title='Phase Map', correct_ho
     
     return fig, ax, mesh
     
-def plot_multiple_phase_maps_in_one_ax(data_dicts, x_key, y_key, z_key, title='Superimposed Phase Maps', correct_horizontal=False, correct_vertical=False, **kwargs):
+def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, **kwargs):
     figsize = kwargs.pop('figsize', (8, 6))
     fig, ax = plt.subplots(figsize=figsize)
     
@@ -235,15 +235,18 @@ def plot_multiple_phase_maps_in_one_ax(data_dicts, x_key, y_key, z_key, title='S
         vmax = vmax if vmax is not None else np.max(z_data_combined)
     
     for key, data_dict in data_dicts.items():
-        fig, ax, mesh = plot_phase_map(data_dict, x_key, y_key, z_key, title='', correct_horizontal=correct_horizontal, correct_vertical=correct_vertical, fig=fig, ax=ax, vmin=vmin, vmax=vmax, **kwargs)
+        fig, ax, mesh = plot3D(data_dict, x_key, y_key, z_key, title='', flatten_horizontal=flatten_horizontal, flatten_vertical=flatten_vertical, fig=fig, ax=ax, vmin=vmin, vmax=vmax, **kwargs)
     
-    cbar = fig.colorbar(mesh, ax=ax, orientation='vertical', fraction=0.02, pad=0.04)
-    cbar.ax.set_ylabel('Intensity')
-    ax.set_title(title)
+    cbar = fig.colorbar(mesh, ax=ax, orientation='vertical')#, fraction=0.02, pad=0.04)
+    cbar.ax.set_ylabel(z_key)
+    if title is not None:
+        ax.set_title(title)
     plt.tight_layout()
     plt.show()
+    
+    return fig,ax
 
-def average_and_subtract_vertical(phase_matrix):
+def flatten_vertical(phase_matrix):
     """
     Calculate the vertical average and subtract it from each row in the phase matrix.
 
@@ -257,7 +260,7 @@ def average_and_subtract_vertical(phase_matrix):
     phase_matrix_corrected = phase_matrix - vertical_mean[:, np.newaxis]  # Subtract the mean from each row
     return phase_matrix_corrected
 
-def average_and_subtract_horizontal(phase_matrix):
+def flatten_horizontal(phase_matrix):
     """
     Calculate the horizontal average and subtract it from each column in the phase matrix.
 
@@ -304,16 +307,16 @@ def plot_1d_line(datasets, x_key, y_key, z_key, fixed_x=None, fixed_y=None, tole
         Y = y_data
         X = np.tile(x_data, (Y.shape[1], 1)).T
         if apply_horizontal_correction:
-            z_data = average_and_subtract_horizontal(z_data)
+            z_data = flatten_horizontal(z_data)
         if apply_vertical_correction:
-            z_data = average_and_subtract_vertical(z_data)
+            z_data = flatten_vertical(z_data)
     elif y_data.ndim == 1: # In case it's inverted the axis.
         X = x_data
         Y = np.tile(y_data, (X.shape[1], 1)).T
         if apply_vertical_correction:
-            z_data = average_and_subtract_horizontal(z_data)
+            z_data = flatten_horizontal(z_data)
         if apply_horizontal_correction:
-            z_data = average_and_subtract_vertical(z_data)
+            z_data = flatten_vertical(z_data)
 
     #This only works when x_data is 1D array.
 
