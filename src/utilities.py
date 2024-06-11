@@ -194,16 +194,16 @@ def plot3D(data_dict, x_key, y_key, z_key, title='Phase Map', flatten_horizontal
         Y = y_data
         X = np.tile(x_data, (Y.shape[1], 1)).T
         if flatten_horizontal:
-            z_data = flatten_horizontal(z_data)
+            z_data = horizontal_flatten(z_data)
         if flatten_vertical:
-            z_data = flatten_vertical(z_data)
+            z_data = vertical_flatten(z_data)
     elif y_data.ndim == 1: # In case it's inverted the axis.
         X = x_data
         Y = np.tile(y_data, (X.shape[1], 1)).T
         if flatten_vertical:
-            z_data = flatten_horizontal(z_data)
+            z_data = horizontal_flatten(z_data)
         if flatten_horizontal:
-            z_data = flatten_vertical(z_data)
+            z_data = vertical_flatten(z_data)
 
     # Plot using pcolormesh
     vmin = kwargs.pop('vmin', None)
@@ -246,7 +246,7 @@ def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=Fals
     
     return fig,ax
 
-def flatten_vertical(phase_matrix):
+def vertical_flatten(phase_matrix):
     """
     Calculate the vertical average and subtract it from each row in the phase matrix.
 
@@ -260,7 +260,7 @@ def flatten_vertical(phase_matrix):
     phase_matrix_corrected = phase_matrix - vertical_mean[:, np.newaxis]  # Subtract the mean from each row
     return phase_matrix_corrected
 
-def flatten_horizontal(phase_matrix):
+def horizontal_flatten(phase_matrix):
     """
     Calculate the horizontal average and subtract it from each column in the phase matrix.
 
@@ -307,16 +307,16 @@ def plot_1d_line(datasets, x_key, y_key, z_key, fixed_x=None, fixed_y=None, tole
         Y = y_data
         X = np.tile(x_data, (Y.shape[1], 1)).T
         if apply_horizontal_correction:
-            z_data = flatten_horizontal(z_data)
+            z_data = horizontal_flatten(z_data)
         if apply_vertical_correction:
-            z_data = flatten_vertical(z_data)
+            z_data = vertical_flatten(z_data)
     elif y_data.ndim == 1: # In case it's inverted the axis.
         X = x_data
         Y = np.tile(y_data, (X.shape[1], 1)).T
         if apply_vertical_correction:
-            z_data = flatten_horizontal(z_data)
+            z_data = horizontal_flatten(z_data)
         if apply_horizontal_correction:
-            z_data = flatten_vertical(z_data)
+            z_data = vertical_flatten(z_data)
 
     #This only works when x_data is 1D array.
 
