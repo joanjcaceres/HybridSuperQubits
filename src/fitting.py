@@ -84,20 +84,15 @@ def fit_fluxonium(transition_files, bounds):
     progress = []
 
     # Create the progress bar
-    progress_bar = tqdm(total=100, desc="Progress")
+    progress_bar = tqdm(total=100, desc="Iterations")
 
-    # Define the callback function with convergence tracking
+    # Define the callback function
     def callback(params, convergence):
         # Register the current state of the fit
         progress.append(params)
-        # Calculate the progress based on convergence
-        progress_percentage = min(100, int((1 - convergence) * 100))
         # Update the progress bar
-        progress_bar.n = progress_percentage
-        progress_bar.refresh()
-        # Display current parameters and convergence
-        print(f"Parameters: {params}, Convergence: {convergence}")
-        if convergence <= 1e-6:  # Adjust the convergence threshold as needed
+        progress_bar.update(len(progress) - progress_bar.n)
+        if len(progress) >= 100:
             progress_bar.close()
 
     # Normalize bounds to [0, 1] for optimization
