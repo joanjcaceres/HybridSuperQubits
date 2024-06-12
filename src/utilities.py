@@ -194,23 +194,23 @@ def plot2D(data_dict, x_key, y_key, color_key, title=None, plot_style='line', fi
 
     # Create a colormap
     cmap = plt.get_cmap('viridis')  # You can choose another colormap like 'plasma', 'inferno', etc.
-    norm = plt.Normalize(vmin=min(color_values), vmax=max(color_values))
-    colors = cmap(norm(color_values))
-
+    norm = plt.Normalize(vmin=color_values.min(), vmax=color_values.max())
+    
     lc = None  # Initialize lc to None for checking later
     sc = None  # Initialize sc to None for checking later
 
     if plot_style in ['line', 'both']:
         # Create segments for LineCollection
         segments = [np.column_stack([x_data[i], y_data[i]]) for i in range(y_data.shape[0])]
-        lc = LineCollection(segments, colors=colors, **kwargs)
+        lc = LineCollection(segments, cmap=cmap, norm=norm, **kwargs)
+        lc.set_array(color_values)
         # Add the LineCollection to the plot
         ax.add_collection(lc)
 
     if plot_style in ['point', 'both']:
         # Scatter plot for points
         for i in range(y_data.shape[0]):
-            sc = ax.scatter(x_data[i], y_data[i], color=[colors[i]], **kwargs)
+            sc = ax.scatter(x_data[i], y_data[i], c=np.full_like(x_data[i], fill_value=color_values[i]), cmap=cmap, norm=norm, **kwargs)
 
     # Adjust plot limits
     ax.set_xlim(x_data.min(), x_data.max())
