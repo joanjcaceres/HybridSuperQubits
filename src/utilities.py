@@ -1,9 +1,10 @@
 import os
 import re
-from scipy.integrate import nquad
-import scipy.constants as const
 import numpy as np
+import scipy.constants as const
 import matplotlib.pyplot as plt
+from scipy.integrate import nquad
+from matplotlib.collections import LineCollection
 
 def calculate_mutual(loop_size:list[float],offset_position:list[float], flux_line_length:float, flux_line_width:float) -> float:
     """
@@ -165,7 +166,64 @@ def load_data_and_metadata(file_path):
     return datasets, metadata
 
 
-def plot3D(data_dict, x_key, y_key, z_key, title='Phase Map', flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None, **kwargs):
+def plot2D(data_dict, x_key, y_key, color_key, title=None, fig=None, ax=None, **kwargs):
+    """
+    Plot multiple 2D lines with colors changing gradually based on a given array of values.
+
+    Parameters:
+    data_dict (dict): Dictionary containing the data arrays.
+    x_key (str): Key for the x_values to plot.
+    y_key (str): Key for the y_values to plot.
+    color_key (str): Key for the values used to determine the color of each line.
+    title (str, optional): Title of the plot.
+    fig (matplotlib.figure.Figure, optional): Figure object to use for plotting.
+    ax (matplotlib.axes.Axes, optional): Axes object to use for plotting.
+    kwargs: Additional keyword arguments to pass to the plot function.
+    """
+    if fig is None or ax is None:
+        figsize = kwargs.pop('figsize', (8, 6))
+        fig, ax = plt.subplots(figsize=figsize)  # Create a new figure and axis if not provided
+    
+    x_data = data_dict[x_key][0] # Only valid when all have the same x.
+    y_data = data_dict[y_key]
+    color_values = data_dict[color_key]
+    
+    # Check dimensions
+    assert x_data.shape[0] == y_data.shape[1], "x_data length must match the number of columns in y_data"
+    assert y_data.shape[0] == color_values.shape[0], "color_values length must match the number of rows in y_data"
+
+    # Create a colormap
+    cmap = plt.get_cmap('viridis')  # You can choose another colormap like 'plasma', 'inferno', etc.
+    norm = plt.Normalize(vmin=min(color_values), vmax=max(color_values))
+    
+    # Create segments for LineCollection
+    segments = [np.column_stack([x_data, y_data[i]]) for i in range(y_data.shape[0])]
+    lc = LineCollection(segments, cmap=cmap, norm=norm, **kwargs)
+    lc.set_array(color_values)
+
+    # Add the LineCollection to the plot
+    ax.add_collection(lc)
+
+    # Adjust plot limits
+    ax.set_xlim(x_data.min(), x_data.max())
+    ax.set_ylim(y_data.min(), y_data.max())
+
+    # Add labels and title
+    ax.set_xlabel(x_key)
+    ax.set_ylabel(y_key)
+    if title is not None:
+        ax.set_title(title)
+
+    # Add colorbar
+    cbar = fig.colorbar(lc, ax=ax)
+    cbar.set_label(color_key)
+    
+    fig.tight_layout()
+
+    return fig, ax, lc
+
+
+def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None, **kwargs):
     """
     Plot a 2D phase map using the provided X-axis values, Y-axis values, and Z-axis matrix.
 
@@ -210,9 +268,12 @@ def plot3D(data_dict, x_key, y_key, z_key, title='Phase Map', flatten_horizontal
     vmax = kwargs.pop('vmax', None)
     mesh = ax.pcolormesh(X, Y, z_data, shading='auto', vmin=vmin, vmax=vmax,**kwargs)
     
-    ax.set_title(title)
+    if title is not None:
+        ax.set_title(title)
     ax.set_xlabel(x_key)
     ax.set_ylabel(y_key)
+    
+    fig.colorbar(mesh, ax=ax, label=z_key)
     fig.tight_layout()
     
     return fig, ax, mesh
