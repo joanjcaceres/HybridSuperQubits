@@ -165,17 +165,17 @@ def load_data_and_metadata(file_path):
 
     return datasets, metadata
 
-
-def plot2D(data_dict, x_key, y_key, color_key, title=None, fig=None, ax=None, **kwargs):
+def plot2D(data_dict, x_key, y_key, color_key, title=None, plot_style='line', fig=None, ax=None, **kwargs):
     """
-    Plot multiple 2D lines with colors changing gradually based on a given array of values.
+    Plot multiple 2D lines or points with colors changing gradually based on a given array of values.
 
     Parameters:
     data_dict (dict): Dictionary containing the data arrays.
     x_key (str): Key for the x_values to plot.
     y_key (str): Key for the y_values to plot.
-    color_key (str): Key for the values used to determine the color of each line.
+    color_key (str): Key for the values used to determine the color of each line or point.
     title (str, optional): Title of the plot.
+    plot_style (str, optional): Style of plot ('line', 'point', 'both'). Default is 'line'.
     fig (matplotlib.figure.Figure, optional): Figure object to use for plotting.
     ax (matplotlib.axes.Axes, optional): Axes object to use for plotting.
     kwargs: Additional keyword arguments to pass to the plot function.
@@ -184,25 +184,33 @@ def plot2D(data_dict, x_key, y_key, color_key, title=None, fig=None, ax=None, **
         figsize = kwargs.pop('figsize', (8, 6))
         fig, ax = plt.subplots(figsize=figsize)  # Create a new figure and axis if not provided
     
-    x_data = data_dict[x_key][0] # Only valid when all have the same x.
+    x_data = data_dict[x_key]
     y_data = data_dict[y_key]
     color_values = data_dict[color_key]
     
     # Check dimensions
-    assert x_data.shape[0] == y_data.shape[1], "x_data length must match the number of columns in y_data"
-    assert y_data.shape[0] == color_values.shape[0], "color_values length must match the number of rows in y_data"
+    assert x_data.shape == y_data.shape, "x_data and y_data must have the same shape"
+    assert x_data.shape[0] == color_values.shape[0], "Number of rows in x_data must match length of color_values"
 
     # Create a colormap
     cmap = plt.get_cmap('viridis')  # You can choose another colormap like 'plasma', 'inferno', etc.
     norm = plt.Normalize(vmin=min(color_values), vmax=max(color_values))
-    
-    # Create segments for LineCollection
-    segments = [np.column_stack([x_data, y_data[i]]) for i in range(y_data.shape[0])]
-    lc = LineCollection(segments, cmap=cmap, norm=norm, **kwargs)
-    lc.set_array(color_values)
+    colors = cmap(norm(color_values))
 
-    # Add the LineCollection to the plot
-    ax.add_collection(lc)
+    lc = None  # Initialize lc to None for checking later
+    sc = None  # Initialize sc to None for checking later
+
+    if plot_style in ['line', 'both']:
+        # Create segments for LineCollection
+        segments = [np.column_stack([x_data[i], y_data[i]]) for i in range(y_data.shape[0])]
+        lc = LineCollection(segments, colors=colors, **kwargs)
+        # Add the LineCollection to the plot
+        ax.add_collection(lc)
+
+    if plot_style in ['point', 'both']:
+        # Scatter plot for points
+        for i in range(y_data.shape[0]):
+            sc = ax.scatter(x_data[i], y_data[i], color=[colors[i]], **kwargs)
 
     # Adjust plot limits
     ax.set_xlim(x_data.min(), x_data.max())
@@ -215,13 +223,15 @@ def plot2D(data_dict, x_key, y_key, color_key, title=None, fig=None, ax=None, **
         ax.set_title(title)
 
     # Add colorbar
-    cbar = fig.colorbar(lc, ax=ax)
+    if lc is not None:
+        cbar = fig.colorbar(lc, ax=ax)
+    elif sc is not None:
+        cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label(color_key)
     
     fig.tight_layout()
 
-    return fig, ax, lc
-
+    return fig, ax
 
 def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None, **kwargs):
     """
