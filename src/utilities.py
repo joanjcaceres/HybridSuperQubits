@@ -92,11 +92,11 @@ def load_data(base_name):
     for i, header in enumerate(column_headers):
         data_dict[header] = data[:, i]
 
+    mask = []
     # Check if the directory exists
     if os.path.isdir(y_directory):
         filenames = sorted([f for f in os.listdir(y_directory) if f.endswith('.txt')])
 
-        mask = []
 
         for idx, filename in enumerate(filenames):
             if idx >= num_rows:
@@ -233,7 +233,7 @@ def plot2D(data_dict, x_key, y_key, color_key, title=None, plot_style='line', fi
 
     return fig, ax
 
-def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None, **kwargs):
+def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None, add_colorbar=True, **kwargs):
     """
     Plot a 2D phase map using the provided X-axis values, Y-axis values, and Z-axis matrix.
 
@@ -282,8 +282,8 @@ def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False,
         ax.set_title(title)
     ax.set_xlabel(x_key)
     ax.set_ylabel(y_key)
-    
-    fig.colorbar(mesh, ax=ax, label=z_key)
+    if add_colorbar:
+        cbar = fig.colorbar(mesh, ax=ax, label=z_key)
     fig.tight_layout()
     
     return fig, ax, mesh
@@ -304,12 +304,16 @@ def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=Fals
         z_data_combined = np.concatenate([data_dict[z_key].flatten() for key, data_dict in data_dicts.items()])
         vmin = vmin if vmin is not None else np.min(z_data_combined)
         vmax = vmax if vmax is not None else np.max(z_data_combined)
+        
+    last_mesh = None
     
     for key, data_dict in data_dicts.items():
-        fig, ax, mesh = plot3D(data_dict, x_key, y_key, z_key, title='', flatten_horizontal=flatten_horizontal, flatten_vertical=flatten_vertical, fig=fig, ax=ax, vmin=vmin, vmax=vmax, **kwargs)
+        fig, ax, last_mesh = plot3D(data_dict, x_key, y_key, z_key, title='', flatten_horizontal=flatten_horizontal, flatten_vertical=flatten_vertical, fig=fig, ax=ax, vmin=vmin, vmax=vmax, add_colorbar=False, **kwargs)
+        
+    if last_mesh is not None:
+        cbar = fig.colorbar(last_mesh, ax=ax, orientation='vertical')
+        cbar.ax.set_ylabel(z_key)
     
-    cbar = fig.colorbar(mesh, ax=ax, orientation='vertical')#, fraction=0.02, pad=0.04)
-    cbar.ax.set_ylabel(z_key)
     if title is not None:
         ax.set_title(title)
     plt.tight_layout()
