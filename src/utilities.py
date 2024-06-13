@@ -288,9 +288,10 @@ def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False,
     
     return fig, ax, mesh
     
-def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, **kwargs):
-    figsize = kwargs.pop('figsize', (8, 6))
-    fig, ax = plt.subplots(figsize=figsize)
+def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=False, flatten_vertical=False, fig=None, ax=None,**kwargs):
+    if fig is None or ax is None:
+        figsize = kwargs.pop('figsize', (8, 6))
+        fig, ax = plt.subplots(figsize=figsize)
     
     vmin = kwargs.pop('vmin', None)
     vmax = kwargs.pop('vmax', None)
@@ -317,7 +318,6 @@ def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=Fals
     if title is not None:
         ax.set_title(title)
     plt.tight_layout()
-    plt.show()
     
     return fig,ax
 
