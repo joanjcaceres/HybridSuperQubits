@@ -111,7 +111,8 @@ def fit_fluxonium(transition_files, bounds):
 
     return fluxonium_fit, result
 
-def get_transitions_from_levels(fluxonium: sq.Fluxonium, flux_range=(-0.5, 0.1), num_points=4001, evals_count=6, base_levels=None):
+
+def get_transitions_from_levels(fluxonium_fit:sq.Fluxonium, flux_array, evals_count=6, base_levels=None):
     """
     Gets specific energy transitions from base levels to higher levels for a fitted Fluxonium object.
 
@@ -119,10 +120,8 @@ def get_transitions_from_levels(fluxonium: sq.Fluxonium, flux_range=(-0.5, 0.1),
     -----------
     fluxonium_fit : scqubits.Fluxonium
         The fitted Fluxonium object.
-    flux_range : tuple, optional
-        Range of flux values (default is (-0.7, 0.1)).
-    num_points : int, optional
-        Number of points in the flux range (default is 4001).
+    flux_array : numpy.ndarray
+        Array of flux values.
     evals_count : int, optional
         Number of eigenvalues to calculate (default is 6).
     base_levels : list of int, optional
@@ -135,8 +134,7 @@ def get_transitions_from_levels(fluxonium: sq.Fluxonium, flux_range=(-0.5, 0.1),
     transition_dict : dict
         Dictionary of calculated transitions with keys as tuples (i, j).
     """
-    flux_array = np.linspace(flux_range[0], flux_range[1], num_points)
-    fluxspec = fluxonium.get_spectrum_vs_paramvals(
+    fluxspec = fluxonium_fit.get_spectrum_vs_paramvals(
         param_name='flux',
         param_vals=flux_array,
         evals_count=evals_count,
@@ -155,7 +153,7 @@ def get_transitions_from_levels(fluxonium: sq.Fluxonium, flux_range=(-0.5, 0.1),
 
     return flux_array, transition_dict
 
-def plot_transitions(flux_array, transition_dict, fig, ax, fluxonium_fit):
+def plot_transitions(flux_array, transition_dict, fig, ax, fluxonium_fit, **kwargs):
     """
     Plots specific energy transitions on an existing figure.
 
@@ -171,12 +169,21 @@ def plot_transitions(flux_array, transition_dict, fig, ax, fluxonium_fit):
         Existing axis to plot on.
     fluxonium_fit : scqubits.Fluxonium
         The fitted Fluxonium object.
+    **kwargs : dict
+        Additional keyword arguments for plotting (e.g., alpha, linestyle, linewidth).
+
     """
     fig.suptitle(f'EJ = {np.round(fluxonium_fit.EJ, 2)}, EC = {np.round(fluxonium_fit.EC, 2)}, EL = {np.round(fluxonium_fit.EL, 3)}')
-    alpha = 0.5
+    alpha = kwargs.get('alpha', 0.5)
+    linestyle = kwargs.get('linestyle', '--')
+    linewidth = kwargs.get('linewidth', 0.8)
+
+    # Get a colormap with enough unique colors
+    cmap = plt.cm.get_cmap('tab10', len(transition_dict))
 
     for idx, ((i, j), transition) in enumerate(transition_dict.items()):
-        ax.plot(flux_array, transition, linestyle='--', linewidth=0.8, alpha=alpha, label=f'{i}->{j}')
+        color = cmap(idx)
+        ax.plot(flux_array, transition, linestyle=linestyle, linewidth=linewidth, color=color, alpha=alpha, label=f'{i}->{j}')
 
     ax.legend()
     fig.tight_layout()
