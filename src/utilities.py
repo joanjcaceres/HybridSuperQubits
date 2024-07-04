@@ -479,4 +479,53 @@ def last_measurement(directory):
 
     return max_number
 
+def latex_style(enable = True):
+    if enable:
+        plt.rcParams.update(
+                {
+                    "font.size": 16,
+                    "font.family": "serif",
+                    "text.usetex": True,
+                    "figure.subplot.top": 0.9,
+                    "figure.subplot.right": 0.9,
+                    "figure.subplot.left": 0.15,
+                    "figure.subplot.bottom": 0.12,
+                    "figure.subplot.hspace": 0.4,
+                    "savefig.dpi": 200,
+                    "savefig.format": "png",
+                    "axes.titlesize": 16,
+                    "axes.labelsize": 18,
+                    "axes.axisbelow": True,
+                    "xtick.direction": "in",
+                    "ytick.direction": "in",
+                    "xtick.major.size": 5,
+                    "xtick.minor.size": 2.25,
+                    "xtick.major.pad": 7.5,
+                    "xtick.minor.pad": 7.5,
+                    "ytick.major.pad": 7.5,
+                    "ytick.minor.pad": 7.5,
+                    "ytick.major.size": 5,
+                    "ytick.minor.size": 2.25,
+                    "xtick.labelsize": 16,
+                    "ytick.labelsize": 16,
+                    "legend.fontsize": 16,
+                    "legend.framealpha": 1,
+                    "figure.titlesize": 16,
+                    "lines.linewidth": 2,
+                })
+    else:
+        plt.rcParams.update(plt.rcParamsDefault)
+        
+def L_to_El(L):
+    return (const.hbar/2/const.e)**2/(L)/const.h
+
+def C_to_Ec(C):
+    return const.e**2/2/C/const.h
+
+def El_to_L(El):
+    return (const.hbar/2/const.e)**2/(El * const.h)
+
+def Ec_to_C(Ec):
+    return const.e**2 / (2 * Ec * const.h)
+
 
