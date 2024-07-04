@@ -78,37 +78,3 @@ def plot_vs_parameters(x_values_list, y_values_list, parameter_names, ylabels, t
         fig.savefig(filename)
     
     plt.show()
-
-def plot_style():
-    plt.rcParams.update(
-            {
-                "font.size": 16,
-                "font.family": "serif",
-                "text.usetex": True,
-                "figure.subplot.top": 0.9,
-                "figure.subplot.right": 0.9,
-                "figure.subplot.left": 0.15,
-                "figure.subplot.bottom": 0.12,
-                "figure.subplot.hspace": 0.4,
-                # "savefig.dpi": dpi,
-                "savefig.format": "png",
-                "axes.titlesize": 16,
-                "axes.labelsize": 18,
-                "axes.axisbelow": True,
-                "xtick.direction": "in",
-                "ytick.direction": "in",
-                "xtick.major.size": 5,
-                "xtick.minor.size": 2.25,
-                "xtick.major.pad": 7.5,
-                "xtick.minor.pad": 7.5,
-                "ytick.major.pad": 7.5,
-                "ytick.minor.pad": 7.5,
-                "ytick.major.size": 5,
-                "ytick.minor.size": 2.25,
-                "xtick.labelsize": 16,
-                "ytick.labelsize": 16,
-                "legend.fontsize": 16,
-                "legend.framealpha": 1,
-                "figure.titlesize": 16,
-                "lines.linewidth": 2,
-            })
