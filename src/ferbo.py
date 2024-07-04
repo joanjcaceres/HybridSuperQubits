@@ -4,7 +4,7 @@ from typing import Dict
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, e, k
 from scipy.interpolate import UnivariateSpline
-from utils import filter_args, plot_vs_parameters
+from src.files_to_organize.utils import filter_args, plot_vs_parameters
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay, sigmax
 
 
@@ -73,17 +73,22 @@ def ImZ(Ec, El, r, dimension) -> Qobj:
     # return r*(phase_op/2).sinm()
 
 @functools.lru_cache(maxsize=None)
-def jrl_potential(Ec, El, r, er, dimension) -> Qobj:
+def jrl_hamiltonian(Ec, El, r, er, dimension) -> Qobj:
     phase_op = phase_operator(Ec, El, dimension)
     # return tensor((phase_op/2).cosm(),sigmax()) + r*tensor((phase_op/2).sinm(),sigmay()) - er*tensor(qeye(dimension),sigmaz())
     return  tensor((phase_op/2).cosm(),sigmaz()) - er*tensor(qeye(dimension),sigmax()) + r* tensor((phase_op/2).sinm(),sigmay()) 
+
+def ferbo_potential(phi, El, Delta):
+    ground_potential = 0.5*El*phi**2 - Delta*np.cos(phi/2) 
+    excited_potential = 0.5*El*phi**2 + Delta*np.cos(phi/2) 
+    return  ground_potential, excited_potential
 
 @functools.lru_cache(maxsize=None)
 def delta(Ec, El, phi_ext, dimension):
     return phase_operator(Ec, El, dimension) - phi_ext
 
 @functools.lru_cache(maxsize=None)
-def  hamiltonian(Ec, El, Delta, r, phi_ext: float, er=0, dimension = 100, model = 'ferbo') -> Qobj:
+def  hamiltonian(Ec, El, Delta, r, phi_ext: float, er=0, dimension = 100, model = 'jrl') -> Qobj:
     charge_op = charge_number_operator(Ec, El, dimension)
     delta_val = delta(Ec, El, phi_ext, dimension)
 
@@ -92,7 +97,7 @@ def  hamiltonian(Ec, El, Delta, r, phi_ext: float, er=0, dimension = 100, model 
         ImZ_val = ImZ(Ec, El, r, dimension)
         return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) - Delta*(tensor(ReZ_val, sigmaz()) + tensor(ImZ_val, sigmay()))
     elif model == 'jrl': #Josephson Resonance level
-        return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) - Delta*jrl_potential(Ec, El, r, er, dimension)
+        return 4*Ec*tensor(charge_op**2, qeye(2)) + 0.5*El*tensor(delta_val**2, qeye(2)) - Delta*jrl_hamiltonian(Ec, El, r, er, dimension)
 
 
 def eigen_vs_parameter(parameter_name, parameter_values, fixed_params: Dict[str, float], eigvals=6, calculate_states=False, plot=True, filename=None, **kwargs):
