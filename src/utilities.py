@@ -399,7 +399,7 @@ def plot3D(data_dict, x_key, y_key, z_key, title=None, flatten_horizontal=False,
     if title is not None:
         ax.set_title(title)
     ax.set_xlabel(x_key)
-    ax.set_ylabel(y_key)
+    # ax.set_ylabel(y_key)
     if add_colorbar:
         cbar = fig.colorbar(mesh, ax=ax, label=z_key)
     fig.tight_layout()
