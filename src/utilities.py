@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import nquad
 from matplotlib.collections import LineCollection
 from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
 import h5py
 import yaml
 
@@ -38,11 +39,14 @@ def load_txt_data(base_name):
     # Initialize the dictionary
     data_dict = {}
 
+    # Initialize the mask variable
+    mask = []
+
     # Load X-axis data
     with open(x_file, 'r') as file:
         lines = file.readlines()
 
-    # Extract parameters from the header
+    # Extract parameters from the header`
     parameters = read_parameters(lines)
     if parameters:
         data_dict['parameters'] = parameters
@@ -71,7 +75,7 @@ def load_txt_data(base_name):
     if os.path.isdir(y_directory):
         filenames = sorted([f for f in os.listdir(y_directory) if f.endswith('.txt')])
 
-        mask = []
+        # mask = []
 
         for idx, filename in enumerate(filenames):
             if idx >= num_rows:
@@ -548,32 +552,28 @@ def read_parameters(lines):
 
     for line in lines:
         stripped_line = line.strip()
-        
-        # Start reading parameters after the line containing 'parameters:'
-        if stripped_line == 'parameters:':
+        # Detectar la línea que contiene 'parameters:'
+        if stripped_line.startswith('parameters:'):
             in_parameters_section = True
-            continue
-        
-        # Stop reading if '#end of header' is reached
-        if stripped_line == '#end of header':
+        elif stripped_line == '#end of header':
             break
-
-        # Process only lines within the 'parameters' section that are indented
-        if in_parameters_section and line.startswith('  '):  # Assuming parameters are indented with two spaces
-            if ':' in line:
-                key_value_pair = line.strip().split(': ', 1)
+        
+        # Procesar solo las líneas dentro de la sección 'parameters:'
+        if in_parameters_section:
+            if ':' in stripped_line:
+                key_value_pair = stripped_line.split(': ', 1)
                 if len(key_value_pair) == 2:
                     key, value = key_value_pair
-                    # Remove potential trailing commas and spaces
+                    # Remover posibles comas y espacios al final
                     value = value.rstrip(', ')
-                    # Try to handle values that are numerical or lists
+                    # Intentar manejar valores que sean numéricos o listas
                     try:
-                        if '[' in value and ']' in value:  # Handles list values
-                            value = eval(value)  # Safely evaluate the string to a Python list
+                        if '[' in value and ']' in value:  # Maneja valores tipo lista
+                            value = eval(value)  # Evalúa de manera segura la cadena a una lista de Python
                         else:
                             value = float(value)
                     except ValueError:
-                        pass  # Keep the value as is if it's not a number or list
+                        pass  # Dejar el valor como está si no es un número o lista
                     
                     parameters[key] = value
 
