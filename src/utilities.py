@@ -647,6 +647,20 @@ def El_to_L(El):
 def Ec_to_C(Ec):
     return const.e**2 / (2 * Ec * const.h)
 
+def lorentzian(x, x0, gamma, a):
+    return a * gamma**2 / ((x - x0)**2 + gamma**2)
+
+def double_lorentzian(x, x01, gamma1, a1, x02, gamma2, a2, baseline):
+    return (lorentzian(x, x01, gamma1, a1) + 
+            lorentzian(x, x02, gamma2, a2) + 
+            baseline)
+    
+def triple_lorentzian(x, x01, gamma1, a1, x02, gamma2, a2, x03, gamma3, a3, baseline):
+    return (lorentzian(x, x01, gamma1, a1) + 
+            lorentzian(x, x02, gamma2, a2) + 
+            lorentzian(x, x03, gamma3, a3) + 
+            baseline)
+    
 def calculate_fft(y_data, time):
     """
     Calculate the Fast Fourier Transform (FFT) of a signal.
@@ -678,4 +692,12 @@ def calculate_fft(y_data, time):
     fft_signal = np.abs(fft_signal[:half_n])
 
     return frequencies, fft_signal
+
+def power_law(f, alpha, c):
+    return c * (f**(-alpha))
+
+def fit_power_law(frequencies, fft_amplitude):
+    popt, pcov = curve_fit(power_law, frequencies, fft_amplitude, bounds=(0, [10., 1000.]))
+    perr = np.sqrt(np.diag(pcov))
+    return popt, perr
 
