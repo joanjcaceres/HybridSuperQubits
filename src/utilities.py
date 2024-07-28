@@ -5,6 +5,7 @@ import scipy.constants as const
 import matplotlib.pyplot as plt
 from scipy.integrate import nquad
 from matplotlib.collections import LineCollection
+from scipy.interpolate import interp1d
 import h5py
 import yaml
 
@@ -646,4 +647,35 @@ def El_to_L(El):
 def Ec_to_C(Ec):
     return const.e**2 / (2 * Ec * const.h)
 
+def calculate_fft(y_data, time):
+    """
+    Calculate the Fast Fourier Transform (FFT) of a signal.
+
+    Parameters:
+    y_data (array-like): The signal data points, potentially containing NaNs.
+    time (array-like): The corresponding time points for the signal data.
+
+    Returns:
+    tuple: Two arrays, frequencies and fft_signal, representing the frequencies and their corresponding FFT magnitudes.
+    """
+    # Filter out NaNs before any processing
+    valid_indices = ~np.isnan(y_data)
+    y_data = y_data[valid_indices]
+    time = time[valid_indices]
+
+    # Interpolation to convert to a uniform signal
+    t_uniform = np.linspace(time.min(), time.max(), len(time))
+    interp_func = interp1d(time, y_data, kind='linear')
+    signal_uniform = interp_func(t_uniform)
+
+    # Compute the Fourier Transform of the interpolated signal
+    fft_signal = np.fft.fft(signal_uniform)
+    frequencies = np.fft.fftfreq(len(signal_uniform), t_uniform[1] - t_uniform[0])
+
+    # Take only the positive half of the frequency spectrum
+    half_n = len(signal_uniform) // 2
+    frequencies = frequencies[:half_n]
+    fft_signal = np.abs(fft_signal[:half_n])
+
+    return frequencies, fft_signal
 
