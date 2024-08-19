@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.constants as const
-import scipy.stats
+from src.fluxonium import calculate_CQPS_rate
+from src.utilities import *
 import scqubits as sq
 import matplotlib.pyplot as plt
 from scipy.optimize import differential_evolution
@@ -9,67 +10,243 @@ phi0 = const.h/2/const.e/2/np.pi
 Rq = const.h/(2*const.e)**2
 f_temp = const.k*0.015/const.h*1e-9
 
-Ec_area = 0.49
-Ej_over_area = 48.5
-El_per_junction = 35.4
+totalIslandsLength = 68 #µm
+fluxLineCapacitance = 3.8 #fF #It can be zero if we use a coil instead of a flux line.
+mutualInductance = 1000 # \Phi_0/A
 
-C0_jja = 53e-18
-Lj_per_junction = 4.62e-9
-Z_c0 = np.sqrt(Lj_per_junction/C0_jja)
+with open("../data/junctions.yaml", 'r') as file:
+    junctions_data = yaml.safe_load(file)
+
+CjperArea = junctions_data['CJ_per_area']
+LjArea = junctions_data['LJ_times_area']
+C0perJunction = junctions_data['C0_per_junction']
+C0perLength = junctions_data['C0_per_length']
+
+junctionArea = junctions_data['junction_width'] * junctions_data['junction_length']
+
+Ec_area = C_to_Ec(CjperArea * 1e-15) * 1e-9 #Area in µm^2.
+Ej_over_area = L_to_El(LjArea * 1e-9) * 1e-9 #Area in µm^2.
+
+El_times_junction = Ej_over_area * junctionArea
+Ec_junction = Ec_area / junctionArea
+Ec0_per_junction = C_to_Ec(C0perJunction / 12 * 1e-18) * 1e-9
+
+# C0_jja = 53e-18
+# Lj_per_junction = 4.62e-9
+# Z_c0 = np.sqrt(Lj_per_junction/C0_jja)
+
+# Improve the optimizer in order to take the junction area of the array of as a parameter too.
+
+class FluxoniumResult:
+    def __init__(self, fluxonium: sq.Fluxonium, params: list, gamma_inverse: float):
+        self.fluxonium: sq.Fluxonium = fluxonium
+        self.params: list = params
+        self.gamma_inverse: float = gamma_inverse
+
+    def __repr__(self):
+        return (f"FluxoniumResult(fluxonium={self.fluxonium}, "
+                f"params = {self.params}, "
+                f"T2 = {round(self.gamma_inverse*1e-6,4)} ms)")
 
 class FluxoniumManager():
     def __init__(self):
-        self.optimal_fluxonium = None
+        self.results = {
+            "flux_0": None,
+            "flux_0_5": None
+        }
+        self.original_bounds = None
 
-    def fluxonium_creator(self, params, **kwargs):
+
+    def fluxonium_creator(self, params, flux, **kwargs):
         """
-        Calculate and return a Fluxonium qubit object with specified parameters.
-        
-        Parameters:
-        - params (tuple): A tuple containing the following parameters:
+        Creates and returns a Fluxonium qubit object with specified parameters.
+
+        Parameters
+        ----------
+        params : tuple
+            A tuple containing the following parameters:
             - small_jj_area (float): The area of the small Josephson junction in µm².
-            - n_junctions (int): The initial number of Josephson junctions, which will be scaled by 100.
-            - flux (float): The magnetic flux through the qubit, in units where the flux quantum is 1.
-        - **kwargs: Additional keyword arguments to be passed to the Fluxonium constructor.
-        
-        Returns:
-        - A Fluxonium qubit object configured with the calculated energy scales (EC, EL, EJ) and the specified flux.
-        
-        This function computes the hamiltonian based on experimental constrains given in params.
+            - n_junctions (int): The number of Josephson junctions.
+        flux : float
+            The magnetic flux through the qubit, in units where the flux quantum is 1.
+        **kwargs : dict
+            Additional keyword arguments to be passed to the Fluxonium constructor.
+
+        Returns
+        -------
+        sq.Fluxonium
+            A Fluxonium qubit object configured with the calculated energy scales 
+            (EC, EL, EJ) and the specified flux.
         """
-        small_jj_area, n_junctions, flux = params
+        small_jj_area, n_junctions = params
 
-        n_junctions = n_junctions*100
-        Ec_small_jj = Ec_area/small_jj_area
-        Ec_JJA = const.e**2/const.h/2/(n_junctions*C0_jja)*1e-9
-        Ec = scipy.stats.hmean([Ec_small_jj, Ec_JJA])
-        El = El_per_junction/n_junctions
-        Ej = Ej_over_area*small_jj_area
-        return sq.Fluxonium(EC=Ec, EL=El, EJ=Ej, flux=flux, cutoff=50, **kwargs) #Change later to consider both fluxes.
+        # n_junctions *= 100 #TODO: Change the scaling in the optimizator, not here.
+        
+        C0_islands = (C0perJunction * n_junctions + 2 * C0perLength * totalIslandsLength) / 12 #fF 
+        Cj_array = CjperArea * junctionArea / n_junctions #fF
+        Cj_small_jj = CjperArea * small_jj_area #fF
+        
+        EC = C_to_Ec((C0_islands + Cj_array + Cj_small_jj + fluxLineCapacitance) * 1e-15) * 1e-9 # GHz
+        EL = L_to_El(LjArea / junctionArea * n_junctions * 1e-9) * 1e-9 # GHz
+        EJ = L_to_El(LjArea / small_jj_area * 1e-9) * 1e-9 # GHz
+        
+        # return sq.Fluxonium(EC=EC, EL=EL, EJ=EJ, flux=flux, cutoff=50, **kwargs) #Change later to consider both fluxes.
+        return sq.Fluxonium(EC=EC, EL=EL, EJ=EJ, flux=flux, cutoff=50, **kwargs) #Change later to consider both fluxes.
 
-    def _Gamma2(self,params):
-        fluxonium = self.fluxonium_creator(params)
+    def _Gamma2(self,params_normalized, flux):
+        """
+        Calculates the decoherence rate Gamma2 for a given Fluxonium qubit.
+
+        Parameters
+        ----------
+        params_normalized : tuple
+            Normalized parameters for the Fluxonium qubit.
+        flux : float
+            The magnetic flux through the qubit.
+
+        Returns
+        -------
+        float
+            The calculated decoherence rate Gamma.
+        """
+        # Denormalize parameters
+        params = self._denormalize_params(params_normalized)
+        
+        fluxonium = self.fluxonium_creator(params, flux)
         
         Gamma2 = fluxonium.t2_effective(
-                            noise_channels=['tphi_1_over_f_cc','tphi_1_over_f_flux',('t1_flux_bias_line', dict(M=1000)), 't1_inductive', ('t1_quasiparticle_tunneling', dict(Delta = 0.0002))],
+                            noise_channels=[
+                                'tphi_1_over_f_cc','tphi_1_over_f_flux',
+                                ('t1_flux_bias_line', dict(M=mutualInductance)),
+                                't1_inductive',
+                                ('t1_quasiparticle_tunneling', dict(Delta = 0.0002))
+                                ],
                             common_noise_options=dict(T=0.015),
-                            get_rate= True
+                            get_rate= True,
                                 )
+        small_jj_area, n_junctions = params 
+        # n_junctions *= 100 #TODO: Change this way of normalizing the amount of junctions
+        
+        GammaCQPS = calculate_CQPS_rate(
+            fluxonium=fluxonium,
+            ECj= Ec_junction,
+            EJj= El_times_junction,
+            n_junctions=n_junctions,
+            )
+        
+        Gamma = np.sqrt(Gamma2**2 + GammaCQPS**2) # Based on arXiv:2404.02989v1 p.6
 
         #TODO: Change with a better function to solve the problem of the anharmonicity continuiously
-        if (np.abs(fluxonium.anharmonicity()) < 0.100) or (fluxonium.anharmonicity() + fluxonium.E01() < 0.100) or (fluxonium.E01() < 0.400):
-            Gamma2 = 1e-6
+        if (np.abs(fluxonium.anharmonicity()) < 0.100) or \
+           (fluxonium.anharmonicity() + fluxonium.E01() < 0.100) or \
+           (fluxonium.E01() < 0.400):
+            Gamma = 1e-6
 
-        return Gamma2
+        return Gamma
 
-    def minimizer(self, bounds):
-        #TODO: Add the bounds as a dictionary to be more understandable.
-        bounds_list = list(bounds.values())
-        self.result = differential_evolution(func=self._Gamma2,bounds=bounds_list) #optimizing the T2 of the fluxonium.
-        self.optimal_fluxonium = self.fluxonium_creator(self.result.x)
-        self.flux_array = np.linspace(self.optimal_fluxonium.flux-0.5,self.optimal_fluxonium.flux + 0.5, 51)
+    def _normalize_bounds(self, bounds):
+        """
+        Normalizes the bounds to the range [0, 1] for optimization.
+
+        Parameters
+        ----------
+        bounds : list of tuples
+            Each tuple contains (min, max) bounds for the corresponding parameter.
+
+        Returns
+        -------
+        list of tuples
+            Normalized bounds where each tuple is (0, 1).
+        """
+        return [(0, 1) for _ in bounds]
     
-    def plot_evals_vs_flux(self, resonator_freq, plasma_freq= None, ax = None, evals_count=6):
+    def _denormalize_params(self, params_normalized):
+        """
+        Denormalizes parameters from the normalized range [0, 1] back to the original scale
+        using the provided bounds.
+
+        Parameters
+        ----------
+        params_normalized : list
+            Parameters normalized in the range [0, 1].
+        bounds : list of tuples
+            Each tuple contains (min, max) bounds for the corresponding parameter.
+
+        Returns
+        -------
+        list
+            Denormalized parameters in their original scale.
+        """
+        return [low + param * (high - low) for param, (low, high) in zip(params_normalized, self.original_bounds)]
+    
+    def minimizer(self, bounds:dict):
+        """
+        Optimizes the parameters of a Fluxonium qubit to find the minimum decoherence rate.
+
+        Parameters
+        ----------
+        bounds : dict
+            Dictionary with the bounds of the parameters to be optimized.
+
+        Returns
+        -------
+        None
+            The results of the optimization are stored in the class attributes.
+        """
+        #TODO: Add the bounds as a dictionary to be more understandable.
+        # Store the original bounds
+        self.original_bounds = list(bounds.values())
+        
+        # Set normalized bounds in [0, 1] for optimization
+        bounds_normalized = self._normalize_bounds(self.original_bounds)
+        
+        # Optimization at flux=0
+        result_flux_0 = differential_evolution(
+            func=lambda params: self._Gamma2(params, flux=0), 
+            bounds=bounds_normalized
+        )
+        gamma_flux_0 = self._Gamma2(result_flux_0.x, flux=0)
+        params_flux_0 = self._denormalize_params(result_flux_0.x)
+        gamma_inverse_flux_0 = 1 / gamma_flux_0
+        fluxonium_flux_0 = self.fluxonium_creator(params_flux_0, flux=0)
+
+        # Store results for flux 0
+        self.results["flux_0"] = FluxoniumResult(
+            fluxonium=fluxonium_flux_0,
+            params=params_flux_0,
+            gamma_inverse=gamma_inverse_flux_0
+        )
+
+        # Optimization at flux = 0.5
+        result_flux_0_5 = differential_evolution(
+            func=lambda params: self._Gamma2(params, flux=0.5), 
+            bounds=bounds_normalized
+        )
+        gamma_flux_0_5 = self._Gamma2(result_flux_0_5.x, flux=0.5)
+        params_flux_0_5 = self._denormalize_params(result_flux_0_5.x)
+        gamma_inverse_flux_0_5 = 1 / gamma_flux_0_5
+        fluxonium_flux_0_5 = self.fluxonium_creator(params_flux_0_5, flux=0.5)
+
+        # Store results for flux 0.5
+        self.results["flux_0_5"] = FluxoniumResult(
+            fluxonium=fluxonium_flux_0_5,
+            params=params_flux_0_5,
+            gamma_inverse=gamma_inverse_flux_0_5
+        )
+        
+    def get_optimization_results(self):
+        """
+        Returns the results of the optimization, including the optimal Fluxonium instances,
+        the optimized parameters, and the inverse of Gamma for both flux=0 and flux=0.5.
+
+        Returns
+        -------
+        dict
+            A dictionary with the results for both flux=0 and flux=0.5.
+        """
+        return self.results
+    
+    def plot_evals_vs_flux(self, resonator_freq, ax = None, evals_count=6):
         # if self.optimal_fluxonium is None:
         #     raise RuntimeError("minimizer must be run successfully before plotting.")
         
@@ -86,9 +263,7 @@ class FluxoniumManager():
         ax.plot(self.flux_array, spec.energy_table[:,0]+resonator_freq*np.ones_like(self.flux_array), color='k', linestyle='--', label = r'$|1g\rangle$')
         ax.plot(self.flux_array, spec.energy_table[:,1]+resonator_freq*np.ones_like(self.flux_array), color='k',linestyle='dotted', label = r'$|1e\rangle$')
         ax.plot(self.flux_array, spec.energy_table[:,0]+f_temp*np.ones_like(self.flux_array), color='red',linestyle='dotted', label = r'$f_{temp}$')
-        if plasma_freq:
-            ax.plot(self.flux_array, spec.energy_table[:,0]+plasma_freq*np.ones_like(self.flux_array), color='k', label = r'$\omega_p/2\pi$')
-
+  
         ax.legend()
         ax.set_xlabel(r'$\Phi_{ext}/\Phi_0$')
         ax.set_ylabel(r'Energy (GHz)')
