@@ -1,0 +1,12 @@
+CJ_per_area: 58.5 # fF/µm^2
+LJ_times_area: 1.60 # nH.µm^2
+C0_per_junction: 0.057 # fF/µm^2
+C0_per_length: 0.103 # fF/µm (only valid for the long islands).
+
+# In FBW10S4:
+junction_width: 1.6 # µm
+junction_length: 0.31 # µm
+
+# For CQPS calculation
+EJj: 50.67 #GHz
+ECj: 0.668 #GHz
