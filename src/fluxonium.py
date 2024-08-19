@@ -28,11 +28,15 @@ def create_matrix_R(N):
     """
     Create an (N+1)x(N+1) identity matrix and modify it according to the rules specified.
     
-    Parameters:
-    N (int): The size of the matrix (N+1)x(N+1)
+    Parameters
+    ----------
+    N : int
+        The number of junctions in the superinductance. The matrix will be of size (N+1)x(N+1).
     
-    Returns:
-    np.ndarray: The resulting matrix R.
+    Returns
+    -------
+    np.ndarray
+        The resulting matrix R.
     """
     R = np.eye(N + 1)
 
@@ -47,21 +51,36 @@ def generate_matriz_Cphi(N, CJ, C0, CJb):
     """
     Generate the Cphi matrix.
     
-    Parameters:
-    N (int): The size of the matrix (N+1)x(N+1)
-    CJ (float): Capacitance value for CJ
-    C0 (float): Capacitance value for C0
-    CJb (float): Capacitance value for CJb
+    Parameters
+    ----------
+    N : int
+        The number of junctions in the superinductance. The matrix will be of size (N+1)x(N+1).
+    CJ : float
+        Capacitance value for each junction in the superinductance (CJi).
+    C0 : list or np.ndarray
+        Capacitance values for stray capacitances at each position i (C0i).
+    CJb : float
+        Capacitance value for the black-sheep Josephson junction (CJb).
     
-    Returns:
-    np.ndarray: The resulting Cphi matrix.
+    Returns
+    -------
+    np.ndarray
+        The resulting Cphi matrix.
+    
+    Raises
+    ------
+    ValueError
+        If the length of C0 is not N + 1.
     """
+    if len(C0) != N + 1:
+        raise ValueError("C0 must have length N + 1")
+
     matriz = np.zeros((N + 1, N + 1))
 
     for i in range(N + 1):
-        matriz[i, i] = 2 * CJ + C0
+        matriz[i, i] = 2 * CJ + C0[i]
         if i == 0 or i == N:
-            matriz[i, i] = CJb + CJ + C0
+            matriz[i, i] = CJb + CJ + C0[i]
 
     for i in range(N):
         matriz[i, i + 1] = -CJ
@@ -76,14 +95,21 @@ def generate_matriz_Ctheta(N, CJ, C0, CJb):
     """
     Generate the Ctheta matrix using the R matrix and Cphi matrix.
     
-    Parameters:
-    N (int): The size of the matrix (N+1)x(N+1)
-    CJ (float): Capacitance value for CJ
-    C0 (float): Capacitance value for C0
-    CJb (float): Capacitance value for CJb
+    Parameters
+    ----------
+    N : int
+        The number of junctions in the superinductance. The matrix will be of size (N+1)x(N+1).
+    CJ : float
+        Capacitance value for each junction in the superinductance (CJi).
+    C0 : list or np.ndarray
+        Capacitance values for stray capacitances at each position i (C0i).
+    CJb : float
+        Capacitance value for the black-sheep Josephson junction (CJb).
     
-    Returns:
-    np.ndarray: The resulting Ctheta matrix.
+    Returns
+    -------
+    np.ndarray
+        The resulting Ctheta matrix.
     """
     R_matrix = create_matrix_R(N)
     R_matrix_inv = np.linalg.inv(R_matrix)
@@ -95,14 +121,21 @@ def calculate_a_coeff(N, CJ, C0, CJb):
     """
     Calculate the a coefficients for the R_1 matrix.
     
-    Parameters:
-    N (int): The size of the matrix (N+1)x(N+1)
-    CJ (float): Capacitance value for CJ
-    C0 (float): Capacitance value for C0
-    CJb (float): Capacitance value for CJb
+    Parameters
+    ----------
+    N : int
+        The number of junctions in the superinductance. The matrix will be of size (N+1)x(N+1).
+    CJ : float
+        Capacitance value for each junction in the superinductance (CJi).
+    C0 : list or np.ndarray
+        Capacitance values for stray capacitances at each position i (C0i).
+    CJb : float
+        Capacitance value for the black-sheep Josephson junction (CJb).
     
-    Returns:
-    np.ndarray: The resulting a coefficients.
+    Returns
+    -------
+    np.ndarray
+        The resulting a coefficients.
     """
     Ctheta = generate_matriz_Ctheta(N, CJ, C0, CJb)
     return np.sum(Ctheta[1:N, 1:N], axis=0) / np.sum(Ctheta[:N, :N]) - 1
@@ -111,14 +144,21 @@ def generate_R_1(N, CJ, C0, CJb):
     """
     Generate the R_1 matrix.
     
-    Parameters:
-    N (int): The size of the matrix (N+1)x(N+1)
-    CJ (float): Capacitance value for CJ
-    C0 (float): Capacitance value for C0
-    CJb (float): Capacitance value for CJb
+    Parameters
+    ----------
+    N : int
+        The number of junctions in the superinductance. The matrix will be of size (N+1)x(N+1).
+    CJ : float
+        Capacitance value for each junction in the superinductance (CJi).
+    C0 : list or np.ndarray
+        Capacitance values for stray capacitances at each position i (C0i).
+    CJb : float
+        Capacitance value for the black-sheep Josephson junction (CJb).
     
-    Returns:
-    np.ndarray: The resulting R_1 matrix.
+    Returns
+    -------
+    np.ndarray
+        The resulting R_1 matrix.
     """
     a_coeff = calculate_a_coeff(N, CJ, C0, CJb)
     R_1_matrix = np.eye(N + 1)
@@ -132,14 +172,21 @@ def generate_C_x_1(N, CJ, C0, CJb):
     """
     Generate the C_x_1 matrix.
     
-    Parameters:
-    N (int): The size of the matrix (N+1)x(N+1)
-    CJ (float): Capacitance value for CJ
-    C0 (float): Capacitance value for C0
-    CJb (float): Capacitance value for CJb
+    Parameters
+    ----------
+    N : int
+        The number of junctions in the superinductance. The matrix will be of size (N+1)x(N+1).
+    CJ : float
+        Capacitance value for each junction in the superinductance (CJi).
+    C0 : list or np.ndarray
+        Capacitance values for stray capacitances at each position i (C0i).
+    CJb : float
+        Capacitance value for the black-sheep Josephson junction (CJb).
     
-    Returns:
-    np.ndarray: The resulting C_x_1 matrix.
+    Returns
+    -------
+    np.ndarray
+        The resulting C_x_1 matrix.
     """
     R_1_matrix = generate_R_1(N, CJ, C0, CJb)
     R_1_matrix_inv = np.linalg.inv(R_1_matrix)
