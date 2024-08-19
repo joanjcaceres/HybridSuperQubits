@@ -21,6 +21,8 @@ Functions:
 """
 
 import numpy as np
+import scqubits as sq
+from scipy.linalg import expm
 
 def create_matrix_R(N):
     """
@@ -146,3 +148,56 @@ def generate_C_x_1(N, CJ, C0, CJb):
     C_X_0_matrix = generate_matriz_Ctheta(N, CJ, C0, CJb)
 
     return R_1_matrix_inv_T @ C_X_0_matrix @ R_1_matrix_inv
+
+
+def calculate_CQPS_rate(fluxonium: sq.Fluxonium, EJj: float, ECj: float, n_junctions: int, evals_count: int = 2):
+    """
+    Calculate the dephasing rate due to coherent quantum phase slips (CQPS) for a given Fluxonium instance.
+
+    Assumes units are set using `scqubits.set_units`.
+
+    Parameters
+    ----------
+    fluxonium : sq.Fluxonium
+        An instance of the Fluxonium class from scqubits.
+    EJj : float
+        Josephson energy of the individual junction in the array.
+    ECj : float
+        Charging energy of the individual junction in the array.
+    n_junctions : int
+        Number of Josephson junctions in the array.
+    evals_count : int, optional
+        Number of eigenvalues/eigenvectors to compute (default is 2).
+
+    Returns
+    -------
+    float
+        Dephasing rate GammaCQPS due to coherent quantum phase slips.
+    
+    Notes
+    -----
+    The dephasing rate is calculated based on the phase slip energy and the structure factor derived from 
+    the eigenstates of the Fluxonium Hamiltonian. This function assumes that the relevant physical units 
+    are set using the `scqubits.set_units` function.
+    """
+    # Calculate phase slip energy
+    phase_slip_energy = (2 * np.sqrt(2 / np.pi) * np.sqrt(8 * EJj * ECj) *
+                         (8 * EJj / ECj)**0.25 *
+                         np.exp( - np.sqrt(8 * EJj / ECj)))
+
+    # Compute eigenvalues and eigenvectors
+    evals, evecs = fluxonium.eigensys(evals_count=evals_count)
+
+    # Extract ground and first excited states
+    state0 = evecs[:, 0]
+    state1 = evecs[:, 1]
+
+    # Calculate structure factor
+    n_operator = fluxonium.n_operator(energy_esys=False)
+    structure_factor_01 = (state1 @ expm(-1j * 2 * np.pi * n_operator) @ state1 -
+                           state0 @ expm(-1j * 2 * np.pi * n_operator) @ state0)
+
+    # Calculate dephasing rate
+    GammaCQPS = np.pi * np.sqrt(n_junctions) * phase_slip_energy * np.abs(structure_factor_01)
+
+    return GammaCQPS

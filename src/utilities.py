@@ -11,46 +11,6 @@ import h5py
 import yaml
 import inspect
 
-from scipy.linalg import expm
-import scqubits as sq
-
-def calculate_CQPS_rate(fluxonium: sq.Fluxonium, EJj: float, ECj: float, n_junctions: int, evals_count: int = 2):
-    """
-    Calculate the dephasing rate due to coherent quantum phase slips (CQPS) for a given Fluxonium instance.
-    Assumes units are set using `scqubits.set_units`.
-    
-    Parameters:
-        fluxonium (sq.Fluxonium): An instance of the Fluxonium class from scqubits.
-        EJj (float): Josephson energy of the individual junction in the array.
-        ECj (float): Charging energy of the individual junction in the array.
-        n_junctions (int): Number of Josephson junctions.
-        evals_count (int): Number of eigenvalues/eigenvectors to compute. Default is 2.
-
-    Returns:
-        float: Dephasing rate GammaCQPS due to coherent quantum phase slips.
-    """
-    # Ens
-    # Calculate phase slip energy
-    phase_slip_energy = (2 * np.sqrt(2 / np.pi) * np.sqrt(8 * EJj * ECj) *
-                         (8 * EJj / ECj)**0.25 *
-                         np.exp( - np.sqrt(8 * EJj / ECj)))
-
-    # Compute eigenvalues and eigenvectors
-    evals, evecs = fluxonium.eigensys(evals_count=evals_count)
-
-    # Extract ground and first excited states
-    state0 = evecs[:, 0]
-    state1 = evecs[:, 1]
-
-    # Calculate structure factor
-    n_operator = fluxonium.n_operator(energy_esys=False)
-    structure_factor_01 = (state1 @ expm(-1j * 2 * np.pi * n_operator) @ state1 -
-                           state0 @ expm(-1j * 2 * np.pi * n_operator) @ state0)
-
-    # Calculate dephasing rate
-    GammaCQPS = np.pi * np.sqrt(n_junctions) * phase_slip_energy * np.abs(structure_factor_01)
-    
-    return GammaCQPS
 
 def extract_hdf5_data(file_path):
     data = {}
@@ -187,6 +147,9 @@ def load_txt_data(base_name):
     return data_dict
 
 def load_hdf5_data(file_path):
+    """
+    Valid to obtain the data saved in HDF format in the Quantrolab's Datacube.
+    """
     hdf5_file_path = f"{file_path}.hdf"
     with h5py.File(hdf5_file_path, 'r') as f:
         # Carga los parámetros y meta atributos
@@ -728,43 +691,88 @@ def triple_lorentzian(x, x01, gamma1, a1, x02, gamma2, a2, x03, gamma3, a3, base
             lorentzian(x, x03, gamma3, a3) + 
             baseline)
     
-def calculate_fft(y_data, time):
+def preprocess_signal(y_data, x_data):
     """
-    Calculate the Fast Fourier Transform (FFT) of a signal.
+    Preprocess the signal by filtering out NaNs and interpolating to a uniform time grid.
 
     Parameters:
     y_data (array-like): The signal data points, potentially containing NaNs.
     time (array-like): The corresponding time points for the signal data.
 
     Returns:
-    tuple: Two arrays, frequencies and fft_signal, representing the frequencies and their corresponding FFT magnitudes.
+    tuple: Two arrays, t_uniform and signal_uniform, representing the uniform time grid and the interpolated signal.
     """
+    if len(y_data) == 0 or len(x_data) == 0:
+        raise ValueError("Input arrays cannot be empty")
+
     # Filter out NaNs before any processing
     valid_indices = ~np.isnan(y_data)
     y_data = y_data[valid_indices]
-    time = time[valid_indices]
+    x_data = x_data[valid_indices]
+
+    if len(y_data) < 2:
+        raise ValueError("Not enough valid data points after filtering NaNs")
 
     # Interpolation to convert to a uniform signal
-    t_uniform = np.linspace(time.min(), time.max(), len(time))
-    interp_func = interp1d(time, y_data, kind='linear')
+    t_uniform = np.linspace(x_data.min(), x_data.max(), len(x_data))
+    interp_func = interp1d(x_data, y_data, kind='linear') #TODO: Compare the interpolation without it.
     signal_uniform = interp_func(t_uniform)
 
-    # Compute the Fourier Transform of the interpolated signal
-    fft_signal = np.fft.fft(signal_uniform)
-    frequencies = np.fft.fftfreq(len(signal_uniform), t_uniform[1] - t_uniform[0])
+    return t_uniform, signal_uniform
 
-    # Take only the positive half of the frequency spectrum
-    half_n = len(signal_uniform) // 2
-    frequencies = frequencies[:half_n]
-    fft_signal = np.abs(fft_signal[:half_n])
 
-    return frequencies, fft_signal
+def autocorrelation(signal):
+    """
+    Calculate the autocorrelation of a signal.
+
+    Parameters:
+    signal (array-like): The input signal data points.
+
+    Returns:
+    array: The autocorrelation of the input signal.
+    """
+    n = len(signal)
+    autocorr = np.correlate(signal, signal, mode='full')
+    autocorr = autocorr[n-1:] / np.arange(n, 0, -1)  # Normalización
+    return autocorr
 
 def power_law(f, alpha, c):
-    return c * (f**(-alpha))
+    return c**2 * (f**(-alpha))
 
-def fit_power_law(frequencies, fft_amplitude):
-    popt, pcov = curve_fit(power_law, frequencies, fft_amplitude, bounds=(0, [10., 1000.]))
+def fit_power_law(x, y):
+    popt, pcov = curve_fit(power_law, x, y)
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
+
+def fit_function_with_errors(func, x, y, **kwargs):
+    """
+    Fits a given function to data and returns the optimized parameters and their errors.
+
+    Parameters:
+    func (callable): The model function to be fitted to the data. It should take the independent variable
+                     as the first argument and the parameters to be optimized as separate remaining arguments.
+    x (array_like): The independent variable where the data is measured.
+    y (array_like): The dependent variable, i.e., the data to which the model is fitted.
+    **kwargs: Additional keyword arguments to pass to scipy.optimize.curve_fit.
+
+    Returns:
+    dict: A dictionary with two keys:
+          - 'popt': A dictionary of optimized parameter names and their fitted values.
+          - 'perr': A dictionary of parameter names and their corresponding standard errors.
+    """
+    
+    # Perform the curve fitting
+    popt, pcov = curve_fit(func, xdata=x, ydata=y, **kwargs)
+    
+    # Get the names of the parameters from the function's signature
+    param_names = list(inspect.signature(func).parameters.keys())[1:]
+    
+    # Create a dictionary with parameter names and their optimized values
+    popt_dict = {name: value for name, value in zip(param_names, popt)}
+    
+    # Calculate the standard errors (square root of the diagonal elements of the covariance matrix)
+    perr = np.sqrt(np.diag(pcov))
+    perr_dict = {name: error for name, error in zip(param_names, perr)}
+    
+    return {'popt': popt_dict, 'perr': perr_dict}
 
