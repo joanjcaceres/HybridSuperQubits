@@ -23,6 +23,7 @@ Functions:
 import numpy as np
 import scqubits as sq
 from scipy.linalg import expm
+from src.utilities import L_to_El
 
 def create_matrix_R(N):
     """
@@ -248,3 +249,95 @@ def calculate_CQPS_rate(fluxonium: sq.Fluxonium, EJj: float, ECj: float, n_junct
     GammaCQPS = np.pi * np.sqrt(n_junctions) * phase_slip_energy * np.abs(structure_factor_01)
 
     return GammaCQPS
+
+def create_fluxonium_resonator(
+    fluxonium: sq.Fluxonium,
+    beta: float,
+    resonator_frequency: float,
+    L_bare_resonator: float,
+    ext_basis: str = 'discretized',
+    basis_completion: str = 'heuristic',
+    flux: float = 0,
+    cutoff_ext_1:int = 30,
+    cutoff_ext_2:int = 30,
+    truncated_dim: int = 10,
+    ) -> sq.Circuit:
+    """
+    Create a Fluxonium-resonator circuit based on the given Fluxonium parameters inductively
+    coupled to a resonator.
+
+    This method generates a circuit that models the interaction between a Fluxonium qubit
+    and a resonator. The coupling is determined by the beta parameter, which specifies the 
+    fraction of the Fluxonium's inductance that is used for coupling with the resonator.
+
+    Parameters
+    ----------
+    fluxonium : sq.Fluxonium
+        An instance of the Fluxonium class representing the qubit.
+    beta : float
+        The fraction of the Fluxonium's inductance used in coupling with the resonator.
+    resonator_frequency : float
+        The resonator's bare frequency in GHz.
+    L_bare_resonator : float
+        The bare inductance of the resonator in nanohenries (nH).
+    ext_basis : str, optional
+        The external basis to be used for the circuit, by default 'discretized'.
+    basis_completion : str, optional
+        The method for basis completion, by default 'heuristic'.
+    flux : float, optional
+        The external flux applied to the circuit, by default 0.
+    cutoff_ext_1 : int, optional
+        The first cutoff dimension for the external basis, by default 30.
+    cutoff_ext_2 : int, optional
+        The second cutoff dimension for the external basis, by default 30.
+    truncated_dim : int, optional
+        The dimension for truncating the circuit's Hilbert space, by default 10.
+
+    Returns
+    -------
+    sq.Circuit
+        An instance of the Circuit class representing the Fluxonium-resonator system.
+
+    Notes
+    -----
+    - The inductances are converted to energy scales for the circuit calculations.
+    - The coupling and resonator parameters are combined into a YAML string that 
+      defines the circuit's elements.
+    """
+
+    # Calculate the inductive energies for the coupling and bare qubit
+    EL_coupling = fluxonium.EL / beta
+    EL_bare_qubit = fluxonium.EL / (1 - beta)
+
+    # Convert bare resonator inductance to its corresponding energy
+    EL_bare_resonator = L_to_El(L_bare_resonator)*1e-9 # GHz
+    EC_bare_resonator = resonator_frequency**2 / (8 * 1 / (1 / EL_bare_resonator + 1 / EL_coupling))
+
+    # YAML representation of the circuit
+    fluxonium_resonator_yaml = f"""
+    branches:
+    - ["JJ", 0, 1, {fluxonium.EJ}, {fluxonium.EC}]
+    - ["L", 1, 2, {EL_bare_qubit}]
+    # coupling inductance
+    - ["L", 0,2, {EL_coupling}]
+    # jja antenna readout
+    - ["L", 3,2, {EL_bare_resonator}]
+    - ["C", 0,3, {EC_bare_resonator}]
+    """
+    
+    # Create the circuit instance
+    fluxonium_resonator = sq.Circuit(
+        input_string=fluxonium_resonator_yaml,
+        ext_basis=ext_basis,
+        basis_completion=basis_completion,
+        truncated_dim=truncated_dim,
+        from_file=False,
+        use_dynamic_flux_grouping=False, #Evaluate if there is a difference for the dispersive shift.
+        )
+    
+    # Set circuit properties
+    fluxonium_resonator.cutoff_ext_1 = cutoff_ext_1
+    fluxonium_resonator.cutoff_ext_2 = cutoff_ext_2
+    fluxonium_resonator.Φ1 = flux
+    
+    return fluxonium_resonator
