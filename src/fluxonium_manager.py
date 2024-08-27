@@ -6,7 +6,9 @@ import scqubits as sq
 import matplotlib.pyplot as plt
 from scipy.optimize import differential_evolution
 
-phi0 = const.h/2/const.e/2/np.pi
+CUTOFF = 50 #TODO: Change this to the definition of the class instead.
+
+phi0 = (const.h/2/const.e) / 2/np.pi
 Rq = const.h/(2*const.e)**2
 f_temp = const.k*0.015/const.h*1e-9
 
@@ -47,7 +49,7 @@ class FluxoniumResult:
     def __repr__(self):
         return (f"FluxoniumResult(fluxonium={self.fluxonium}, "
                 f"params = {self.params}, "
-                f"T2 = {round(self.gamma_inverse*1e-6,4)} ms)")
+                f"T2 = {round(self.gamma_inverse*1e-3,4)} µs)")
 
 class FluxoniumManager():
     def __init__(self):
@@ -92,7 +94,13 @@ class FluxoniumManager():
         EJ = L_to_El(LjArea / small_jj_area * 1e-9) * 1e-9 # GHz
         
         # return sq.Fluxonium(EC=EC, EL=EL, EJ=EJ, flux=flux, cutoff=50, **kwargs) #Change later to consider both fluxes.
-        return sq.Fluxonium(EC=EC, EL=EL, EJ=EJ, flux=flux, cutoff=50, **kwargs) #Change later to consider both fluxes.
+        return sq.Fluxonium(
+            EC=EC,
+            EL=EL,
+            EJ=EJ,
+            flux=flux,
+            cutoff=CUTOFF,
+            **kwargs) #Change later to consider both fluxes.
 
     def _Gamma2(self,params_normalized, flux):
         """
