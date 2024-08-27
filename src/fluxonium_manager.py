@@ -10,6 +10,7 @@ phi0 = const.h/2/const.e/2/np.pi
 Rq = const.h/(2*const.e)**2
 f_temp = const.k*0.015/const.h*1e-9
 
+Q_cap = 40 * 1e3 # Obtained from the T1 from FBW10S4
 totalIslandsLength = 68 #µm
 fluxLineCapacitance = 3.8 #fF #It can be zero if we use a coil instead of a flux line.
 mutualInductance = 1000 # \Phi_0/A
@@ -116,10 +117,13 @@ class FluxoniumManager():
         
         Gamma2 = fluxonium.t2_effective(
                             noise_channels=[
-                                'tphi_1_over_f_cc','tphi_1_over_f_flux',
+                                ('t1_capacitive', dict(Q_cap = Q_cap)),
+                                't1_charge_impedance',
                                 ('t1_flux_bias_line', dict(M=mutualInductance)),
                                 't1_inductive',
-                                ('t1_quasiparticle_tunneling', dict(Delta = 0.0002))
+                                ('t1_quasiparticle_tunneling', dict(Delta = 0.0002)),
+                                'tphi_1_over_f_cc',
+                                'tphi_1_over_f_flux',
                                 ],
                             common_noise_options=dict(T=0.015),
                             get_rate= True,
@@ -140,7 +144,7 @@ class FluxoniumManager():
         if (np.abs(fluxonium.anharmonicity()) < 0.100) or \
            (fluxonium.anharmonicity() + fluxonium.E01() < 0.100) or \
            (fluxonium.E01() < 0.400):
-            Gamma = 1e-6
+            Gamma = 1
 
         return Gamma
 
