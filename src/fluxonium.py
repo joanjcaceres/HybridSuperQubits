@@ -202,7 +202,7 @@ def calculate_CQPS_rate(fluxonium: sq.Fluxonium, EJj: float, ECj: float, n_junct
     """
     Calculate the dephasing rate due to coherent quantum phase slips (CQPS) for a given Fluxonium instance.
 
-    Assumes units are set using `scqubits.set_units`.
+    Assumes units are set using `scqubits.set_units` (by default it's GHz).
 
     Parameters
     ----------
