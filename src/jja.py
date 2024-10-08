@@ -3,7 +3,8 @@ from scipy.sparse import diags
 from scipy.linalg import eigh
 
 def C_matrix(N,Cjj,Cg,Cg_big,Cin,Cout):
-        matrix_diagonals = [np.ones(N-1)*(-Cjj),(2*Cjj+Cg)*np.ones(N),np.ones(N-1)*(-Cjj)]
+        #TODO: #5 Add documentation and adapt the introduction of Cg_big
+        matrix_diagonals = [(-Cjj)*np.ones(N),(2*Cjj+Cg)*np.ones(N+1),(-Cjj)*np.ones(N)]
         matrix = diags(matrix_diagonals,offsets=[-1,0,1]).toarray()
         matrix[0,0] = Cjj + Cin
         matrix[-1,-1] = Cjj + Cout
@@ -12,7 +13,7 @@ def C_matrix(N,Cjj,Cg,Cg_big,Cin,Cout):
         return matrix
 
 def L_inv_matrix(N,Ljj):
-    matrix_diagonals = [(-1/Ljj)*np.ones(N-1),(2/Ljj)*np.ones(N),(-1/Ljj)*np.ones(N-1)]
+    matrix_diagonals = [(-1/Ljj)*np.ones(N),(2/Ljj)*np.ones(N+1),(-1/Ljj)*np.ones(N)]
     matrix = diags(matrix_diagonals,[-1,0,1]).toarray()
     matrix[0,0] = 1/Ljj
     matrix[-1,-1] = 1/Ljj
