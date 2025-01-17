@@ -474,33 +474,33 @@ def plot3Ds(data_dicts, x_key, y_key, z_key, title=None, flatten_horizontal=Fals
     
     return fig,ax
 
-def vertical_flatten(phase_matrix):
+def vertical_flatten(matrix):
     """
     Calculate the vertical average and subtract it from each row in the phase matrix.
 
     Parameters:
-    phase_matrix (np.ndarray): Matrix of phase values.
+    matrix (np.ndarray): Matrix of phase values.
 
     Returns:
-    np.ndarray: Phase matrix with vertical averages subtracted.
+    np.ndarray: Matrix with vertical averages subtracted.
     """
-    vertical_mean = np.nanmean(phase_matrix, axis=1)  # Calculate mean of each row
-    phase_matrix_corrected = phase_matrix - vertical_mean[:, np.newaxis]  # Subtract the mean from each row
-    return phase_matrix_corrected
+    vertical_mean = np.nanmean(matrix, axis=1)  # Calculate mean of each row
+    matrix_corrected = matrix - vertical_mean[:, np.newaxis]  # Subtract the mean from each row
+    return matrix_corrected
 
-def horizontal_flatten(phase_matrix):
+def horizontal_flatten(matrix):
     """
     Calculate the horizontal average and subtract it from each column in the phase matrix.
 
     Parameters:
-    phase_matrix (np.ndarray): Matrix of phase values.
+    matrix (np.ndarray): Matrix of phase values.
 
     Returns:
-    np.ndarray: Phase matrix with horizontal averages subtracted.
+    np.ndarray: Matrix with horizontal averages subtracted.
     """
-    horizontal_mean = np.nanmean(phase_matrix, axis=0)  # Calculate mean of each column
-    phase_matrix_corrected = phase_matrix - horizontal_mean  # Subtract the mean from each column
-    return phase_matrix_corrected
+    horizontal_mean = np.nanmean(matrix, axis=0)  # Calculate mean of each column
+    matrix_corrected = matrix - horizontal_mean  # Subtract the mean from each column
+    return matrix_corrected
 
 def plot_1d_line(datasets, x_key, y_key, z_key, fixed_x=None, fixed_y=None, tolerance=0.01, apply_vertical_correction=False, apply_horizontal_correction=False, 
                  fig=None, ax=None, **kwargs):
@@ -672,7 +672,7 @@ def C_to_Ec(C):
     return const.e**2/2/C/const.h
 
 def El_to_L(El):
-    return (const.hbar/2/const.e)**2/(El * const.h)
+    return (const.hbar/2/const.e)**2 /(El * const.h)
 
 def Ec_to_C(Ec):
     return const.e**2 / (2 * Ec * const.h)
