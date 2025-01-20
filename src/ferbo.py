@@ -356,8 +356,12 @@ class Ferbo:
         if isinstance(noise_op, Qobj):
             noise_op = noise_op.full()
             
-        H = self.hamiltonian()
-        evals, evecs = H.eigenstates(eigvals=max(i, j) + 1) if esys is None else esys
+        if esys is None:
+            H = self.hamiltonian()
+            evals, evecs = H.eigenstates(eigvals=max(i, j) + 1)
+        else:
+            evals, evecs = esys
+            
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
         
         s = spectral_density(omega, T)
@@ -377,8 +381,12 @@ class Ferbo:
         if isinstance(noise_op, Qobj):
             noise_op = noise_op.full()
             
-        H = self.hamiltonian()
-        evals, evecs = H.eigenstates(eigvals=max(i, j) + 1) if esys is None else esys
+        if esys is None:
+            H = self.hamiltonian()
+            evals, evecs = H.eigenstates(eigvals=max(i, j) + 1)
+        else:
+            evals, evecs = esys
+            
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
         s = spectral_density(omega, T)
         
