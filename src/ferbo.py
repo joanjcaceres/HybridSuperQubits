@@ -343,14 +343,14 @@ class Ferbo:
     def t1_capacitive(self, i: int = 1, j: int = 0, Q_cap: Union[float, Callable] = None, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, matrix_elements: np.ndarray = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
         
         if Q_cap is None:
-            Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / omega)**0.7
+            Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7
         elif callable(Q_cap):
             Q_cap_fun = Q_cap
         else:
             Q_cap_fun = lambda omega: Q_cap
 
         def spectral_density(omega, T):
-            return 32 * np.pi * (self.Ec * 1e9) / Q_cap_fun(omega) * 1/np.tanh(hbar * omega / (2 * k * T))
+            return 32 * np.pi * (self.Ec * 1e9) / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))
 
         noise_op = noise_op or self.n_operator_total()
         if isinstance(noise_op, Qobj):
@@ -371,7 +371,7 @@ class Ferbo:
     def t1_inductive(self, i: int = 1, j: int = 0, Q_ind: float = 500e6, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, matrix_elements: np.ndarray = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
         
         def spectral_density(omega, T):
-            return 4 * np.pi * (self.El * 1e9) / Q_ind * 1 / np.tanh(hbar * omega / (2 * k * T))
+            return 4 * np.pi * (self.El * 1e9) / Q_ind * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
 
         noise_op = noise_op or self.phase_operator_total()
         if isinstance(noise_op, Qobj):
