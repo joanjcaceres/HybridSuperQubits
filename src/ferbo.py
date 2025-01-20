@@ -78,7 +78,19 @@ class Ferbo:
         self.flux = flux
         self.dimension = dimension
     
-    def charge_number_operator(self) -> Qobj:
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of the Ferbo instance.
+
+        Returns
+        -------
+        str
+            A string representation of the Ferbo instance.
+        """
+        init_params = ['Ec', 'El', 'Gamma', 'delta_Gamma', 'er', 'flux', 'dimension']
+        init_dict = {name: getattr(self, name) for name in init_params}
+        return f"{type(self).__name__}(**{init_dict!r})"
+    
     def n_operator(self) -> Qobj:
         """
         Returns the charge number operator.
