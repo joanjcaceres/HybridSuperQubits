@@ -1,4 +1,5 @@
 import numpy as np
+from src.storage import SpectrumData
 from typing import Callable, Dict, List, Optional, Tuple, Union
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, e, k
@@ -161,7 +162,7 @@ class Ferbo:
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential
     
-    def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+    def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False)  -> SpectrumData:
         """
         Calculates the eigenenergies and eigenstates for a range of parameter values.
 
@@ -193,8 +194,14 @@ class Ferbo:
             eigenenergies_array.append(eigenenergies)
             eigenstates_array.append(eigenstates)
         
-        return np.array(eigenenergies_array), np.array(eigenstates_array)
-    
+        return SpectrumData(
+            energy_table=np.array(eigenenergies_array),
+            system_params=self.__dict__,
+            param_name=param_name,
+            param_vals=np.array(param_vals),
+            state_table=np.array(eigenstates_array)
+        )    
+        
     def matrixelement_table(self, operator: str, evecs: np.ndarray = None, evals_count: int = 6) -> Dict[Tuple[int, int], np.ndarray]:
         """
         Returns a table of matrix elements for a given operator with respect to the eigenstates.
@@ -229,9 +236,8 @@ class Ferbo:
         matrix_elements = evecs @ operator_matrix @ evecs_dag
         return matrix_elements
 
-            
-    
-    def get_matelements_vs_paramvals(self, operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> Dict[str, Dict[str, np.ndarray]]:
+
+    def get_matelements_vs_paramvals(self, operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> SpectrumData:
         """
         Calculates the matrix elements for a list of operators over a range of parameter values.
 
@@ -254,25 +260,19 @@ class Ferbo:
         if isinstance(operators, str):
             operators = [operators]
         
-        eigenenergies_array, eigenstates_array = self.get_spectrum_vs_paramvals(param_name, param_vals, evals_count=evals_count, subtract_ground=False)
+        spectrum_data = self.get_spectrum_vs_paramvals(param_name, param_vals, evals_count=evals_count, subtract_ground=False)
         paramvals_count = len(param_vals)
-        results = {
-            'param_vals': param_vals,
-            'eigenenergies': eigenenergies_array,
-            'eigenstates': eigenstates_array
-        }
         
-        for operator in operators:
-            results[operator] = np.empty((paramvals_count, evals_count, evals_count), dtype=np.complex_)
-        
+        matrixelem_tables = {operator: np.empty((paramvals_count, evals_count, evals_count), dtype=np.complex_) for operator in operators}
+
         for index, paramval in enumerate(param_vals):
-            evecs = eigenstates_array[index]
+            evecs = spectrum_data.state_table[index]
             for operator in operators:
-                results[operator][index] = self.matrixelement_table(operator, evecs=evecs, evals_count=evals_count)
+                matrixelem_tables[operator][index] = self.matrixelement_table(operator, evecs=evecs, evals_count=evals_count)
+
+        spectrum_data.matrixelem_table = matrixelem_tables
         
-        return results
-    
-    def t1_capacitive(self, i: int = 1, j: int = 0, Q_cap: Union[float, Callable] = None, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+        return spectrum_data
         
         if Q_cap is None:
             Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / omega)**0.7
