@@ -108,31 +108,53 @@ class Ferbo:
                 results[operator][index] = self.matrixelement_table(operator, evecs=evecs, evals_count=evals_count)
         
         return results
-
     
+    def t1_capacitive(self, i: int = 1, j: int = 0, Q_cap: Union[float, Callable] = None, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+        
+        if Q_cap is None:
+            Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / omega)**0.7
+        elif callable(Q_cap):
+            Q_cap_fun = Q_cap
+        else:
+            Q_cap_fun = lambda omega: Q_cap
 
+        def spectral_density(omega, T):
+            return 32 * np.pi * (self.Ec * 1e9) / Q_cap_fun(omega) * 1/np.tanh(hbar * omega / (2 * k * T))
 
-def charge_number_operator(Ec, El, dimension) -> Qobj:
-    return 1j/2 * (El/2/Ec)**0.25 * (destroy(dimension).dag() - destroy(dimension))
+        noise_op = noise_op or self.n_operator_total()
+        if isinstance(noise_op, Qobj):
+            noise_op = noise_op.full()
+            
+        H = self.hamiltonian()
+        evals, evecs = H.eigenstates(eigvals=max(i, j) + 1) if esys is None else esys
+        omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
+        
+        s = spectral_density(omega, T)
+        matrix_elements = self.matrixelement_table('n_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
+        matrix_element = np.abs(matrix_elements[i, j])
 
-def phase_operator(Ec, El, dimension) -> Qobj:
-    return (2*Ec/El)**0.25 * (destroy(dimension).dag() + destroy(dimension))
+        rate = matrix_element**2 * s
+        return rate if get_rate else 1 / rate
+    
+    def t1_inductive(self, i: int = 1, j: int = 0, Q_ind: float = 500e6, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+        def spectral_density(omega, T):
+            return 4 * np.pi * (self.El * 1e9) / Q_ind * 1 / np.tanh(hbar * omega / (2 * k * T))
 
-def charge_number_operator_total(Ec, El, dimension) -> Qobj:
-    return tensor(charge_number_operator(Ec, El, dimension), qeye(2))
+        noise_op = noise_op or self.phase_operator_total()
+        if isinstance(noise_op, Qobj):
+            noise_op = noise_op.full()
+            
+        H = self.hamiltonian()
+        evals, evecs = H.eigenstates(eigvals=max(i, j) + 1) if esys is None else esys
+        omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
+        s = spectral_density(omega, T)
+        
+        matrix_elements = self.matrixelement_table('phase_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
+        matrix_element = np.abs(matrix_elements[i, j])
 
-def phase_operator_total(Ec, El, dimension) -> Qobj:
-    return tensor(phase_operator(Ec, El, dimension), qeye(2))
+        rate = matrix_element**2 * s
+        return rate if get_rate else 1 / rate
 
-def jrl_potential(Ec, El, Gamma, delta_Gamma, er, dimension) -> Qobj:
-    phase_op = phase_operator(Ec, El, dimension)
-    return  - Gamma * tensor((phase_op/2).cosm(),sigmax()) - delta_Gamma * tensor((phase_op/2).sinm(),sigmay()) - er * tensor(qeye(dimension),sigmaz())
-
-def jrl_hamiltonian(Ec, El, Gamma, delta_Gamma, er, flux, dimension) -> Qobj:
-    charge_term = 4 * Ec * charge_number_operator_total(Ec, El, dimension)**2
-    inductive_term = 0.5 * El * (phase_operator_total(Ec, El, dimension) + flux)**2
-    potential = jrl_potential(Ec, El, Gamma, delta_Gamma, er, dimension)
-    return charge_term + inductive_term + potential
 
 ##### Revisit this functions later ######
 
