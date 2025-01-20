@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, e, k
 from scipy.interpolate import UnivariateSpline
@@ -8,7 +8,68 @@ from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay, sigmax
 # import dynamiqs as dq
 
 class Ferbo:
+    """
+    A class to represent a fermionic-bosonic qubit system.
+
+    Attributes
+    ----------
+    Ec : float
+        Charging energy.
+    El : float
+        Inductive energy.
+    Gamma : float
+        Coupling strength.
+    delta_Gamma : float
+        Coupling strength difference.
+    er : float
+        Energy relaxation rate.
+    flux : float
+        External magnetic flux.
+    dimension : int
+        Dimension of the Hilbert space.
+
+    Methods
+    -------
+    charge_number_operator() -> Qobj:
+        Returns the charge number operator.
+    phase_operator() -> Qobj:
+        Returns the phase operator.
+    charge_number_operator_total() -> Qobj:
+        Returns the total charge number operator.
+    phase_operator_total() -> Qobj:
+        Returns the total phase operator.
+    jrl_potential() -> Qobj:
+        Returns the Josephson Ring Ladder potential.
+    hamiltonian() -> Qobj:
+        Returns the Hamiltonian of the system.
+    get_spectrum_vs_paramvals(param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        Calculates the eigenenergies and eigenstates for a range of parameter values.
+    matrixelement_table(operator: str, evecs: np.ndarray = None, evals_count: int = 6) -> np.ndarray:
+        Returns a table of matrix elements for a given operator with respect to the eigenstates.
+    get_matelements_vs_paramvals(operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> Dict[str, Dict[str, np.ndarray]]:
+        Calculates the matrix elements for a list of operators over a range of parameter values.
+    """
     def __init__(self, Ec, El, Gamma, delta_Gamma, er, flux, dimension):
+        """
+        Initializes the Ferbo class with the given parameters.
+
+        Parameters
+        ----------
+        Ec : float
+            Charging energy.
+        El : float
+            Inductive energy.
+        Gamma : float
+            Coupling strength.
+        delta_Gamma : float
+            Coupling strength difference.
+        er : float
+            Energy relaxation rate.
+        flux : float
+            External magnetic flux.
+        dimension : int
+            Dimension of the Hilbert space.
+        """
         self.Ec = Ec
         self.El = El
         self.Gamma = Gamma
@@ -18,28 +79,96 @@ class Ferbo:
         self.dimension = dimension
     
     def charge_number_operator(self) -> Qobj:
+    def n_operator(self) -> Qobj:
+        """
+        Returns the charge number operator.
+
+        Returns
+        -------
+        Qobj
+            The charge number operator.
+        """
         return 1j/2 * (self.El/2/self.Ec)**0.25 * (destroy(self.dimension).dag() - destroy(self.dimension))
     
     def phase_operator(self) -> Qobj:
+        """
+        Returns the phase operator.
+
+        Returns
+        -------
+        Qobj
+            The phase operator.
+        """
         return (2*self.Ec/self.El)**0.25 * (destroy(self.dimension).dag() + destroy(self.dimension))
     
-    def charge_number_operator_total(self) -> Qobj:
-        return tensor(self.charge_number_operator(), qeye(2))
+    def n_operator_total(self) -> Qobj:
+        """
+        Returns the total charge number operator.
+
+        Returns
+        -------
+        Qobj
+            The total charge number operator.
+        """
+        return tensor(self.n_operator(), qeye(2))
     
     def phase_operator_total(self) -> Qobj:
+        """
+        Returns the total phase operator.
+
+        Returns
+        -------
+        Qobj
+            The total phase operator.
+        """
         return tensor(self.phase_operator(), qeye(2))
     
     def jrl_potential(self) -> Qobj:
+        """
+        Returns the Josephson Ring Ladder potential.
+
+        Returns
+        -------
+        Qobj
+            The Josephson Ring Ladder potential.
+        """
         phase_op = self.phase_operator()
         return  - self.Gamma * tensor((phase_op/2).cosm(),sigmax()) - self.delta_Gamma * tensor((phase_op/2).sinm(),sigmay()) - self.er * tensor(qeye(self.dimension),sigmaz())
     
     def hamiltonian(self) -> Qobj:
-        charge_term = 4 * self.Ec * self.charge_number_operator_total()**2
+        """
+        Returns the Hamiltonian of the system.
+
+        Returns
+        -------
+        Qobj
+            The Hamiltonian of the system.
+        """
+        charge_term = 4 * self.Ec * self.n_operator_total()**2
         inductive_term = 0.5 * self.El * (self.phase_operator_total() + self.flux)**2
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential
     
     def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calculates the eigenenergies and eigenstates for a range of parameter values.
+
+        Parameters
+        ----------
+        param_name : str
+            The name of the parameter to vary.
+        param_vals : List[float]
+            The values of the parameter to vary.
+        evals_count : int, optional
+            The number of eigenvalues and eigenstates to calculate (default is 6).
+        subtract_ground : bool, optional
+            Whether to subtract the ground state energy from the eigenenergies (default is False).
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            The eigenenergies and eigenstates for the range of parameter values.
+        """
         eigenenergies_array = []
         eigenstates_array = []
         
@@ -87,8 +216,29 @@ class Ferbo:
             
         matrix_elements = evecs @ operator_matrix @ evecs_dag
         return matrix_elements
+
+            
     
     def get_matelements_vs_paramvals(self, operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> Dict[str, Dict[str, np.ndarray]]:
+        """
+        Calculates the matrix elements for a list of operators over a range of parameter values.
+
+        Parameters
+        ----------
+        operators : Union[str, List[str]]
+            The name(s) of the operator(s).
+        param_name : str
+            The name of the parameter to vary.
+        param_vals : np.ndarray
+            The values of the parameter to vary.
+        evals_count : int, optional
+            The number of eigenvalues and eigenstates to calculate (default is 6).
+
+        Returns
+        -------
+        Dict[str, Dict[str, np.ndarray]]
+            The matrix elements for the operators over the range of parameter values.
+        """
         if isinstance(operators, str):
             operators = [operators]
         
@@ -319,7 +469,7 @@ class Ferbo:
 
 
 # def t1_vs_parameter(parameter_name: str, parameter_values, operator_name, spectral_density, fixed_params: Dict[str, float], state_i = 0, state_j = 1, plot=True, filename=None):
-    raise NotImplementedError
+    # raise NotImplementedError
     # matrix_elements, eigenenergies = matrix_elements_vs_parameter(parameter_name, parameter_values, operator_name, fixed_params, state_i, state_j, plot=False)
     # t1 = hbar**2/np.abs(matrix_elements)**2/spectral_density(eigenenergies)
     # if plot:
