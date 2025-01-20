@@ -339,6 +339,9 @@ class Ferbo:
 
         spectrum_data.t1_table = t1_tables
         return spectrum_data
+    
+    def t1_capacitive(self, i: int = 1, j: int = 0, Q_cap: Union[float, Callable] = None, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, matrix_elements: np.ndarray = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+        
         if Q_cap is None:
             Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / omega)**0.7
         elif callable(Q_cap):
@@ -358,13 +361,15 @@ class Ferbo:
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
         
         s = spectral_density(omega, T)
-        matrix_elements = self.matrixelement_table('n_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
+        if matrix_elements is None:
+            matrix_elements = self.matrixelement_table('n_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
         matrix_element = np.abs(matrix_elements[i, j])
 
         rate = matrix_element**2 * s
         return rate if get_rate else 1 / rate
     
-    def t1_inductive(self, i: int = 1, j: int = 0, Q_ind: float = 500e6, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+    def t1_inductive(self, i: int = 1, j: int = 0, Q_ind: float = 500e6, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, matrix_elements: np.ndarray = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+        
         def spectral_density(omega, T):
             return 4 * np.pi * (self.El * 1e9) / Q_ind * 1 / np.tanh(hbar * omega / (2 * k * T))
 
@@ -377,7 +382,8 @@ class Ferbo:
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
         s = spectral_density(omega, T)
         
-        matrix_elements = self.matrixelement_table('phase_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
+        if matrix_elements is None:
+            matrix_elements = self.matrixelement_table('phase_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
         matrix_element = np.abs(matrix_elements[i, j])
 
         rate = matrix_element**2 * s
