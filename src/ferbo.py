@@ -96,7 +96,8 @@ class Ferbo:
         paramvals_count = len(param_vals)
         results = {
             'param_vals': param_vals,
-            'eigenenergies': eigenenergies_array
+            'eigenenergies': eigenenergies_array,
+            'eigenstates': eigenstates_array
         }
         
         for operator in operators:
