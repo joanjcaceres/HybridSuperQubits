@@ -55,18 +55,37 @@ class Ferbo:
         return np.array(eigenenergies_array), np.array(eigenstates_array)
     
     def matrixelement_table(self, operator: str, evecs: np.ndarray = None, evals_count: int = 6) -> Dict[Tuple[int, int], np.ndarray]:
+        """
+        Returns a table of matrix elements for a given operator with respect to the eigenstates.
+
+        Parameters
+        ----------
+        operator : str
+            The name of the operator.
+        evecs : np.ndarray, optional
+            The eigenstates (default is None, in which case they are calculated).
+        evals_count : int, optional
+            The number of eigenvalues and eigenstates to calculate (default is 6).
+
+        Returns
+        -------
+        np.ndarray
+            The table of matrix elements.
+        """
         
         if evecs is None:
             H = self.hamiltonian()
             _, evecs = H.eigenstates(eigvals=evals_count)
-        
+            
         operator_matrix = getattr(self, operator)()
-        matrix_elements = np.zeros((evals_count, evals_count), dtype=np.complex_)
         
-        for i in range(evals_count):
-            for j in range(evals_count):
-                matrix_elements[i, j] = evecs[i].dag() * operator_matrix * evecs[j]
-        
+        evecs = np.array([evec.full().flatten() for evec in evecs])
+        evecs_dag = np.conjugate(evecs.T)
+
+        if isinstance(operator_matrix, Qobj):
+            operator_matrix = operator_matrix.full()
+            
+        matrix_elements = evecs @ operator_matrix @ evecs_dag
         return matrix_elements
     
     def get_matelements_vs_paramvals(self, operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> Dict[str, Dict[str, np.ndarray]]:
