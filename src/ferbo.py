@@ -273,7 +273,72 @@ class Ferbo:
         spectrum_data.matrixelem_table = matrixelem_tables
         
         return spectrum_data
+    
+    def get_t1_vs_paramvals(self, noise_channels: Union[str, List[str]], param_name: str, param_vals: np.ndarray, i: int = 1, j: int = 0, spectrum_data: SpectrumData = None, **kwargs) -> SpectrumData:
+        """
+        Calculates the T1 times for given noise channels over a range of parameter values.
+
+        Parameters
+        ----------
+        noise_channels : Union[str, List[str]]
+            The noise channels to calculate ('capacitive', 'inductive', etc.).
+        param_name : str
+            The name of the parameter to vary.
+        param_vals : np.ndarray
+            The values of the parameter to vary.
+        i : int, optional
+            The initial state index (default is 1).
+        j : int, optional
+            The final state index (default is 0).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+        **kwargs
+            Additional arguments to pass to the T1 calculation method.
+
+        Returns
+        -------
+        SpectrumData
+            The T1 times for the specified noise channels over the range of parameter values.
+        """
+        if isinstance(noise_channels, str):
+            noise_channels = [noise_channels]
+            
+        evals_count=max(i, j) + 1
         
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(noise_channels, param_name, param_vals, evals_count=evals_count)
+        else:
+            operators = []
+            if 'capacitive' in noise_channels and 'n_operator_total' not in spectrum_data.matrixelem_table:
+                operators.append('n_operator_total')
+            if 'inductive' in noise_channels and 'phase_operator_total' not in spectrum_data.matrixelem_table:
+                operators.append('phase_operator_total')
+            if operators:
+                if spectrum_data.state_table is not None:
+                    for operator in operators:
+                        matrixelem_table = np.empty((len(param_vals), evals_count, evals_count), dtype=np.complex_)
+                        for index, paramval in enumerate(param_vals):
+                            evecs = spectrum_data.state_table[index]
+                            matrixelem_table[index] = self.matrixelement_table(operator, evecs=evecs, evals_count=evals_count)
+                        spectrum_data.matrixelem_table[operator] = matrixelem_table
+                else:
+                    spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
+    
+        paramvals_count = len(param_vals)
+        t1_tables = {channel: np.empty(paramvals_count, dtype=np.float_) for channel in noise_channels}
+
+        for index, paramval in enumerate(param_vals):
+            esys = (spectrum_data.energy_table[index], spectrum_data.state_table[index])
+            for channel in noise_channels:
+                if channel == 'capacitive':
+                    t1_tables[channel][index] = self.t1_capacitive(i=i, j=j, esys=esys, matrix_elements=spectrum_data.matrixelem_table['n_operator_total'][index], **kwargs)
+                elif channel == 'inductive':
+                    t1_tables[channel][index] = self.t1_inductive(i=i, j=j, esys=esys, matrix_elements=spectrum_data.matrixelem_table['phase_operator_total'][index], **kwargs)
+                else:
+                    raise ValueError(f"Unsupported T1 noise channel: {channel}")
+
+        spectrum_data.t1_table = t1_tables
+        return spectrum_data
         if Q_cap is None:
             Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / omega)**0.7
         elif callable(Q_cap):
