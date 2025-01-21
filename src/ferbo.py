@@ -240,6 +240,32 @@ class Ferbo:
             "amplitudes": phi_wavefunc_amplitudes,
             "energy": evals[which]
         }
+        
+    def potential(self, phi: Union[float, np.ndarray]) -> np.ndarray:
+        """
+        Calculates the potential energy for given values of phi.
+
+        Parameters
+        ----------
+        phi : Union[float, np.ndarray]
+            The phase values at which to calculate the potential.
+
+        Returns
+        -------
+        np.ndarray
+            The potential energy values.
+        """
+        phi_array = np.atleast_1d(phi)
+        evals_array = np.zeros((len(phi_array), 2))
+
+        for i, phi_val in enumerate(phi_array):
+            inductive_term = 0.5 * self.El * phi_val**2 * qeye(2)
+            andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigmax() - self.delta_Gamma * np.sin(phi_val / 2) * sigmay() - self.er * sigmaz()
+            potential_operator = inductive_term + andreev_term
+            evals_array[i] = potential_operator.eigenenergies()
+
+        return evals_array
+
     
     def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False)  -> SpectrumData:
         """
