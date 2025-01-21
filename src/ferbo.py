@@ -1,10 +1,8 @@
 import numpy as np
 from src.storage import SpectrumData
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from tqdm.notebook import tqdm
-from scipy.constants import hbar, e, k
-from scipy.interpolate import UnivariateSpline
-from src.files_to_organize.utils import filter_args, plot_vs_parameters
+from scipy.special import factorial, pbdv
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay, sigmax
 # import dynamiqs as dq
 
@@ -161,6 +159,87 @@ class Ferbo:
         inductive_term = 0.5 * self.El * (self.phase_operator_total() + self.flux)**2
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential
+    
+    def phi_osc(self) -> float:
+        """
+        Returns the oscillator length for the LC oscillator composed of the inductance and capacitance.
+
+        Returns
+        -------
+        float
+            Oscillator length.
+        """
+        return (8.0 * self.Ec / self.El) ** 0.25
+    
+    def harm_osc_wavefunction(self, n: int, x: Union[float, np.ndarray], l_osc: float) -> Union[float, np.ndarray]:
+        """
+        Returns the value of the harmonic oscillator wave function.
+
+        Parameters
+        ----------
+        n : int
+            Index of wave function, n=0 is ground state.
+        x : Union[float, np.ndarray]
+            Coordinate(s) where wave function is evaluated.
+        l_osc : float
+            Oscillator length.
+
+        Returns
+        -------
+        Union[float, np.ndarray]
+            Value of harmonic oscillator wave function.
+        """
+        result = pbdv(n, np.sqrt(2.0) * x / l_osc) / np.sqrt(l_osc * np.sqrt(np.pi) * factorial(n))
+        return result[0]
+    
+    def wavefunction(self, which: int = 0, phi_grid: np.ndarray = None, esys: Tuple[np.ndarray, np.ndarray] = None) -> Dict[str, Any]:
+        """
+        Returns a wave function in the phi basis.
+
+        Parameters
+        ----------
+        which : int, optional
+            Index of desired wave function (default is 0).
+        phi_grid : np.ndarray, optional
+            Custom grid for phi; if None, a default grid is used.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Wave function data containing basis labels, amplitudes, and energy.
+        """
+        if esys is None:
+            evals_count = max(which + 1, 3)
+            H = self.hamiltonian()
+            evals, evecs = H.eigenstates(eigvals=evals_count)
+            evecs = np.array([evec.full().flatten() for evec in evecs])
+        else:
+            evals, evecs = esys
+            
+        dim = self.dimension
+        
+        # Change of basis
+        U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
+        U_qobj = Qobj(U)
+        change_of_basis_operator = tensor(qeye(dim), U_qobj).full()
+        evecs = (change_of_basis_operator @ evecs.T).T
+                        
+        if phi_grid is None:
+            phi_grid = np.linspace(-4.5 * np.pi, 4.5 * np.pi, 151)
+
+        phi_basis_labels = phi_grid
+        wavefunc_osc_basis_amplitudes = evecs[which, :]
+        phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex_)
+        phi_osc = self.phi_osc()
+        for n in range(dim):
+            phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[2 * n] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
+            phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[2 * n + 1] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
+
+        return {
+            "basis_labels": phi_basis_labels,
+            "amplitudes": phi_wavefunc_amplitudes,
+            "energy": evals[which]
+        }
     
     def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False)  -> SpectrumData:
         """
