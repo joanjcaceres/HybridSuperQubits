@@ -480,7 +480,77 @@ class Ferbo:
         spectrum_data.t1_table = t1_tables
         return spectrum_data
     
-    def t1_capacitive(self, i: int = 1, j: int = 0, Q_cap: Union[float, Callable] = None, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, matrix_elements: np.ndarray = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+    def get_tphi_vs_paramvals(
+        self, 
+        noise_channels: Union[str, List[str]],
+        param_name: str,
+        param_vals: np.ndarray,
+        i: int = 1, 
+        j: int = 0,
+        spectrum_data: SpectrumData = None,
+        **kwargs
+        ) -> SpectrumData:
+        """
+        Calculates the Tphi times for given noise channels over a range of parameter values.
+
+        Parameters
+        ----------
+        noise_channels : Union[str, List[str]]
+            The noise channels to calculate ('flux', etc.).
+        param_name : str
+            The name of the parameter to vary.
+        param_vals : np.ndarray
+            The values of the parameter to vary.
+        i : int, optional
+            The initial state index (default is 1).
+        j : int, optional
+            The final state index (default is 0).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+        **kwargs
+            Additional arguments to pass to the Tphi calculation method.
+
+        Returns
+        -------
+        SpectrumData
+            The Tphi times for the specified noise channels over the range of parameter values.
+        """
+        if isinstance(noise_channels, str):
+            noise_channels = [noise_channels]
+            
+        evals_count = max(i, j) + 1
+        
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(noise_channels, param_name, param_vals, evals_count=evals_count)
+        else:
+            operators = []
+            if 'flux' in noise_channels and 'dH_d_flux' not in spectrum_data.matrixelem_table:
+                operators.append('dH_d_flux')
+            if operators:
+                if spectrum_data.state_table is not None:
+                    for operator in operators:
+                        matrixelem_table = np.empty((len(param_vals), evals_count, evals_count), dtype=np.complex_)
+                        for index, paramval in enumerate(param_vals):
+                            evecs = spectrum_data.state_table[index]
+                            matrixelem_table[index] = self.matrixelement_table(operator, evecs=evecs, evals_count=evals_count)
+                        spectrum_data.matrixelem_table[operator] = matrixelem_table
+                else:
+                    spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
+
+        paramvals_count = len(param_vals)
+        tphi_tables = {(i, j, channel): np.empty(paramvals_count, dtype=np.float_) for channel in noise_channels}
+
+        for index, paramval in enumerate(param_vals):
+            esys = (spectrum_data.energy_table[index], spectrum_data.state_table[index])
+            for channel in noise_channels:
+                if channel == 'flux':
+                    A_noise = kwargs.pop('A_noise', 1e-6)
+                    tphi_tables[(i, j, channel)][index] = self.tphi_1_over_f_flux(A_noise=A_noise, i=i, j=j, esys=esys, **kwargs)
+                else:
+                    raise ValueError(f"Unsupported Tphi noise channel: {channel}")
+
+        spectrum_data.tphi_table = tphi_tables
+        return spectrum_data
         
         if Q_cap is None:
             Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7
