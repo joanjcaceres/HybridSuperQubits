@@ -291,9 +291,10 @@ class Ferbo:
         """
         phi_array = np.atleast_1d(phi)
         evals_array = np.zeros((len(phi_array), 2))
+        phi_ext = 2 * np.pi * self.flux
 
         for i, phi_val in enumerate(phi_array):
-            inductive_term = 0.5 * self.El * phi_val**2 * qeye(2)
+            inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * qeye(2)
             andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigmax() - self.delta_Gamma * np.sin(phi_val / 2) * sigmay() - self.er * sigmaz()
             potential_operator = inductive_term + andreev_term
             evals_array[i] = potential_operator.eigenenergies()
