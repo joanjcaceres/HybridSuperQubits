@@ -536,7 +536,76 @@ class Ferbo:
 
         rate = matrix_element**2 * s
         return rate if get_rate else 1 / rate
+    def plot_wavefunction(
+        self, 
+        which: Union[int, Iterable[int]] = 0, 
+        phi_grid: np.ndarray = None, 
+        esys: Tuple[np.ndarray, np.ndarray] = None, 
+        scaling: Optional[float] = None,
+        **kwargs
+        ) -> Tuple[plt.Figure, plt.Axes]:
+        """
+        Plot the wave function in the phi basis.
 
+        Parameters
+        ----------
+        which : Union[int, Iterable[int]], optional
+            Index or indices of desired wave function(s) (default is 0).
+        phi_grid : np.ndarray, optional
+            Custom grid for phi; if None, a default grid is used.
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors.
+        **kwargs
+            Additional arguments for plotting. Can include:
+            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
+                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            The figure and axes of the plot.
+        """
+        if isinstance(which, int):
+            which = [which]
+            
+        potential = self.potential(phi=phi_grid)
+
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(rf'$E_c = {self.Ec}, E_l = {self.El}, \Gamma = {self.Gamma}, \delta \Gamma = {self.delta_Gamma}, \epsilon_r = {self.er}$')
+        else:
+            fig, ax = fig_ax
+        
+        ax.plot(phi_grid/2/np.pi, potential[:, 0], color='black', label='Potential')
+        ax.plot(phi_grid/2/np.pi, potential[:, 1], color='black')
+
+        for idx in which:
+            wavefunc_data = self.wavefunction(which=idx, phi_grid=phi_grid, esys=esys)
+            phi_basis_labels = wavefunc_data["basis_labels"]
+            wavefunc_amplitudes = wavefunc_data["amplitudes"]
+            wavefunc_energy = wavefunc_data["energy"]
+
+            ax.plot(
+                phi_basis_labels/2/np.pi,
+                wavefunc_energy + scaling * (wavefunc_amplitudes[0].real + wavefunc_amplitudes[0].imag),
+                # color="blue",
+                label=rf"$\Psi_{idx} \uparrow $"
+                )
+            ax.plot(
+                phi_basis_labels/2/np.pi, 
+                wavefunc_energy + scaling * (wavefunc_amplitudes[1].real + wavefunc_amplitudes[1].imag),
+                # color="red",
+                label=rf"$\Psi_{idx} \downarrow $"
+                )
+
+        ax.set_xlabel(r"$\Phi / \Phi_0$")
+        ax.set_ylabel(r"$\psi(\varphi)$, Energy [GHz]")
+        ax.legend()
+        ax.grid(True)
+
+        return fig, ax
+        
 
 ##### Revisit this functions later ######
 
