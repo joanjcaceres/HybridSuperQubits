@@ -134,6 +134,40 @@ class Ferbo:
         """
         return tensor(self.phase_operator(), qeye(2))
     
+    def dH_d_flux(self) -> Qobj:
+        """
+        Returns the derivative of the Hamiltonian with respect to the external magnetic flux.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the external magnetic flux.
+        """
+        return - self.El * (self.phase_operator_total() + self.flux)
+    
+    def dH_d_er(self) -> Qobj:
+        """
+        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the energy relaxation rate.
+        """
+        return - tensor(qeye(self.dimension),sigmaz())
+    
+    def dH_d_delta_Gamma(self) -> Qobj:
+        """
+        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the coupling strength difference.
+        """
+        phase_op = self.phase_operator()
+        return - tensor((phase_op/2).sinm(),sigmay())
+    
     def jrl_potential(self) -> Qobj:
         """
         Returns the Josephson Ring Ladder potential.
