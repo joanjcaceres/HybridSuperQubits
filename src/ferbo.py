@@ -1,54 +1,15 @@
 import numpy as np
 from src.storage import SpectrumData
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Iterable
 from tqdm.notebook import tqdm
+from scipy.constants import hbar, k
 from scipy.special import factorial, pbdv
 from qutip import Qobj, destroy, tensor, qeye, sigmaz, sigmay, sigmax
+import matplotlib.pyplot as plt
 # import dynamiqs as dq
 
 class Ferbo:
-    """
-    A class to represent a fermionic-bosonic qubit system.
-
-    Attributes
-    ----------
-    Ec : float
-        Charging energy.
-    El : float
-        Inductive energy.
-    Gamma : float
-        Coupling strength.
-    delta_Gamma : float
-        Coupling strength difference.
-    er : float
-        Energy relaxation rate.
-    flux : float
-        External magnetic flux.
-    dimension : int
-        Dimension of the Hilbert space.
-
-    Methods
-    -------
-    charge_number_operator() -> Qobj:
-        Returns the charge number operator.
-    phase_operator() -> Qobj:
-        Returns the phase operator.
-    charge_number_operator_total() -> Qobj:
-        Returns the total charge number operator.
-    phase_operator_total() -> Qobj:
-        Returns the total phase operator.
-    jrl_potential() -> Qobj:
-        Returns the Josephson Ring Ladder potential.
-    hamiltonian() -> Qobj:
-        Returns the Hamiltonian of the system.
-    get_spectrum_vs_paramvals(param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-        Calculates the eigenenergies and eigenstates for a range of parameter values.
-    matrixelement_table(operator: str, evecs: np.ndarray = None, evals_count: int = 6) -> np.ndarray:
-        Returns a table of matrix elements for a given operator with respect to the eigenstates.
-    get_matelements_vs_paramvals(operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> Dict[str, Dict[str, np.ndarray]]:
-        Calculates the matrix elements for a list of operators over a range of parameter values.
-    """
-    def __init__(self, Ec, El, Gamma, delta_Gamma, er, flux, dimension):
+    def __init__(self, Ec, El, Gamma, delta_Gamma, er, flux, dimension, flux_grouping: str = 'L'):
         """
         Initializes the Ferbo class with the given parameters.
 
@@ -180,12 +141,12 @@ class Ferbo:
     
     def jrl_potential(self) -> Qobj:
         """
-        Returns the Josephson Ring Ladder potential.
+        Returns the Josephson Resonance Level potential.
 
         Returns
         -------
         Qobj
-            The Josephson Ring Ladder potential.
+            The Josephson Resonance Level potential.
         """
         phase_op = self.phase_operator()
         if self.flux_grouping == 'ABS':
@@ -276,7 +237,7 @@ class Ferbo:
         evecs = (change_of_basis_operator @ evecs.T).T
                         
         if phi_grid is None:
-            phi_grid = np.linspace(-4.5 * np.pi, 4.5 * np.pi, 151)
+            phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
 
         phi_basis_labels = phi_grid
         wavefunc_osc_basis_amplitudes = evecs[which, :]
@@ -351,18 +312,21 @@ class Ferbo:
             setattr(self, param_name, val)
             H = self.hamiltonian()
             eigenenergies, eigenstates = H.eigenstates(eigvals=evals_count)
-            if subtract_ground:
-                eigenenergies -= eigenenergies[0]
             eigenenergies_array.append(eigenenergies)
-            eigenstates_array.append(eigenstates)
-        
-        return SpectrumData(
+            eigenstates_array.append([eigenstate.full().flatten() for eigenstate in eigenstates])
+            
+        spectrum_data = SpectrumData(
             energy_table=np.array(eigenenergies_array),
             system_params=self.__dict__,
             param_name=param_name,
             param_vals=np.array(param_vals),
             state_table=np.array(eigenstates_array)
-        )    
+        )
+
+        if subtract_ground:
+            spectrum_data.subtract_ground()
+        
+        return spectrum_data  
         
     def matrixelement_table(self, operator: str, evecs: np.ndarray = None, evals_count: int = 6) -> Dict[Tuple[int, int], np.ndarray]:
         """
@@ -449,8 +413,18 @@ class Ferbo:
         )
         
         return spectrum_data
+        
     
-    def get_t1_vs_paramvals(self, noise_channels: Union[str, List[str]], param_name: str, param_vals: np.ndarray, i: int = 1, j: int = 0, spectrum_data: SpectrumData = None, **kwargs) -> SpectrumData:
+    def get_t1_vs_paramvals(
+        self, 
+        noise_channels: Union[str, List[str]],
+        param_name: str, 
+        param_vals: np.ndarray, 
+        i: int = 1, 
+        j: int = 0,
+        spectrum_data: SpectrumData = None,
+        **kwargs
+        ) -> SpectrumData:
         """
         Calculates the T1 times for given noise channels over a range of parameter values.
 
@@ -587,6 +561,18 @@ class Ferbo:
 
         spectrum_data.tphi_table.update(tphi_tables)
         return spectrum_data
+    
+    def t1_capacitive(
+        self,
+        i: int = 1, 
+        j: int = 0, 
+        Q_cap: Union[float, Callable] = None,
+        T: float = 0.015, 
+        esys: Tuple[np.ndarray, np.ndarray] = None, 
+        matrix_elements: np.ndarray = None, 
+        get_rate: bool = False,
+        noise_op: Optional[Union[np.ndarray, Qobj]] = None
+        ) -> float:
         
         if Q_cap is None:
             Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7
@@ -618,7 +604,17 @@ class Ferbo:
         rate = matrix_element**2 * s
         return rate if get_rate else 1 / rate
     
-    def t1_inductive(self, i: int = 1, j: int = 0, Q_ind: float = 500e6, T: float = 0.015, esys: Tuple[np.ndarray, np.ndarray] = None, matrix_elements: np.ndarray = None, get_rate: bool = False, noise_op: Optional[Union[np.ndarray, Qobj]] = None) -> float:
+    def t1_inductive(
+        self, 
+        i: int = 1, 
+        j: int = 0,
+        Q_ind: float = 500e6,
+        T: float = 0.015, 
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        matrix_elements: np.ndarray = None, 
+        get_rate: bool = False,
+        noise_op: Optional[Union[np.ndarray, Qobj]] = None
+        ) -> float:
         
         def spectral_density(omega, T):
             return 4 * np.pi * (self.El * 1e9) / Q_ind * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
@@ -746,7 +742,7 @@ class Ferbo:
         fig_ax = kwargs.get("fig_ax")
         if fig_ax is None:
             fig, ax = plt.subplots()
-            fig.suptitle(rf'$E_c = {self.Ec}, E_l = {self.El}, \Gamma = {self.Gamma}, \delta \Gamma = {self.delta_Gamma}, \epsilon_r = {self.er}$')
+            fig.suptitle(self._generate_suptitle())
         else:
             fig, ax = fig_ax
         
