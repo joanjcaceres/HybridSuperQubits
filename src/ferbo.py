@@ -645,7 +645,7 @@ class Ferbo:
         A_noise: float, 
         i: int, 
         j: int, 
-        noise_op: Union[np.ndarray, Qobj],
+        noise_op: str,
         esys: Tuple[np.ndarray, np.ndarray] = None,
         get_rate: bool = False,
         **kwargs
@@ -661,8 +661,8 @@ class Ferbo:
             State index that along with j defines a qubit.
         j : int
             State index that along with i defines a qubit.
-        noise_op : Union[np.ndarray, Qobj]
-            Noise operator, typically Hamiltonian derivative w.r.t. noisy parameter.
+        noise_op : str
+            Name of the noise operator, typically Hamiltonian derivative w.r.t. noisy parameter.
         esys : Tuple[np.ndarray, np.ndarray], optional
             Precomputed eigenvalues and eigenvectors (default is None).
         get_rate : bool, optional
@@ -675,18 +675,18 @@ class Ferbo:
         """
         p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
         p.update(kwargs)
-        
+                
         if esys is None:
             H = self.hamiltonian()
             evals, evecs = H.eigenstates(eigvals=max(j, i) + 1)
-            evecs = np.array([evec.full().flatten() for evec in evecs])
         else:
             evals, evecs = esys
+            if isinstance(evecs, np.ndarray):
+                evecs = np.array([Qobj(evec) for evec in evecs])
 
-        if isinstance(noise_op, np.ndarray):
-            dEij_d_lambda = np.abs(evecs[i, :].conj().T @ noise_op @ evecs[i, :] - evecs[j, :].conj().T @ noise_op @ evecs[j, :])
-        elif isinstance(noise_op, Qobj):
-            dEij_d_lambda = np.abs(evecs[i, :].conj().T @ noise_op.full() @ evecs[i, :] - evecs[j, :].conj().T @ noise_op.full() @ evecs[j, :])
+        noise_operator = getattr(self, noise_op)()
+        if isinstance(noise_operator, Qobj):
+            dEij_d_lambda = np.abs(noise_operator.matrix_element(evecs[i], evecs[i]) - noise_operator.matrix_element(evecs[j], evecs[j]))
         else:
             raise ValueError("Noise operator must be a numpy array or Qobj.")
 
@@ -704,7 +704,7 @@ class Ferbo:
         get_rate: bool = False, 
         **kwargs
         ) -> float:
-        return self.tphi_1_over_f(A_noise, i, j, self.dH_d_flux(), esys=esys, get_rate=get_rate, **kwargs)
+        return self.tphi_1_over_f(A_noise, i, j, 'dH_d_flux', esys=esys, get_rate=get_rate, **kwargs)
 
     def plot_wavefunction(
         self, 
