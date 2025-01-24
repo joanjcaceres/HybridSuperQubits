@@ -778,6 +778,387 @@ class Ferbo:
         ax.grid(True)
 
         return fig, ax
+
+    def plot_evals_vs_paramvals(
+        self, 
+        param_name: str = None,
+        param_vals: np.ndarray = None,
+        evals_count: int = 6,
+        subtract_ground: bool = False,
+        spectrum_data: SpectrumData = None, 
+        **kwargs
+        ) -> Tuple[plt.Figure, plt.Axes]:
+        """
+        Plot eigenvalues as a function of a parameter.
+
+        Parameters
+        ----------
+        param_name : str
+            Name of the parameter to vary.
+        param_vals : np.ndarray
+            Values of the parameter to vary.
+        evals_count : int, optional
+            Number of eigenvalues to calculate (default is 6).
+        subtract_ground : bool, optional
+            Whether to subtract the ground state energy from all eigenvalues (default is False).
+        **kwargs
+            Additional arguments for plotting. Can include:
+            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
+                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            The figure and axes of the plot.
+        """
+        if spectrum_data is None:
+            if param_name is None or param_vals is None:
+                raise ValueError("Both param_name and param_vals must be provided.")
+            spectrum_data = self.get_spectrum_vs_paramvals(param_name, param_vals, evals_count=evals_count)
+        else:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+            
+        evals = spectrum_data.energy_table.copy()
+        if subtract_ground:
+            evals -= evals[:, 0][:, np.newaxis]
+            evals = evals[:, 1:] # Remove ground state
+
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(self._generate_suptitle(param_name))
+        else:
+            fig, ax = fig_ax
+
+        if param_name == 'flux':
+            param_vals = param_vals/2/np.pi
+        ax.plot(param_vals, evals)
+
+        param_labels = {
+            'Ec': r'$E_C$',
+            'El': r'$E_L$',
+            'Gamma': r'$\Gamma$',
+            'delta_Gamma': r'$\delta \Gamma$',
+            'er': r'$\epsilon_r$',
+            'flux': r'$\Phi / \Phi_0$'
+        }
+        xlabel = param_labels.get(param_name, param_name)
+        
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel("Energy [GHz]")
+        # ax.grid(True)
+
+        return fig, ax
+
+    def plot_matelem_vs_paramvals(
+        self, 
+        operator: str, 
+        param_name: str = None, 
+        param_vals: np.ndarray = None, 
+        select_elems: Union[int, List[Tuple[int, int]]] = 4, 
+        mode: str = "abs",
+        spectrum_data: SpectrumData = None, 
+        **kwargs
+        ) -> Tuple[plt.Figure, plt.Axes]:
+        """
+        Plot matrix elements as a function of a parameter.
+
+        Parameters
+        ----------
+        operator : str
+            Name of the operator.
+        param_name : str
+            Name of the parameter to vary.
+        param_vals : np.ndarray
+            Values of the parameter to vary.
+        select_elems : Union[int, List[Tuple[int, int]]], optional
+            Number of elements to select or list of specific elements to plot (default is 4).
+        mode : str, optional
+            Mode for plotting the matrix elements ('abs', 'real', 'imag') (default is 'abs').
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+        **kwargs
+            Additional arguments for plotting. Can include:
+            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
+                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            The figure and axes of the plot.
+        """
+        if spectrum_data is None:
+            if param_name is None or param_vals is None:
+                raise ValueError("Both param_name and param_vals must be provided.")
+            spectrum_data = self.get_matelements_vs_paramvals(operator, param_name, param_vals, evals_count=max(select_elems) + 1 if isinstance(select_elems, list) else select_elems)
+        else:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(self._generate_suptitle(param_name))
+        else:
+            fig, ax = fig_ax
+
+        matrixelem_table = spectrum_data.matrixelem_table[operator]
+
+        if isinstance(select_elems, int):
+            select_elems = [(i, j) for i in range(select_elems) for j in range(i, select_elems)]
+
+        operator_labels = {
+            'n_operator_total': r'\hat{n}',
+            'phase_operator_total': r'\hat{\phi}',
+            'dH_d_delta_Gamma' : r'\sin(\hat{\phi}/2) \otimes \hat{\sigma_y}',
+            'dH_d_er': r'\hat{\sigma_z}',
+            'dH_d_flux': r'\partial \hat{H}/ \partial \varphi',
+        }
+        operator_label = operator_labels.get(operator, operator)
+        
+        if param_name == 'flux':
+            param_vals = param_vals/2/np.pi
+            
+        for (i, j) in select_elems:
+            if mode == "abs":
+                values = np.abs(matrixelem_table[:, i, j])
+                ylabel = rf"$|\langle {{i}} | {operator_label} | {{j}} \rangle|$"
+            elif mode == "real":
+                values = matrixelem_table[:, i, j].real
+                ylabel = rf"$\Re(\langle {{i}} | {operator_label} | {{j}} \rangle)$"
+            elif mode == "imag":
+                values = matrixelem_table[:, i, j].imag
+                ylabel = rf"$\Im(\langle {{i}} | {operator_label} | {{j}} \rangle)$"
+            else:
+                raise ValueError(f"Unsupported mode: {mode}")
+
+            ax.plot(param_vals, values, label=f"({i},{j})")
+
+        param_labels = {
+            'Ec': r'$E_C$',
+            'El': r'$E_L$',
+            'Gamma': r'$\Gamma$',
+            'delta_Gamma': r'$\delta \Gamma$',
+            'er': r'$\epsilon_r$',
+            'flux': r'$\Phi / \Phi_0$'
+        }
+        xlabel = param_labels.get(param_name, param_name)
+        
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.legend()
+        # ax.grid(True)
+
+        return fig, ax
+    
+    def plot_t1_vs_paramvals(
+        self,
+        noise_channels: List[str],
+        param_name: str = None, 
+        param_vals: np.ndarray = None, 
+        select_elems: Union[int, List[Tuple[int, int]]] = 4,
+        spectrum_data: SpectrumData = None,
+        **kwargs
+        ) -> Tuple[plt.Figure, plt.Axes]:
+        """
+        Plot T1 times due to capacitive noise as a function of a parameter.
+
+        Parameters
+        ----------
+        param_name : str
+            Name of the parameter to vary.
+        param_vals : np.ndarray
+            Values of the parameter to vary.
+        select_elems : Union[int, List[Tuple[int, int]]], optional
+            Number of elements to select or list of specific elements to plot (default is 4).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+        **kwargs
+            Additional arguments for plotting. Can include:
+            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
+                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            The figure and axes of the plot.
+        """
+        if spectrum_data is None:
+            evals_count = max(select_elems) + 1 if isinstance(select_elems, list) else select_elems
+            operators = set()
+            for channel in noise_channels:
+                if channel == 'capacitive':
+                    operators.add('n_operator_total')
+                elif channel == 'inductive':
+                    operators.add('phase_operator_total')
+                else:
+                    raise ValueError(f"Unsupported T1 noise channel: {channel}")
+            spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals, evals_count=evals_count)
+        else:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            
+        if isinstance(select_elems, int):
+            select_elems = [(i, j) for i in range(select_elems) for j in range(i) if i > j]
+            
+        if isinstance(noise_channels, str):
+            noise_channels = [noise_channels]
+
+        for (i, j) in select_elems:
+            for channel in noise_channels:
+                if (i, j, channel) not in spectrum_data.t1_table:
+                    spectrum_data = self.get_t1_vs_paramvals(channel, param_name, param_vals, i=i, j=j, spectrum_data=spectrum_data)
+
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(self._generate_suptitle(param_name))
+        else:
+            fig, ax = fig_ax
+
+        if param_name == 'flux':
+            param_vals = param_vals / (2 * np.pi)
+            
+        rate_effective = np.zeros_like(param_vals)
+        for (i, j) in select_elems:
+            for channel in noise_channels:
+                t1_times = spectrum_data.t1_table[(i, j, channel)]
+                rate_effective += 1 / t1_times
+                ax.plot(param_vals, t1_times, label=f"{channel} ({i},{j})")
+
+        ax.plot(param_vals, 1/rate_effective, label=f"T1 effective", color='black', linestyle='--')
+
+        param_labels = {
+            'Ec': r'$E_C$',
+            'El': r'$E_L$',
+            'Gamma': r'$\Gamma$',
+            'delta_Gamma': r'$\delta \Gamma$',
+            'er': r'$\epsilon_r$',
+            'flux': r'$\Phi / \Phi_0$'
+        }
+        xlabel = param_labels.get(param_name, param_name)
+        
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(r"$T_1$ [s]")
+        ax.legend()
+        # ax.grid(True)
+
+        return fig, ax
+    
+    def plot_tphi_vs_paramvals(
+        self, 
+        noise_channels: List[str], 
+        param_name: str = None, 
+        param_vals: np.ndarray = None,
+        select_elems: Union[int, List[Tuple[int, int]]] = 4, 
+        spectrum_data: SpectrumData = None,
+        **kwargs
+        ) -> Tuple[plt.Figure, plt.Axes]:
+        """
+        Plot Tphi times due to specified noise channels as a function of a parameter.
+
+        Parameters
+        ----------
+        param_name : str
+            Name of the parameter to vary.
+        param_vals : np.ndarray
+            Values of the parameter to vary.
+        select_elems : Union[int, List[Tuple[int, int]]] optional
+            Number of elements to select or list of specific elements to plot (default is 4).
+        noise_channels : List[str], optional
+            List of noise channels to consider (default is ['capacitive']).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+        **kwargs
+            Additional arguments for plotting. Can include:
+            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
+                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            The figure and axes of the plot.
+        """
+        if spectrum_data is None:
+            evals_count = max(select_elems) + 1 if isinstance(select_elems, list) else select_elems
+            operators = set()
+            for channel in noise_channels:
+                if channel == 'flux':
+                    operators.add('dH_d_flux')
+                else:
+                    raise ValueError(f"Unsupported Tphi noise channel: {channel}")
+            spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals, evals_count=evals_count)
+        else:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+
+        if isinstance(select_elems, int):
+            select_elems = [(i, j) for i in range(select_elems) for j in range(i) if i > j]
+
+        if isinstance(noise_channels, str):
+            noise_channels = [noise_channels]
+
+        for (i, j) in select_elems:
+            for channel in noise_channels:
+                if (i, j, channel) not in spectrum_data.tphi_table:
+                    spectrum_data = self.get_tphi_vs_paramvals([channel], param_name, param_vals, i=i, j=j, spectrum_data=spectrum_data)
+
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(self._generate_suptitle(param_name))
+        else:
+            fig, ax = fig_ax
+
+        if param_name == 'flux':
+            param_vals = param_vals / (2 * np.pi)
+            
+        for (i, j) in select_elems:
+            for channel in noise_channels:
+                tphi_times = spectrum_data.tphi_table[(i, j, channel)]
+                ax.plot(param_vals, tphi_times, label=f"Tphi {channel} ({i}->{j})")            
+
+        param_labels = {
+            'Ec': r'$E_C$',
+            'El': r'$E_L$',
+            'Gamma': r'$\Gamma$',
+            'delta_Gamma': r'$\delta \Gamma$',
+            'er': r'$\epsilon_r$',
+            'flux': r'$\Phi / \Phi_0$'
+        }
+        xlabel = param_labels.get(param_name, param_name)
+        
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(r"$T_\varphi$ [s]")
+        ax.legend()
+
+        return fig, ax
+    
+    def _generate_suptitle(self, exclude_param: str = None) -> str:
+        """
+        Generate the suptitle for the plot, excluding the specified parameter.
+
+        Parameters
+        ----------
+        exclude_param : str
+            The parameter to exclude from the title.
+
+        Returns
+        -------
+        str
+            The generated suptitle.
+        """
+        title_parts = [
+            rf'$E_c = {self.Ec}$' if exclude_param != 'Ec' else '',
+            rf'$E_l = {self.El}$' if exclude_param != 'El' else '',
+            rf'$\Gamma = {self.Gamma}$' if exclude_param != 'Gamma' else '',
+            rf'$\delta \Gamma = {self.delta_Gamma}$' if exclude_param != 'delta_Gamma' else '',
+            rf'$\epsilon_r = {self.er}$' if exclude_param != 'er' else '',
+            rf'$\Phi/\Phi_0 = {self.flux/2/np.pi}$' if exclude_param != 'flux' else ''
+        ]
+        return ', '.join(filter(None, title_parts))
         
 
 ##### Revisit this functions later ######
