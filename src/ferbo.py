@@ -475,15 +475,16 @@ class Ferbo:
                     spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
     
         paramvals_count = len(param_vals)
-        t1_tables = {channel: np.empty(paramvals_count, dtype=np.float_) for channel in noise_channels}
+        t1_tables = {(i, j, channel): np.empty(paramvals_count, dtype=np.float_) for channel in noise_channels}
+
 
         for index, paramval in enumerate(param_vals):
             esys = (spectrum_data.energy_table[index], spectrum_data.state_table[index])
             for channel in noise_channels:
                 if channel == 'capacitive':
-                    t1_tables[channel][index] = self.t1_capacitive(i=i, j=j, esys=esys, matrix_elements=spectrum_data.matrixelem_table['n_operator_total'][index], **kwargs)
+                    t1_tables[(i, j, channel)][index] = self.t1_capacitive(i=i, j=j, esys=esys, matrix_elements=spectrum_data.matrixelem_table['n_operator_total'][index], **kwargs)
                 elif channel == 'inductive':
-                    t1_tables[channel][index] = self.t1_inductive(i=i, j=j, esys=esys, matrix_elements=spectrum_data.matrixelem_table['phase_operator_total'][index], **kwargs)
+                    t1_tables[(i, j, channel)][index] = self.t1_inductive(i=i, j=j, esys=esys, matrix_elements=spectrum_data.matrixelem_table['phase_operator_total'][index], **kwargs)
                 else:
                     raise ValueError(f"Unsupported T1 noise channel: {channel}")
 
