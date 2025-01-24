@@ -513,7 +513,7 @@ class Ferbo:
                 else:
                     raise ValueError(f"Unsupported T1 noise channel: {channel}")
 
-        spectrum_data.t1_table = t1_tables
+        spectrum_data.t1_table.update(t1_tables)
         return spectrum_data
     
     def get_tphi_vs_paramvals(
@@ -585,7 +585,7 @@ class Ferbo:
                 else:
                     raise ValueError(f"Unsupported Tphi noise channel: {channel}")
 
-        spectrum_data.tphi_table = tphi_tables
+        spectrum_data.tphi_table.update(tphi_tables)
         return spectrum_data
         
         if Q_cap is None:
