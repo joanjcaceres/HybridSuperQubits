@@ -421,18 +421,32 @@ class Ferbo:
         """
         if isinstance(operators, str):
             operators = [operators]
-        
-        spectrum_data = self.get_spectrum_vs_paramvals(param_name, param_vals, evals_count=evals_count, subtract_ground=False)
+                        
         paramvals_count = len(param_vals)
-        
-        matrixelem_tables = {operator: np.empty((paramvals_count, evals_count, evals_count), dtype=np.complex_) for operator in operators}
-
-        for index, paramval in enumerate(param_vals):
-            evecs = spectrum_data.state_table[index]
+            
+        eigenenergies_array = np.empty((paramvals_count, evals_count))
+        eigenstates_array = np.empty((paramvals_count, evals_count, 2*self.dimension), dtype=np.complex_)
+        matrixelem_tables = {operator: np.empty((paramvals_count, evals_count, evals_count), dtype=complex) for operator in operators}
+            
+        for idx, val in enumerate(tqdm(param_vals)):
+            setattr(self, param_name, val)
+            H = self.hamiltonian()
+            eigenenergies, eigenstates = H.eigenstates(eigvals=evals_count)
+            eigenenergies_array[idx] = eigenenergies
+            eigenstates_array[idx] = np.array([eigenstate.full().flatten() for eigenstate in eigenstates])
+            
             for operator in operators:
-                matrixelem_tables[operator][index] = self.matrixelement_table(operator, evecs=evecs, evals_count=evals_count)
-
-        spectrum_data.matrixelem_table = matrixelem_tables
+                matrix_elements = self.matrixelement_table(operator, evecs=eigenstates, evals_count=evals_count)
+                matrixelem_tables[operator][idx] = matrix_elements
+                
+        spectrum_data = SpectrumData(
+            energy_table=eigenenergies_array,
+            system_params=self.__dict__,
+            param_name=param_name,
+            param_vals=param_vals,
+            state_table=eigenstates_array,
+            matrixelem_table=matrixelem_tables
+        )
         
         return spectrum_data
     
