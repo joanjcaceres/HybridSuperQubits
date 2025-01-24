@@ -68,7 +68,12 @@ class Ferbo:
             External magnetic flux.
         dimension : int
             Dimension of the Hilbert space.
+        flux_grouping : str, optional
+            Flux grouping ('L' or 'ABS') (default is 'L').
         """
+        if flux_grouping not in ['L', 'ABS']:
+            raise ValueError("Invalid flux grouping; must be 'L' or 'ABS'.")
+        
         self.Ec = Ec
         self.El = El
         self.Gamma = Gamma
@@ -76,7 +81,8 @@ class Ferbo:
         self.er = er
         self.flux = flux
         self.dimension = dimension
-    
+        self.flux_grouping = flux_grouping
+        
     def __repr__(self) -> str:
         """
         Returns a string representation of the Ferbo instance.
@@ -86,7 +92,7 @@ class Ferbo:
         str
             A string representation of the Ferbo instance.
         """
-        init_params = ['Ec', 'El', 'Gamma', 'delta_Gamma', 'er', 'flux', 'dimension']
+        init_params = ['Ec', 'El', 'Gamma', 'delta_Gamma', 'er', 'flux', 'dimension', 'flux_grouping']
         init_dict = {name: getattr(self, name) for name in init_params}
         return f"{type(self).__name__}(**{init_dict!r})"
     
@@ -143,8 +149,12 @@ class Ferbo:
         Qobj
             The derivative of the Hamiltonian with respect to the external magnetic flux.
         """
-        return - self.El * (self.phase_operator_total() + self.flux)
-    
+        if self.flux_grouping == 'L':
+            return - self.El * (self.phase_operator_total() + self.flux)
+        elif self.flux_grouping == 'ABS':
+            phase_op = self.phase_operator() - self.flux
+            return self.Gamma/2 * tensor((phase_op/2).sinm(),sigmax()) - self.delta_Gamma/2 * tensor((phase_op/2).cosm(),sigmay())
+                
     def dH_d_er(self) -> Qobj:
         """
         Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
@@ -178,6 +188,9 @@ class Ferbo:
             The Josephson Ring Ladder potential.
         """
         phase_op = self.phase_operator()
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.flux
+        
         return  - self.Gamma * tensor((phase_op/2).cosm(),sigmax()) - self.delta_Gamma * tensor((phase_op/2).sinm(),sigmay()) - self.er * tensor(qeye(self.dimension),sigmaz())
     
     def hamiltonian(self) -> Qobj:
@@ -190,7 +203,11 @@ class Ferbo:
             The Hamiltonian of the system.
         """
         charge_term = 4 * self.Ec * self.n_operator_total()**2
-        inductive_term = 0.5 * self.El * (self.phase_operator_total() + self.flux)**2
+        if self.flux_grouping == 'ABS':
+            inductive_term = 0.5 * self.El * self.phase_operator_total()**2
+        else:
+            inductive_term = 0.5 * self.El * (self.phase_operator_total() + self.flux)**2
+            
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential
     
@@ -294,8 +311,13 @@ class Ferbo:
         phi_ext = 2 * np.pi * self.flux
 
         for i, phi_val in enumerate(phi_array):
-            inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * qeye(2)
-            andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigmax() - self.delta_Gamma * np.sin(phi_val / 2) * sigmay() - self.er * sigmaz()
+            if self.flux_grouping == 'ABS':
+                inductive_term = 0.5 * self.El * phi_val**2 * qeye(2)
+                andreev_term = -self.Gamma * np.cos((phi_val + self.flux) / 2) * sigmax() - self.delta_Gamma * np.sin((phi_val + self.flux) / 2) * sigmay() - self.er * sigmaz()
+            elif self.flux_grouping == 'L':
+                inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * qeye(2)
+                andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigmax() - self.delta_Gamma * np.sin(phi_val / 2) * sigmay() - self.er * sigmaz()
+            
             potential_operator = inductive_term + andreev_term
             evals_array[i] = potential_operator.eigenenergies()
 
