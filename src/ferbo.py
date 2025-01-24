@@ -352,9 +352,10 @@ class Ferbo:
             _, evecs = H.eigenstates(eigvals=evals_count)
             
         operator_matrix = getattr(self, operator)()
-        
-        evecs = np.array([evec.full().flatten() for evec in evecs])
-        evecs_dag = np.conjugate(evecs.T)
+                
+        if isinstance(evecs[0], Qobj):
+            evecs = np.array([evec.full().flatten() for evec in evecs])
+        evecs_dag = evecs.T.conj()
 
         if isinstance(operator_matrix, Qobj):
             operator_matrix = operator_matrix.full()
