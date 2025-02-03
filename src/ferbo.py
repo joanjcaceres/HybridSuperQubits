@@ -1,8 +1,14 @@
+import matplotlib.pyplot as plt
 import numpy as np
+from src.qubit_base import QubitBase
+from scipy.linalg import cosm, sinm, eigh
 from src.storage import SpectrumData
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Iterable
-from tqdm.notebook import tqdm
 from scipy.constants import hbar, k
+from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
+
+
+
 class Ferbo(QubitBase):
     PARAM_LABELS = {
         'Ec': r'$E_C$',
@@ -39,8 +45,8 @@ class Ferbo(QubitBase):
             Coupling strength difference.
         er : float
             Energy relaxation rate.
-        flux : float
-            External magnetic flux.
+        phase : float
+            External magnetic phase.
         dimension : int
             Dimension of the Hilbert space.
         flux_grouping : str, optional
@@ -54,136 +60,10 @@ class Ferbo(QubitBase):
         self.Gamma = Gamma
         self.delta_Gamma = delta_Gamma
         self.er = er
-        self.flux = flux
-        self.dimension = dimension
+        self.phase = phase
+        self.dimension = dimension // 2 * 2
         self.flux_grouping = flux_grouping
         super().__init__(self.dimension)
-        """
-        Returns a string representation of the Ferbo instance.
-
-        Returns
-        -------
-        str
-            A string representation of the Ferbo instance.
-        """
-        init_params = ['Ec', 'El', 'Gamma', 'delta_Gamma', 'er', 'flux', 'dimension', 'flux_grouping']
-        init_dict = {name: getattr(self, name) for name in init_params}
-        return f"{type(self).__name__}(**{init_dict!r})"
-    
-    def n_operator(self) -> Qobj:
-        """
-        Returns the charge number operator.
-
-        Returns
-        -------
-        Qobj
-            The charge number operator.
-        """
-        return 1j/2 * (self.El/2/self.Ec)**0.25 * (destroy(self.dimension).dag() - destroy(self.dimension))
-    
-    def phase_operator(self) -> Qobj:
-        """
-        Returns the phase operator.
-
-        Returns
-        -------
-        Qobj
-            The phase operator.
-        """
-        return (2*self.Ec/self.El)**0.25 * (destroy(self.dimension).dag() + destroy(self.dimension))
-    
-    def n_operator_total(self) -> Qobj:
-        """
-        Returns the total charge number operator.
-
-        Returns
-        -------
-        Qobj
-            The total charge number operator.
-        """
-        return tensor(self.n_operator(), qeye(2))
-    
-    def phase_operator_total(self) -> Qobj:
-        """
-        Returns the total phase operator.
-
-        Returns
-        -------
-        Qobj
-            The total phase operator.
-        """
-        return tensor(self.phase_operator(), qeye(2))
-    
-    def dH_d_flux(self) -> Qobj:
-        """
-        Returns the derivative of the Hamiltonian with respect to the external magnetic flux.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the external magnetic flux.
-        """
-        if self.flux_grouping == 'L':
-            return - self.El * (self.phase_operator_total() + self.flux)
-        elif self.flux_grouping == 'ABS':
-            phase_op = self.phase_operator() - self.flux
-            return self.Gamma/2 * tensor((phase_op/2).sinm(),sigmax()) - self.delta_Gamma/2 * tensor((phase_op/2).cosm(),sigmay())
-                
-    def dH_d_er(self) -> Qobj:
-        """
-        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the energy relaxation rate.
-        """
-        return - tensor(qeye(self.dimension),sigmaz())
-    
-    def dH_d_delta_Gamma(self) -> Qobj:
-        """
-        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the coupling strength difference.
-        """
-        phase_op = self.phase_operator()
-        return - tensor((phase_op/2).sinm(),sigmay())
-    
-    def jrl_potential(self) -> Qobj:
-        """
-        Returns the Josephson Resonance Level potential.
-
-        Returns
-        -------
-        Qobj
-            The Josephson Resonance Level potential.
-        """
-        phase_op = self.phase_operator()
-        if self.flux_grouping == 'ABS':
-            phase_op -= self.flux
-        
-        return  - self.Gamma * tensor((phase_op/2).cosm(),sigmax()) - self.delta_Gamma * tensor((phase_op/2).sinm(),sigmay()) - self.er * tensor(qeye(self.dimension),sigmaz())
-    
-    def hamiltonian(self) -> Qobj:
-        """
-        Returns the Hamiltonian of the system.
-
-        Returns
-        -------
-        Qobj
-            The Hamiltonian of the system.
-        """
-        charge_term = 4 * self.Ec * self.n_operator_total()**2
-        if self.flux_grouping == 'ABS':
-            inductive_term = 0.5 * self.El * self.phase_operator_total()**2
-        else:
-            inductive_term = 0.5 * self.El * (self.phase_operator_total() + self.flux)**2
-            
-        potential = self.jrl_potential()
-        return charge_term + inductive_term + potential
     
     def phi_osc(self) -> float:
         """
@@ -196,26 +76,125 @@ class Ferbo(QubitBase):
         """
         return (8.0 * self.Ec / self.El) ** 0.25
     
-    def harm_osc_wavefunction(self, n: int, x: Union[float, np.ndarray], l_osc: float) -> Union[float, np.ndarray]:
+    def n_operator(self) -> np.ndarray:
         """
-        Returns the value of the harmonic oscillator wave function.
-
-        Parameters
-        ----------
-        n : int
-            Index of wave function, n=0 is ground state.
-        x : Union[float, np.ndarray]
-            Coordinate(s) where wave function is evaluated.
-        l_osc : float
-            Oscillator length.
+        Returns the charge number operator.
 
         Returns
         -------
-        Union[float, np.ndarray]
-            Value of harmonic oscillator wave function.
+        np.ndarray
+            The charge number operator.
         """
-        result = pbdv(n, np.sqrt(2.0) * x / l_osc) / np.sqrt(l_osc * np.sqrt(np.pi) * factorial(n))
-        return result[0]
+        single_mode_n_operator = 1j/2 * (self.El/2/self.Ec)**0.25 * (creation(self.dimension //2 ) - destroy(self.dimension // 2))
+        return np.kron(single_mode_n_operator, np.eye(2))
+    
+    def phase_operator(self) -> np.ndarray:
+        """
+        Returns the total phase operator.
+
+        Returns
+        -------
+        np.ndarray
+            The total phase operator.
+        """
+        single_mode_phase_operator = (2*self.Ec/self.El)**0.25 * (creation(self.dimension //2) + destroy(self.dimension //2))
+        return np.kron(single_mode_phase_operator, np.eye(2))        
+    
+    def jrl_potential(self) -> np.ndarray:
+        """
+        Returns the Josephson Resonance Level potential.
+
+        Returns
+        -------
+        np.ndarray
+            The Josephson Resonance Level potential.
+        """
+        phase_op = self.phase_operator()[::2, ::2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+        
+        return - self.Gamma * np.kron(cosm(phase_op/2), sigma_x()) - self.delta_Gamma * np.kron(sinm(phase_op/2), sigma_y()) - self.er * np.kron(np.eye(self.dimension // 2), sigma_z())
+    
+    # def zazunov_potential(self) -> np.ndarray:
+        
+    def hamiltonian(self) -> np.ndarray:
+        """
+        Returns the Hamiltonian of the system.
+
+        Returns
+        -------
+        np.ndarray
+            The Hamiltonian of the system.
+        """
+        charge_term = 4 * self.Ec * np.dot(self.n_operator(), self.n_operator())
+        if self.flux_grouping == 'ABS':
+            inductive_term = 0.5 * self.El * np.dot(self.phase_operator(), self.phase_operator())
+        else:
+            inductive_term = 0.5 * self.El * np.dot(self.phase_operator() + self.phase * np.eye(self.dimension), self.phase_operator() + self.phase * np.eye(self.dimension))
+        potential = self.jrl_potential()
+        return charge_term + inductive_term + potential
+    
+    def d_hamiltonian_d_EL(self) -> np.ndarray:
+        
+        if self.flux_grouping == 'L':
+            phase_op = self.phase_operator()
+        elif self.flux_grouping == 'ABS':
+            phase_op = self.phase_operator() - self.phase * np.eye(self.dimension)
+
+        return 1/2 * np.dot(phase_op, phase_op)
+    
+    def d_hamiltonian_d_ng(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the number of charge offset.
+        
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the number of charge offset.
+        
+        """
+        return 8 * self.Ec * self.n_operator()
+    
+    def d_hamiltonian_d_phase(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the external magnetic phase.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the external magnetic phase.
+        """
+        if self.flux_grouping == 'L':
+            return self.El * (self.phase_operator() + self.phase * np.eye(self.dimension))
+        elif self.flux_grouping == 'ABS':
+            phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
+            return - self.Gamma/2 * np.kron(sinm(phase_op/2),sigma_x()) + self.delta_Gamma/2 * np.kron(cosm(phase_op/2),sigma_y())
+                
+    def d_hamiltonian_d_er(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the energy relaxation rate.
+        """
+        return - np.kron(np.eye(self.dimension // 2),sigma_z())
+    
+    def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the coupling strength difference.
+        """
+        if self.flux_grouping == 'L':
+            phase_op = self.phase_operator()[::2,::2]
+        else:
+            phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
+        return - np.kron(sinm(phase_op/2),sigma_y())
     
     def wavefunction(self, which: int = 0, phi_grid: np.ndarray = None, esys: Tuple[np.ndarray, np.ndarray] = None) -> Dict[str, Any]:
         """
@@ -235,19 +214,16 @@ class Ferbo(QubitBase):
         """
         if esys is None:
             evals_count = max(which + 1, 3)
-            H = self.hamiltonian()
-            evals, evecs = H.eigenstates(eigvals=evals_count)
-            evecs = np.array([evec.full().flatten() for evec in evecs])
+            evals, evecs = self.eigensys(evals_count)
         else:
             evals, evecs = esys
             
-        dim = self.dimension
+        dim = self.dimension//2
         
         # Change of basis
         U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
-        U_qobj = Qobj(U)
-        change_of_basis_operator = tensor(qeye(dim), U_qobj).full()
-        evecs = (change_of_basis_operator @ evecs.T).T
+        change_of_basis_operator = np.kron(np.eye(dim), U)
+        evecs = (change_of_basis_operator @ evecs).T
                         
         if phi_grid is None:
             phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
@@ -282,18 +258,22 @@ class Ferbo(QubitBase):
         """
         phi_array = np.atleast_1d(phi)
         evals_array = np.zeros((len(phi_array), 2))
-        phi_ext = 2 * np.pi * self.flux
+        phi_ext = 2 * np.pi * self.phase
 
         for i, phi_val in enumerate(phi_array):
             if self.flux_grouping == 'ABS':
-                inductive_term = 0.5 * self.El * phi_val**2 * qeye(2)
-                andreev_term = -self.Gamma * np.cos((phi_val + self.flux) / 2) * sigmax() - self.delta_Gamma * np.sin((phi_val + self.flux) / 2) * sigmay() - self.er * sigmaz()
+                inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
+                andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_x() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() - self.er * sigma_z()
             elif self.flux_grouping == 'L':
-                inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * qeye(2)
-                andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigmax() - self.delta_Gamma * np.sin(phi_val / 2) * sigmay() - self.er * sigmaz()
+                inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * np.eye(2)
+                andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_x() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() - self.er * sigma_z()
             
             potential_operator = inductive_term + andreev_term
-            evals_array[i] = potential_operator.eigenenergies()
+            evals_array[i] = eigh(
+                potential_operator,
+                eigvals_only=True,
+                check_finite=False,
+        )
 
         return evals_array
     
@@ -306,7 +286,7 @@ class Ferbo(QubitBase):
         esys: Tuple[np.ndarray, np.ndarray] = None, 
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
-        noise_op: Optional[Union[np.ndarray, Qobj]] = None
+        noise_op: Optional[np.ndarray] = None
         ) -> float:
         
         if Q_cap is None:
@@ -319,13 +299,10 @@ class Ferbo(QubitBase):
         def spectral_density(omega, T):
             return 32 * np.pi * (self.Ec * 1e9) / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))
 
-        noise_op = noise_op or self.n_operator_total()
-        if isinstance(noise_op, Qobj):
-            noise_op = noise_op.full()
+        noise_op = noise_op or self.n_operator()
             
         if esys is None:
-            H = self.hamiltonian()
-            evals, evecs = H.eigenstates(eigvals=max(i, j) + 1)
+            evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
         else:
             evals, evecs = esys
             
@@ -333,7 +310,7 @@ class Ferbo(QubitBase):
         
         s = spectral_density(omega, T)
         if matrix_elements is None:
-            matrix_elements = self.matrixelement_table('n_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
+            matrix_elements = self.matrixelement_table('n_operator', evecs=evecs, evals_count=max(i, j) + 1)
         matrix_element = np.abs(matrix_elements[i, j])
 
         rate = matrix_element**2 * s
@@ -348,19 +325,16 @@ class Ferbo(QubitBase):
         esys: Tuple[np.ndarray, np.ndarray] = None,
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
-        noise_op: Optional[Union[np.ndarray, Qobj]] = None
+        noise_op: Optional[np.ndarray] = None
         ) -> float:
         
         def spectral_density(omega, T):
             return 4 * np.pi * (self.El * 1e9) / Q_ind * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
 
-        noise_op = noise_op or self.phase_operator_total()
-        if isinstance(noise_op, Qobj):
-            noise_op = noise_op.full()
+        noise_op = noise_op or self.phase_operator()
             
         if esys is None:
-            H = self.hamiltonian()
-            evals, evecs = H.eigenstates(eigvals=max(i, j) + 1)
+            evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
         else:
             evals, evecs = esys
             
@@ -368,7 +342,7 @@ class Ferbo(QubitBase):
         s = spectral_density(omega, T)
         
         if matrix_elements is None:
-            matrix_elements = self.matrixelement_table('phase_operator_total', evecs=evecs, evals_count=max(i, j) + 1)
+            matrix_elements = self.matrixelement_table('phase_operator', evecs=evecs, evals_count=max(i, j) + 1)
         matrix_element = np.abs(matrix_elements[i, j])
 
         rate = matrix_element**2 * s
@@ -411,18 +385,12 @@ class Ferbo(QubitBase):
         p.update(kwargs)
                 
         if esys is None:
-            H = self.hamiltonian()
-            evals, evecs = H.eigenstates(eigvals=max(j, i) + 1)
+            evals, evecs = self.eigensys(evals_count=max(j, i) + 1)
         else:
             evals, evecs = esys
-            if isinstance(evecs, np.ndarray):
-                evecs = np.array([Qobj(evec) for evec in evecs])
 
-        noise_operator = getattr(self, noise_op)()
-        if isinstance(noise_operator, Qobj):
-            dEij_d_lambda = np.abs(noise_operator.matrix_element(evecs[i], evecs[i]) - noise_operator.matrix_element(evecs[j], evecs[j]))
-        else:
-            raise ValueError("Noise operator must be a numpy array or Qobj.")
+        noise_operator = getattr(self, noise_op)()    
+        dEij_d_lambda = np.abs(evecs[i].conj().T @ noise_operator @ evecs[i] - evecs[j].conj().T @ noise_operator @ evecs[j])
 
         rate = (dEij_d_lambda * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"]))))
         rate *= 2 * np.pi * 1e9 # Convert to rad/s
@@ -438,7 +406,7 @@ class Ferbo(QubitBase):
         get_rate: bool = False, 
         **kwargs
         ) -> float:
-        return self.tphi_1_over_f(A_noise, i, j, 'dH_d_flux', esys=esys, get_rate=get_rate, **kwargs)
+        return self.tphi_1_over_f(A_noise, i, j, 'd_hamiltonian_d_phase', esys=esys, get_rate=get_rate, **kwargs)
 
     def plot_wavefunction(
         self, 
@@ -508,7 +476,7 @@ class Ferbo(QubitBase):
         ax.legend()
         ax.grid(True)
 
-        return fig, ax
+        return fig, ax      
 
 ##### Revisit this functions later ######
 
@@ -541,7 +509,7 @@ class Ferbo(QubitBase):
 
 # OPERATOR_FUNCTIONS = {
 #     'charge_number': charge_number_operator_total,
-#     'phase': phase_operator_total,
+#     'phase': phase_operator,
 #     'dHdr': dHdr_operator,
 #     'dHder': dHder_operator,
 # }
