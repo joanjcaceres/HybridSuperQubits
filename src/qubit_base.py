@@ -1098,7 +1098,9 @@ class QubitBase(ABC):
         if spectrum_data is None:
             if param_name is None or param_vals is None:
                 raise ValueError("Both param_name and param_vals must be provided.")
-            spectrum_data = self.get_matelements_vs_paramvals(operator, param_name, param_vals, evals_count=max(select_elems) + 1 if isinstance(select_elems, list) else select_elems)
+            select_elems = select_elems if isinstance(select_elems, list) else [select_elems]
+            evals_count = max(max(i,j) for i, j in select_elems) + 1
+            spectrum_data = self.get_matelements_vs_paramvals(operator, param_name, param_vals, evals_count=evals_count)
         else:
             param_name = spectrum_data.param_name
             param_vals = spectrum_data.param_vals
