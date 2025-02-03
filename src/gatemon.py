@@ -12,63 +12,69 @@ class Gatemon(QubitBase):
     
     PARAM_LABELS = {
         'Ec': r'$E_C$',
-        'El': r'$E_L$',
         'Delta': r'$\Delta$',
         'T': r'$T$',
-        'phase': r'$\Phi_{ext} / \Phi_0$'
-    }
+        'ng': r'$n_g$'
+        }
     
     OPERATOR_LABELS = {
     'n_operator': r'\hat{n}',
     'phase_operator': r'\hat{\phi}',
     'd_hamiltonian_d_ng': r'\partial \hat{H} / \partial n_g',
-    'd_hamiltonian_d_phase': r'\partial \hat{H} / \partial \phi_{{ext}}',
     }
     
-    def __init__(self, Ec, El, Delta, T, phase, dimension, flux_grouping):
-        
-        if flux_grouping not in ['L', 'ABS']:
-            raise ValueError("Invalid flux grouping; must be 'L' or 'ABS'.")
+    def __init__(self, Ec, Delta, T, ng, n_cut):
         
         self.Ec = Ec
-        self.El = El
         self.Delta = Delta
         self.T = T
-        self.phase = phase
-        self.dimension = dimension
-        self.flux_grouping = flux_grouping
+        self.ng = ng
+        self.n_cut = n_cut
         self.num_coef = 4
+        self.dimension = 2 * n_cut + 1
         
-        super().__init__(dimension = dimension)
+        # self.phi_grid = np.linspace(- 8 * np.pi, 8 * np.pi, self.dimension, endpoint=False)
+        # self.dphi = self.phi_grid[1] - self.phi_grid[0] 
         
-    def phi_osc(self) -> float:
-        """
-        Returns the oscillator length for the LC oscillator composed of the inductance and capacitance.
-
-        Returns
-        -------
-        float
-            Oscillator length.
-        """
-        return (8.0 * self.Ec / self.El) ** 0.25
+        super().__init__(dimension = self.dimension)
         
     def n_operator(self):
-        dimension = self.dimension
-        return 1j/2 * (self.El/2/self.Ec)**0.25 * (creation(dimension) - destroy(dimension))
-
+        """
+        Generate the number operator matrix \hat{n} in a (2N+1)-dimensional truncated space.
+        
+        Returns:
+            numpy.ndarray: Diagonal matrix representing the number operator.
+        """
+        n_values = np.arange(-self.n_cut, self.n_cut+1)
+        return np.diag(n_values)
     
     def phase_operator(self):
-        dimension = self.dimension
-        return (2*self.Ec/self.El)**0.25 * (creation(dimension) + destroy(dimension))
+        pass
+    
+    def cos_kphi_operator(self, k):
+        """
+        Generate the matrix representation of the \cos(k\hat{\phi}) operator in the number basis.
+        
+        Parameters:
+            k (int): The integer multiplier of \hat{\phi}.
+        
+        Returns:
+            numpy.ndarray: Matrix representation of \cos(k\hat{\phi}).
+        """
+        cos_kphi = np.zeros((self.dimension, self.dimension))
+        indices = np.arange(self.dimension)
+        
+        mask_up = indices + k < self.dimension
+        mask_down = indices - k >= 0
+        
+        cos_kphi[indices[mask_up], indices[mask_up] + k] = 0.5
+        cos_kphi[indices[mask_down], indices[mask_down] - k] = 0.5
+        
+        return cos_kphi
     
     def junction_potential(self):
         phase_op = self.phase_operator()
         
-        if self.flux_grouping == 'ABS':
-            phase_op -= self.phase * np.eye(self.dimension)
-            
-        # junction_term = -self.Delta * sqrtm(np.eye(self.dimension) - self.T * sinm(phase_op/2) @ sinm(phase_op/2))
-
         junction_term = 0
         def f(phi, T, Delta, phi_ext):
             return -Delta * np.sqrt(1 - T * np.sin((phi - phi_ext)/2)**2)
@@ -85,71 +91,19 @@ class Gatemon(QubitBase):
         A_coeffs = [A0(self.T, self.Delta)] + [A_k(k, self.T, self.Delta) for k in range(1, self.num_coef + 1)]
         
         for k in range(self.num_coef):
-            junction_term += A_coeffs[k] * cosm(k * phase_op)
+            junction_term += A_coeffs[k] * self.cos_kphi_operator(k)
             
         return junction_term
     
     def hamiltonian(self):
-        n_op = self.n_operator()
-        phase_op = self.phase_operator()
-
-        if self.flux_grouping == 'L':
-            phase_op += self.phase * np.eye(self.dimension)
-        
+        n_op = self.n_operator() - self.ng * np.eye(self.dimension)      
         kinetic_term = 4 * self.Ec * (n_op @ n_op)
-        inductive_term = 0.5 * self.El * (phase_op @ phase_op)
         junction_term = self.junction_potential()
 
-        return kinetic_term + inductive_term + junction_term
-    
-    def d_hamiltonian_d_phase(self) -> np.ndarray:
-        phase_op = self.phase_operator()
-        ext_phase = self.phase * np.eye(self.dimension)
-        
-        if self.flux_grouping == 'L':
-            return self.El * (phase_op + ext_phase)
-        elif self.flux_grouping == 'ABS':
-            phase_op = self.phase_operator() - self.phase * np.eye(self.dimension)
-            # numerator = -self.T * self.Delta * sinm(phase_op - ext_phase)
-            # sin_op = sinm((phase_op - ext_phase) / 2)
-            # denominator = 4 * sqrtm(np.eye(self.dimension) - self.T * sin_op.conj().T @ sin_op)
+        return kinetic_term + junction_term
             
-            # return solve(numerator , denominator)
-            
-            def f(phi, T, Delta, phi_ext):
-                return -Delta * np.sqrt(1 - T * np.sin((phi - phi_ext)/2)**2)
-            
-            def A0(T, Delta):
-                integral, error = quad(lambda x: f(x, T, Delta, 0), 0, np.pi)
-                return integral / np.pi
-
-            # Cálculo numérico de A_k para k >= 1
-            def A_k(k, T, Delta):
-                integral, error = quad(lambda x: f(x, T, Delta, 0) * np.cos(k*x), 0, np.pi)
-                return 2 * integral / np.pi
-            
-            A_coeffs = [A0(self.T, self.Delta)] + [A_k(k, self.T, self.Delta) for k in range(1, self.num_coef + 1)]
-            
-            dH_dPhi = 0
-            for k in range(self.num_coef):
-                dH_dPhi += A_coeffs[k] * k * sinm(k * phase_op)
-                
-            return dH_dPhi
-            
-            
-        
     def potential(self, phi: Union[float, np.ndarray]):
-        
-        phi_array = np.atleast_1d(phi)
-        
-        if self.flux_grouping == 'L':
-            inductive_term = 0.5 * self.El * (phi_array + self.phase)**2
-            junction_term = -self.Delta * np.sqrt(1 - self.T * np.sin(phi_array/2)**2)
-        elif self.flux_grouping == 'ABS':
-            inductive_term = 0.5 * self.El * phi_array**2
-            junction_term = -self.Delta * np.sqrt(1 - self.T * np.sin((phi_array - self.phase)/2)**2)
-            
-        return inductive_term + junction_term
+        raise NotImplementedError("Potential method not implemented for this class.")
         
     def wavefunction(self, which: int = 0, phi_grid: np.ndarray = None, esys: Tuple[np.ndarray, np.ndarray] = None) -> Dict[str, Any]:
         """
@@ -173,7 +127,7 @@ class Gatemon(QubitBase):
         else:
             evals, evecs = esys
             
-        dim = self.dimension
+        dim = self.n_cut
                         
         if phi_grid is None:
             phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
