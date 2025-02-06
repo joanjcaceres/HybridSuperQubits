@@ -196,7 +196,13 @@ class Ferbo(QubitBase):
             phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
         return - np.kron(sinm(phase_op/2),sigma_y())
     
-    def wavefunction(self, which: int = 0, phi_grid: np.ndarray = None, esys: Tuple[np.ndarray, np.ndarray] = None) -> Dict[str, Any]:
+    def wavefunction(
+        self, 
+        which: int = 0,
+        phi_grid: np.ndarray = None,
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        basis: str = 'default'
+        ) -> Dict[str, Any]:
         """
         Returns a wave function in the phi basis.
 
@@ -206,6 +212,8 @@ class Ferbo(QubitBase):
             Index of desired wave function (default is 0).
         phi_grid : np.ndarray, optional
             Custom grid for phi; if None, a default grid is used.
+        basis : str, optional
+            Basis in which to return the wave function ('default' or 'abs') (default is 'default').
 
         Returns
         -------
@@ -220,10 +228,12 @@ class Ferbo(QubitBase):
             
         dim = self.dimension//2
         
-        # Change of basis
-        U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
-        change_of_basis_operator = np.kron(np.eye(dim), U)
-        evecs = (change_of_basis_operator @ evecs).T
+        if basis == 'default':
+            evecs = evecs.T
+        elif basis == 'abs':
+            U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
+            change_of_basis_operator = np.kron(np.eye(dim), U)
+            evecs = (change_of_basis_operator @ evecs).T        
                         
         if phi_grid is None:
             phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
@@ -414,6 +424,7 @@ class Ferbo(QubitBase):
         phi_grid: np.ndarray = None, 
         esys: Tuple[np.ndarray, np.ndarray] = None, 
         scaling: Optional[float] = None,
+        basis: str = 'default',
         **kwargs
         ) -> Tuple[plt.Figure, plt.Axes]:
         """
@@ -427,6 +438,8 @@ class Ferbo(QubitBase):
             Custom grid for phi; if None, a default grid is used.
         esys : Tuple[np.ndarray, np.ndarray], optional
             Precomputed eigenvalues and eigenvectors.
+        basis: str, optional
+            Basis in which to return the wavefunction ('default' or 'abs') (default is 'default').
         **kwargs
             Additional arguments for plotting. Can include:
             - fig_ax: Tuple[plt.Figure, plt.Axes], optional
@@ -453,7 +466,7 @@ class Ferbo(QubitBase):
         ax.plot(phi_grid/2/np.pi, potential[:, 1], color='black')
 
         for idx in which:
-            wavefunc_data = self.wavefunction(which=idx, phi_grid=phi_grid, esys=esys)
+            wavefunc_data = self.wavefunction(which=idx, phi_grid=phi_grid, esys=esys, basis = basis)
             phi_basis_labels = wavefunc_data["basis_labels"]
             wavefunc_amplitudes = wavefunc_data["amplitudes"]
             wavefunc_energy = wavefunc_data["energy"]
