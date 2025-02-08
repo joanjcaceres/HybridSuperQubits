@@ -50,22 +50,17 @@ class Gatemon(QubitBase):
         return np.diag(n_values)
     
     def junction_potential(self):
-        phase_op = self.phase_operator()
         
-        junction_term = 0
-        def f(phi, T, Delta, phi_ext):
-            return -Delta * np.sqrt(1 - T * np.sin((phi - phi_ext)/2)**2)
-        
-        def A0(T, Delta):
-            integral, error = quad(lambda x: f(x, T, Delta, 0), 0, np.pi)
-            return integral / np.pi
+        junction_term = np.zeros((self.dimension, self.dimension), dtype=np.complex128)
+        def f(phi, T, Delta):
+            return -Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
 
         # Cálculo numérico de A_k para k >= 1
         def A_k(k, T, Delta):
-            integral, error = quad(lambda x: f(x, T, Delta, 0) * np.cos(k*x), 0, np.pi)
+            integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
             return 2 * integral / np.pi
         
-        A_coeffs = [A0(self.T, self.Delta)] + [A_k(k, self.T, self.Delta) for k in range(1, self.num_coef + 1)]
+        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(0, self.num_coef + 1)]
         
         for k in range(self.num_coef):
             junction_term += A_coeffs[k] * cos_kphi_operator(k, self.dimension)

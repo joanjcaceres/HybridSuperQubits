@@ -3,10 +3,11 @@ import re
 import numpy as np
 import scipy.constants as const
 import matplotlib.pyplot as plt
-from scipy.integrate import nquad
+from scipy.integrate import nquad, quad
 from matplotlib.collections import LineCollection
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
+from typing import Callable, List
 import h5py
 import yaml
 import inspect
@@ -83,6 +84,37 @@ def cos_kphi_operator(k:int, dimension: int, phase: float = 0) -> np.ndarray:
     cos_kphi[indices[mask_down], indices[mask_down] - k] = 0.5 * np.exp(1j * phase)
     
     return cos_kphi
+
+def compute_cosine_expansion_coeffs(
+    f: Callable[[float, float, float, float], float],
+    T: float,
+    Delta: float,
+    phase_ext: float,
+    num_coef: int
+    ) -> List[float]:
+    """
+    Computes the first (up to order num_coef) coefficients A_k of the cosine expansion of a function f.
+    
+    Parameters:
+    f (Callable[[float, float, float, float], float]): Function to integrate.
+    T (float): Transmission coefficient.
+    Delta (float): Energy parameter.
+    num_coef (int): Number of cosine expansion coefficients to compute.
+    
+    Returns:
+    List[float]: A list containing the coefficients A_k for k = 0 to num_coef.
+    """
+    def A0(T: float, Delta: float) -> float:
+        integral, error = quad(lambda x: f(x, T, Delta, phase_ext), 0, np.pi)
+        return integral / np.pi
+
+    def A_k(k: int, T: float, Delta: float) -> float:
+        integral, error = quad(lambda x: f(x, T, Delta, phase_ext) * np.cos(k * x), 0, np.pi)
+        return 2 * integral / np.pi
+    
+    A_coeffs: List[float] = [A0(T, Delta)] + [A_k(k, T, Delta) for k in range(1, num_coef + 1)]
+    
+    return A_coeffs
 
 def extract_hdf5_data(file_path):
     data = {}

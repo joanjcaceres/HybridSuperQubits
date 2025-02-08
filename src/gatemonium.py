@@ -68,27 +68,19 @@ class Gatemonium(QubitBase):
         
         if self.flux_grouping == 'ABS':
             phase_op -= self.phase * np.eye(self.dimension)
-            
-        # junction_term = -self.Delta * sqrtm(np.eye(self.dimension) - self.T * sinm(phase_op/2) @ sinm(phase_op/2))
-
-        junction_term = 0
-        def f(phi, T, Delta, phi_ext):
-            return -Delta * np.sqrt(1 - T * np.sin((phi - phi_ext)/2)**2)
         
-        def A0(T, Delta):
-            integral, error = quad(lambda x: f(x, T, Delta, 0), 0, np.pi)
-            return integral / np.pi
+        junction_term = 0
+        def f(phi, T, Delta):
+            return -Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
 
-        # Cálculo numérico de A_k para k >= 1
         def A_k(k, T, Delta):
-            integral, error = quad(lambda x: f(x, T, Delta, 0) * np.cos(k*x), 0, np.pi)
+            integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
             return 2 * integral / np.pi
         
-        A_coeffs = [A0(self.T, self.Delta)] + [A_k(k, self.T, self.Delta) for k in range(1, self.num_coef + 1)]
+        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(0, self.num_coef + 1)]
         
         for k in range(self.num_coef):
-            junction_term += A_coeffs[k] * cosm(k * phase_op)
-            
+            junction_term += A_coeffs[k] * cosm(k * phase_op)            
         return junction_term
     
     def hamiltonian(self):
@@ -121,17 +113,12 @@ class Gatemonium(QubitBase):
             def f(phi, T, Delta, phi_ext):
                 return -Delta * np.sqrt(1 - T * np.sin((phi - phi_ext)/2)**2)
             
-            def A0(T, Delta):
-                integral, error = quad(lambda x: f(x, T, Delta, 0), 0, np.pi)
-                return integral / np.pi
-
-            # Cálculo numérico de A_k para k >= 1
             def A_k(k, T, Delta):
-                integral, error = quad(lambda x: f(x, T, Delta, 0) * np.cos(k*x), 0, np.pi)
+                integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
                 return 2 * integral / np.pi
             
-            A_coeffs = [A0(self.T, self.Delta)] + [A_k(k, self.T, self.Delta) for k in range(1, self.num_coef + 1)]
-            
+            A_coeffs = [A_k(k, self.T, self.Delta) for k in range(0, self.num_coef + 1)]
+                    
             dH_dPhi = 0
             for k in range(self.num_coef):
                 dH_dPhi += A_coeffs[k] * k * sinm(k * phase_op)
