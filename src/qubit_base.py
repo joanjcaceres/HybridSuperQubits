@@ -7,7 +7,7 @@ from scipy.special import factorial, pbdv
 from src.storage import SpectrumData
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, k, h, e
-from typing import Tuple, List, Union, Any, Callable
+from typing import Tuple, List, Union, Any, Callable, Optional
 
 class QubitBase(ABC):
     PARAM_LABELS = {}
@@ -38,18 +38,6 @@ class QubitBase(ABC):
         -------
         ndarray
             The number operator for the qubit.
-        """
-        pass
-    
-    @abstractmethod
-    def phase_operator(self) -> np.ndarray:
-        """
-        Returns the phase operator for the qubit.
-
-        Returns
-        -------
-        ndarray
-            The phase operator for the qubit.
         """
         pass
     
@@ -1123,6 +1111,10 @@ class QubitBase(ABC):
             Additional arguments for plotting. Can include:
             - fig_ax: Tuple[plt.Figure, plt.Axes], optional
                 Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+            - color: str or list of str, optional
+                Color of the lines. Can be a single color or a list of colors.
+            - linestyle: str or list of str, optional
+                Linestyle of the lines. Can be a single linestyle or a list of linestyles.
 
         Returns
         -------
@@ -1151,7 +1143,10 @@ class QubitBase(ABC):
 
         if param_name == 'phase':
             param_vals = param_vals/2/np.pi
-        ax.plot(param_vals, evals[:,:evals_count])
+            
+        color = kwargs.get("color", None)
+        linestyle = kwargs.get("linestyle", None)
+        ax.plot(param_vals, evals[:,:evals_count], color=color, linestyle=linestyle)
 
         xlabel = self.PARAM_LABELS.get(param_name, param_name)
         

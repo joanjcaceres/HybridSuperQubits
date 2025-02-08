@@ -1,11 +1,11 @@
 import numpy as np
 from .qubit_base import QubitBase
-from scipy.linalg import sinm, cosm, sqrtm, solve
+from scipy.linalg import sinm, cosm
 from .operators import destroy, creation
 from typing import Union, Tuple, Dict, Any, Iterable, Optional
 import matplotlib.pyplot as plt
-from scipy.linalg import pinv
 from scipy.integrate import quad
+
 
 
 class Gatemonium(QubitBase):

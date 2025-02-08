@@ -2,12 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.qubit_base import QubitBase
 from scipy.linalg import cosm, sinm, eigh
-from src.storage import SpectrumData
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Iterable
-from scipy.constants import hbar, k
+from typing import Any, Dict, Optional, Tuple, Union, Iterable
 from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
-
-
 
 class Ferbo(QubitBase):
     PARAM_LABELS = {
