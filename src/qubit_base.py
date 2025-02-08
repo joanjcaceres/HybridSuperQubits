@@ -988,6 +988,49 @@ class QubitBase(ABC):
             **kwargs
         )
         
+    def get_tphi_charge_vs_paramvals(
+        self,
+        param_name: str = None,
+        param_vals: np.ndarray = None,
+        A_noise: float = 1e-4,
+        evals_count: int = 6,
+        spectrum_data: SpectrumData = None,
+        **kwargs
+    ) -> SpectrumData:
+        """
+        Calculates the Tphi times for charge noise over a range of parameter values.
+        
+        Parameters
+        ----------
+        param_name : str, optional
+            The name of the parameter to vary.
+        param_vals : np.ndarray, optional
+            The values of the parameter to vary.
+        A_noise : float, optional
+            The amplitude of the noise (default is 1e-4).
+        evals_count : int, optional
+            The number of eigenvalues and eigenstates to calculate (default is 6).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+        **kwargs
+            Additional arguments to pass to the Tphi calculation method.
+            
+        Returns
+        -------
+        SpectrumData
+            The Tphi times for charge noise over the range of parameter values.
+        """
+        return self._get_tphi_vs_paramvals(
+            param_name=param_name, 
+            param_vals=param_vals, 
+            A_noise=A_noise, 
+            noise_channel='charge_noise', 
+            noise_operator='d_hamiltonian_d_ng', 
+            evals_count=evals_count, 
+            spectrum_data=spectrum_data, 
+            **kwargs
+        )
+        
     def get_tphi_CQPS_vs_paramvals(
         self,
         param_name: str = None,
@@ -1077,6 +1120,10 @@ class QubitBase(ABC):
         if 'flux_noise' in noise_channels:
             A_noise = kwargs.pop('A_noise', 1e-6)
             spectrum_data = self.get_tphi_flux_vs_paramvals(param_name, param_vals, A_noise, evals_count, spectrum_data, **kwargs)
+            
+        if 'charge_noise' in noise_channels:
+            A_noise = kwargs.pop('A_noise', 1e-4)
+            spectrum_data = self.get_tphi_charge_vs_paramvals(param_name, param_vals, A_noise, evals_count, spectrum_data, **kwargs)
             
         if 'CQPS' in noise_channels:
             fp = kwargs.pop('fp', 17e9)
@@ -1357,11 +1404,13 @@ class QubitBase(ABC):
             The figure and axes of the plot.
         """
         if spectrum_data is None:
-            evals_count = max(select_elems) + 1 if isinstance(select_elems, list) else select_elems
+            evals_count = max(max(i,j) for i, j in select_elems) + 1
             operators = set()
             for channel in noise_channels:
-                if channel == 'flux':
-                    operators.add('dH_d_flux')
+                if channel == 'flux_noise':
+                    operators.add('d_hamiltonian_d_phase')
+                if channel == 'charge_noise':
+                    operators.add('d_hamiltonian_d_ng')
                 else:
                     raise ValueError(f"Unsupported Tphi noise channel: {channel}")
             spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals, evals_count=evals_count)
