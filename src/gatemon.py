@@ -6,6 +6,7 @@ from typing import Union, Tuple, Dict, Any, Iterable, Optional
 import matplotlib.pyplot as plt
 from scipy.linalg import pinv
 from scipy.integrate import quad
+from src.utilities import cos_kphi_operator
 
 
 class Gatemon(QubitBase):
@@ -48,30 +49,6 @@ class Gatemon(QubitBase):
         n_values = np.arange(-self.n_cut, self.n_cut+1)
         return np.diag(n_values)
     
-    def phase_operator(self):
-        pass
-    
-    def cos_kphi_operator(self, k):
-        """
-        Generate the matrix representation of the \cos(k\hat{\phi}) operator in the number basis.
-        
-        Parameters:
-            k (int): The integer multiplier of \hat{\phi}.
-        
-        Returns:
-            numpy.ndarray: Matrix representation of \cos(k\hat{\phi}).
-        """
-        cos_kphi = np.zeros((self.dimension, self.dimension))
-        indices = np.arange(self.dimension)
-        
-        mask_up = indices + k < self.dimension
-        mask_down = indices - k >= 0
-        
-        cos_kphi[indices[mask_up], indices[mask_up] + k] = 0.5
-        cos_kphi[indices[mask_down], indices[mask_down] - k] = 0.5
-        
-        return cos_kphi
-    
     def junction_potential(self):
         phase_op = self.phase_operator()
         
@@ -91,7 +68,7 @@ class Gatemon(QubitBase):
         A_coeffs = [A0(self.T, self.Delta)] + [A_k(k, self.T, self.Delta) for k in range(1, self.num_coef + 1)]
         
         for k in range(self.num_coef):
-            junction_term += A_coeffs[k] * self.cos_kphi_operator(k)
+            junction_term += A_coeffs[k] * cos_kphi_operator(k, self.dimension)
             
         return junction_term
     
