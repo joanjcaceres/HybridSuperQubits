@@ -7,6 +7,7 @@ from scipy.special import factorial, pbdv
 from src.storage import SpectrumData
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, k, h, e
+from scipy.special import k0
 from typing import Tuple, List, Union, Any, Callable, Optional
 
 class QubitBase(ABC):
@@ -369,15 +370,28 @@ class QubitBase(ABC):
         self, 
         i: int = 1, 
         j: int = 0,
-        Q_ind: float = 500e6,
+        Q_ind: float = None,
         T: float = 0.015, 
         esys: Tuple[np.ndarray, np.ndarray] = None,
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
         ) -> float:
         
+        if Q_ind is None:
+            Q_ind_fun = lambda omega: 500e6 * (
+                k0(h * 0.5e9 / (2 * k * T)) * np.sinh(h * 0.5e9 / (2 * k * T))
+                / (
+                    k0(hbar * np.abs(omega) / (2 * k * T))
+                    * np.sinh(hbar * np.abs(omega) / (2 * k * T))
+                )
+            )
+        elif callable(Q_ind):
+            Q_ind_fun = Q_ind
+        else:
+            Q_ind_fun = lambda omega: Q_ind
+        
         def spectral_density(omega, T):
-            return 2 * self.El / Q_ind * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -544,7 +558,7 @@ class QubitBase(ABC):
         param_vals: np.ndarray = None, 
         evals_count: int = 6, 
         spectrum_data: SpectrumData = None,
-        Q_ind: float = 500e6,
+        Q_ind: float = None,
         T: float = 0.015, 
         **kwargs
         ) -> SpectrumData:
@@ -573,8 +587,20 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for inductive noise over the range of parameter values.
         """
+        if Q_ind is None:
+            Q_ind_fun = lambda omega: 500e6 * (
+                k0(h * 0.5e9 / (2 * k * T)) * np.sinh(h * 0.5e9 / (2 * k * T))
+                / (
+                    k0(hbar * np.abs(omega) / (2 * k * T))
+                    * np.sinh(hbar * np.abs(omega) / (2 * k * T))
+                )
+            )
+        elif callable(Q_ind):
+            Q_ind_fun = Q_ind
+        else:
+            Q_ind_fun = lambda omega: Q_ind
         def spectral_density(omega, T):
-            return 2 * self.El / Q_ind * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
 
         noise_operator = 'phase_operator'
         noise_channel = 'inductive'
