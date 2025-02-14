@@ -35,4 +35,27 @@ Please follow the guidelines below to ensure a smooth collaboration.
   ```sh
   pytest tests/
  ```
+- If applicable, add new test cases for your contributions.
+
+### 6. Submit a Pull Request (PR)
+- Push your changes to your fork:
+  ```sh
+  git push origin feature-add-new-method
+  ```
+- Open a pull request (PR) from your branch to the main branch of this repository.
+- Use a clear PR title and provide a detailed description of your changes.
+
+### 7. Code Review and Merging
+- Your PR will be reviewed before merging.
+- Address requested changes and discussions in a timely manner.
+- Squash commits if necessary to keep the commit history clean.
+
+## 8. Contribution Types
+We welcome contributions in the following areas:
+- 🛠 **New Features**: Implementing new functionality.
+- 🐛 **Bug Fixes**: Identifying and fixing issues.
+- 📖 **Documentation**: Improving code comments and README.
+- ✅ **Testing**: Writing and improving test cases.
+- 🚀 **Optimizations**: Enhancing performance and efficiency.
+
 
