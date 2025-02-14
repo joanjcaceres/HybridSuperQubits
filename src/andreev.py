@@ -19,7 +19,6 @@ class Andreev(QubitBase):
     
     OPERATOR_LABELS = {
     'n_operator': r'\hat{n}',
-    'phase_operator': r'\hat{\phi}',
     'd_hamiltonian_d_ng': r'\partial \hat{H} / \partial n_g',
     'd_hamiltonian_d_deltaGamma': r'\partial \hat{H} / \partial \delta \Gamma',
     'd_hamiltonian_d_er': r'\partial \hat{H} / \partial \epsilon_r',

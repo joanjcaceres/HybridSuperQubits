@@ -136,7 +136,7 @@ class QubitBase(ABC):
         
         initial_value = getattr(self, param_name)
         
-        for val in tqdm(param_vals):
+        for val in tqdm(param_vals, leave=False):
             self.set_param(param_name, val)
             eigenenergies, eigenstates = self.eigensys(evals_count)
             eigenenergies_array.append(eigenenergies)
