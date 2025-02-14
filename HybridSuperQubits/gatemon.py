@@ -54,9 +54,10 @@ class Gatemon(QubitBase):
             integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
             return 2 * integral / np.pi
         
-        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(0, self.num_coef + 1)]
+        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(self.num_coef + 1)]
         
-        for k in range(self.num_coef):
+        junction_term = A_coeffs[0] / 2 * np.eye(self.dimension)
+        for k in range(1, self.num_coef + 1 ):
             junction_term += A_coeffs[k] * cos_kphi_operator(k, self.dimension)
             
         return junction_term

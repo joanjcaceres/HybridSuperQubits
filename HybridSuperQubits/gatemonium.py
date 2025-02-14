@@ -71,15 +71,16 @@ class Gatemonium(QubitBase):
         
         junction_term = 0
         def f(phi, T, Delta):
-            return -Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
-
+            return - Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
+        
         def A_k(k, T, Delta):
             integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
             return 2 * integral / np.pi
         
-        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(0, self.num_coef + 1)]
+        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(self.num_coef + 1)]
         
-        for k in range(self.num_coef):
+        junction_term = A_coeffs[0] / 2  * np.eye(self.dimension)
+        for k in range(1, self.num_coef + 1):
             junction_term += A_coeffs[k] * cosm(k * phase_op)            
         return junction_term
     
