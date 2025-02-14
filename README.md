@@ -74,6 +74,12 @@ We welcome contributions! Please see:
 
 [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
 
+## License
+
+This project is licensed under the MIT License. However, it includes portions of code derived from 
+[scqubits](https://github.com/scqubits/scqubits), which is licensed under the BSD 3-Clause License.
+
+For more details, please refer to the [`LICENSE`](./LICENSE) file.
 ---
 
 Developed with ❤️ at Quantronics Group, CEA Paris-Saclay.
