@@ -50,7 +50,7 @@ Please follow the guidelines below to ensure a smooth collaboration.
 - Address requested changes and discussions in a timely manner.
 - Squash commits if necessary to keep the commit history clean.
 
-## 8. Contribution Types
+## 💡Contribution Types
 We welcome contributions in the following areas:
 - 🛠 **New Features**: Implementing new functionality.
 - 🐛 **Bug Fixes**: Identifying and fixing issues.
@@ -58,4 +58,9 @@ We welcome contributions in the following areas:
 - ✅ **Testing**: Writing and improving test cases.
 - 🚀 **Optimizations**: Enhancing performance and efficiency.
 
+## 📞 Contact
+If you have any questions or need guidance, feel free to open an **Issue** or reach out via 
+[GitHub Discussions](https://github.com/your-username/your-repository/discussions).
+
+Happy coding! 🚀
 
