@@ -110,8 +110,8 @@ class Gatemonium(QubitBase):
             
             # return solve(numerator , denominator)
             
-            def f(phi, T, Delta, phi_ext):
-                return -Delta * np.sqrt(1 - T * np.sin((phi - phi_ext)/2)**2)
+            def f(phi, T, Delta):
+                return -Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
             
             def A_k(k, T, Delta):
                 integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
