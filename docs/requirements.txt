@@ -1,0 +1,3 @@
+sphinx
+myst-parser  # Si usas Markdown
+sphinx-rtd-theme  # Si usas el tema de Read the Docs
