@@ -240,6 +240,11 @@ class QubitBase(ABC):
     def harm_osc_wavefunction(self, n: int, x: Union[float, np.ndarray], l_osc: float) -> Union[float, np.ndarray]:
         """
         Returns the value of the harmonic oscillator wave function.
+        
+        The wave function is computed using the parabolic cylinder function Dν(z), 
+        which satisfies the Weber differential equation. This implementation 
+        is based on the connection between the wave function of the harmonic 
+        oscillator and the solutions to the Weber equation.
 
         Parameters
         ----------
@@ -254,8 +259,15 @@ class QubitBase(ABC):
         -------
         Union[float, np.ndarray]
             Value of harmonic oscillator wave function.
+
+        References
+        ----------
+        - ParabolicCylinderD[ν, z]: https://reference.wolfram.com/language/ref/ParabolicCylinderD.html
+        - The wave functions of the quantum harmonic oscillator are proportional 
+        to the parabolic cylinder functions Dν(z).
+
         """
-        result = pbdv(n, np.sqrt(2.0) * x / l_osc) / np.sqrt(l_osc * np.sqrt(np.pi) * factorial(n))
+        result = pbdv(n, x / l_osc) / np.sqrt(np.sqrt(2 * np.pi) * factorial(n))
         return result[0]
     
     def plot_matrixelements(

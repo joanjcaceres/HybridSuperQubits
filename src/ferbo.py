@@ -60,6 +60,30 @@ class Ferbo(QubitBase):
         self.dimension = dimension // 2 * 2
         self.flux_grouping = flux_grouping
         super().__init__(self.dimension)
+        
+    @property
+    def phase_zpf(self) -> float:
+        """
+        Returns the zero-point fluctuation of the phase.
+
+        Returns
+        -------
+        float
+            Zero-point fluctuation of the phase.
+        """
+        return (2 * self.Ec / self.El) ** 0.25
+    
+    @property
+    def n_zpf(self) -> float:
+        """
+        Returns the zero-point fluctuation of the charge number.
+
+        Returns
+        -------
+        float
+            Zero-point fluctuation of the charge number.
+        """
+        return 1/2 * (self.El / 2 / self.Ec) ** 0.25
     
     def phi_osc(self) -> float:
         """
@@ -81,7 +105,7 @@ class Ferbo(QubitBase):
         np.ndarray
             The charge number operator.
         """
-        single_mode_n_operator = 1j/2 * (self.El/2/self.Ec)**0.25 * (creation(self.dimension //2 ) - destroy(self.dimension // 2))
+        single_mode_n_operator = 1j * self.n_zpf * (creation(self.dimension //2 ) - destroy(self.dimension // 2))
         return np.kron(single_mode_n_operator, np.eye(2))
     
     def phase_operator(self) -> np.ndarray:
@@ -93,7 +117,7 @@ class Ferbo(QubitBase):
         np.ndarray
             The total phase operator.
         """
-        single_mode_phase_operator = (2*self.Ec/self.El)**0.25 * (creation(self.dimension //2) + destroy(self.dimension //2))
+        single_mode_phase_operator = self.phase_zpf * (creation(self.dimension //2) + destroy(self.dimension //2))
         return np.kron(single_mode_phase_operator, np.eye(2))        
     
     def jrl_potential(self) -> np.ndarray:
@@ -229,18 +253,22 @@ class Ferbo(QubitBase):
         elif basis == 'abs':
             U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
             change_of_basis_operator = np.kron(np.eye(dim), U)
-            evecs = (change_of_basis_operator @ evecs).T        
-                        
+        
+        if basis == 'phase':
+            l_osc = self.phase_zpf
+        elif basis == 'charge':
+            l_osc = self.n_zpf     
+                                
         if phi_grid is None:
             phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
 
         phi_basis_labels = phi_grid
         wavefunc_osc_basis_amplitudes = evecs[which, :]
         phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex_)
-        phi_osc = self.phi_osc()
+
         for n in range(dim):
-            phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[2 * n] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
-            phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[2 * n + 1] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
+            phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[2 * n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
+            phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[2 * n + 1] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
 
         return {
             "basis_labels": phi_basis_labels,
@@ -408,9 +436,14 @@ class Ferbo(QubitBase):
                 # color="red",
                 label=rf"$\Psi_{idx} \downarrow $"
                 )
-
-        ax.set_xlabel(r"$\Phi / \Phi_0$")
-        ax.set_ylabel(r"$\psi(\varphi)$, Energy [GHz]")
+            
+        if basis == 'phase':
+            ax.set_xlabel(r"$2 \pi \Phi / \Phi_0$")
+            ax.set_ylabel(r"$\psi(\varphi)$, Energy [GHz]")
+        elif basis == 'charge':
+            ax.set_xlabel(r"$n$")
+            ax.set_ylabel(r"$\psi(n)$, Energy [GHz]")
+        
         ax.legend()
         ax.grid(True)
 
