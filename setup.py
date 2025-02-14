@@ -11,7 +11,7 @@ setup(
         "ipywidgets>=8.0",
         "tqdm>=4.0"       
     ],
-    # Metadata adicional para PyPI
+
     author="Joan Caceres",
     description="Package to simulate hybrid superconducting qubits",
     python_requires=">=3.8"

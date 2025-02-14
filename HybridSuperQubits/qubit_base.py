@@ -904,6 +904,7 @@ class QubitBase(ABC):
         rate = 2 * np.pi * np.abs(matrix_element)**2 * s
         
         rate *= 1e9  # Convert to rad/s
+        rate = np.where(rate == 0, epsilon, rate)
         t1_table = 1 / rate
         
         for idx in range(t1_table.shape[0]):

@@ -165,7 +165,12 @@ class Gatemonium(QubitBase):
             
         return inductive_term + junction_term
         
-    def wavefunction(self, which: int = 0, phi_grid: np.ndarray = None, esys: Tuple[np.ndarray, np.ndarray] = None) -> Dict[str, Any]:
+    def wavefunction(
+        self,
+        which: int = 0, 
+        phi_grid: np.ndarray = None, 
+        esys: Tuple[np.ndarray, np.ndarray] = None
+        ) -> Dict[str, Any]:
         """
         Returns a wave function in the phi basis.
 
@@ -195,7 +200,6 @@ class Gatemonium(QubitBase):
         phi_basis_labels = phi_grid
         wavefunc_osc_basis_amplitudes = evecs[:, which]
         phi_wavefunc_amplitudes = np.zeros_like(phi_grid, dtype=np.complex128)
-        phi_osc = self.phi_osc()
         
         for n in range(dim):
             phi_wavefunc_amplitudes += wavefunc_osc_basis_amplitudes[n] * self.harm_osc_wavefunction(n, phi_basis_labels, self.phase_zpf)
