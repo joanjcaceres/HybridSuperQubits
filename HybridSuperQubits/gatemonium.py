@@ -44,6 +44,30 @@ class Gatemonium(QubitBase):
         
         super().__init__(dimension = dimension)
         
+    @property
+    def phase_zpf(self) -> float:
+        """
+        Returns the zero-point fluctuation of the phase.
+
+        Returns
+        -------
+        float
+            Zero-point fluctuation of the phase.
+        """
+        return (2 * self.Ec / self.El) ** 0.25
+    
+    @property
+    def n_zpf(self) -> float:
+        """
+        Returns the zero-point fluctuation of the charge number.
+
+        Returns
+        -------
+        float
+            Zero-point fluctuation of the charge number.
+        """
+        return 1/2 * (self.El / 2 / self.Ec) ** 0.25
+        
     def phi_osc(self) -> float:
         """
         Returns the oscillator length for the LC oscillator composed of the inductance and capacitance.
@@ -174,7 +198,7 @@ class Gatemonium(QubitBase):
         phi_osc = self.phi_osc()
         
         for n in range(dim):
-            phi_wavefunc_amplitudes += wavefunc_osc_basis_amplitudes[n] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
+            phi_wavefunc_amplitudes += wavefunc_osc_basis_amplitudes[n] * self.harm_osc_wavefunction(n, phi_basis_labels, self.phase_zpf)
 
         return {
             "basis_labels": phi_basis_labels,
