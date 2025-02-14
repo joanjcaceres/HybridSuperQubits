@@ -1,11 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from src.qubit_base import QubitBase
-from scipy.linalg import cosm, sinm, eigh
 from typing import Any, Dict, Optional, Tuple, Union, Iterable
 from .operators import sigma_z, sigma_y, sigma_x
 from src.utilities import sin_kphi_operator, cos_kphi_operator
-
 
 class Andreev(QubitBase):
     PARAM_LABELS = {
