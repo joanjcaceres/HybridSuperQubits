@@ -169,7 +169,7 @@ class Gatemonium(QubitBase):
 
         phi_basis_labels = phi_grid
         wavefunc_osc_basis_amplitudes = evecs[:, which]
-        phi_wavefunc_amplitudes = np.zeros_like(phi_grid, dtype=np.complex_)
+        phi_wavefunc_amplitudes = np.zeros_like(phi_grid, dtype=np.complex128)
         phi_osc = self.phi_osc()
         
         for n in range(dim):

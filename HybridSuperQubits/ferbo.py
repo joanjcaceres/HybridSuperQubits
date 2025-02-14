@@ -269,8 +269,8 @@ class Ferbo(QubitBase):
 
         phi_basis_labels = phi_grid
         wavefunc_osc_basis_amplitudes = evecs[which, :]
-        phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex_)
-
+        phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex128)
+        
         for n in range(dim):
             phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[2 * n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
             phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[2 * n + 1] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)

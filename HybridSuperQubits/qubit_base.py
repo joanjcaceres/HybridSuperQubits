@@ -209,7 +209,7 @@ class QubitBase(ABC):
                         
         paramvals_count = len(param_vals)
         eigenenergies_array = np.empty((paramvals_count, evals_count))
-        eigenstates_array = np.empty((paramvals_count, self.dimension, evals_count), dtype=np.complex_)
+        eigenstates_array = np.empty((paramvals_count, self.dimension, evals_count), dtype=np.complex128)
         matrixelem_tables = {operator: np.empty((paramvals_count, evals_count, evals_count), dtype=complex) for operator in operators}
         
         initial_value = getattr(self, param_name)
