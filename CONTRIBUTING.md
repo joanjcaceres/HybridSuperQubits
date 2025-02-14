@@ -34,7 +34,8 @@ Please follow the guidelines below to ensure a smooth collaboration.
 - Run tests before submitting a pull request:
   ```sh
   pytest tests/
- ```
+  ```
+
 - If applicable, add new test cases for your contributions.
 
 ### 6. Submit a Pull Request (PR)
