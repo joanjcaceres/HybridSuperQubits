@@ -19,7 +19,7 @@ Please follow the guidelines below to ensure a smooth collaboration.
   ```sh
   git checkout -b feature-add-new-method
   ```
-About working directly in the main branch.
+- About working directly in the main branch.
 
 ### 3. Code Style
 - Follow **PEP 8** guidelines for Python code.
@@ -32,3 +32,7 @@ About working directly in the main branch.
 
 ### 5. Testing Your Code
 - Run tests before submitting a pull request:
+  ```sh
+  pytest tests/
+ ```
+
