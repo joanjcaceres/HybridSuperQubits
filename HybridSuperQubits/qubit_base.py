@@ -4,7 +4,7 @@ import scqubits.utils.plotting as plot
 from abc import ABC, abstractmethod
 from scipy.linalg import expm, eigh
 from scipy.special import factorial, pbdv
-from storage import SpectrumData
+from .storage import SpectrumData
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, k, h, e
 from scipy.special import k0
