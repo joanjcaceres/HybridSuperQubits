@@ -1,6 +1,21 @@
+# .readthedocs.yml
+# Archivo de configuración de Read the Docs
+# Consulta https://docs.readthedocs.io/en/stable/config-file/v2.html para más detalles
+
+# Requerido
 version: 2
+
+# Configuración del entorno de construcción
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+
+# Configuración de Sphinx
 sphinx:
   configuration: docs/conf.py
+
+# Instalación de dependencias de Python
 python:
   install:
     - requirements: docs/requirements.txt
