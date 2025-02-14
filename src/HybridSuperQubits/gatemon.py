@@ -3,7 +3,7 @@ from .qubit_base import QubitBase
 from typing import Union, Tuple, Dict, Any, Iterable, Optional
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
-from src.utilities import cos_kphi_operator
+from .utilities import cos_kphi_operator
 
 
 class Gatemon(QubitBase):

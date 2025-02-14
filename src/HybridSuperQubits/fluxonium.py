@@ -23,7 +23,7 @@ Functions:
 import numpy as np
 import scqubits as sq
 from scipy.linalg import expm
-from src.utilities import L_to_El
+from .utilities import L_to_El
 
 def create_matrix_R(N):
     """

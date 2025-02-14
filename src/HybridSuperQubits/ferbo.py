@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from src.qubit_base import QubitBase
+from .qubit_base import QubitBase
 from scipy.linalg import cosm, sinm, eigh
 from typing import Any, Dict, Optional, Tuple, Union, Iterable
 from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
