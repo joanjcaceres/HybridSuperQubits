@@ -89,17 +89,10 @@ For more details on contributing guidelines, code style, testing, and pull reque
 
 ## Basic Usage 🚀
 ### Supported Qubit Types
-1. Andreev Pair Qubit (Andreev):
-  Semiconductor nanowire-based protected qubit
-
-1. Gatemon (Gatemon)
-  Gate-tunable transmon-like qubit
-
-1. Gatemonium (Gatemonium)
-  Strongly charge-sensitive gatemon variant
-
-1. Fermionic-Bosonic Qubit (Ferbo)
-  Hybrid light-matter qubit (shown in example below)
+1. Andreev
+2. Gatemon
+3. Gatemonium
+4. Fermionic bosonic qubit
 
 ### Initialize a hybrid qubit
 ```python
