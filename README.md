@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/hybridsuperqubits/badge/?version=latest)](https://hybridsuperqubits.readthedocs.io/en/latest/?badge=latest)
 
-A Python framework for simulating hybrid semiconductor-superconductor quantum circuits, developed at Quantronics Group, CEA Paris-Saclay.
+A Python framework for simulating hybrid semiconductor-superconductor quantum circuits.
 
 ## Key Features ✨
 - **Hybrid Qubit Modeling** 🔬  
@@ -80,8 +80,4 @@ This project is licensed under the MIT License. However, it includes portions of
 [scqubits](https://github.com/scqubits/scqubits), which is licensed under the BSD 3-Clause License.
 
 For more details, please refer to the [`LICENSE`](./LICENSE) file.
-
----
-
-Developed with ❤️ at Quantronics Group, CEA Paris-Saclay.
 
