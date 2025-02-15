@@ -61,7 +61,7 @@ We welcome contributions in the following areas:
 
 ## 📞 Contact
 If you have any questions or need guidance, feel free to open an **Issue** or reach out via 
-[GitHub Discussions](https://github.com/your-username/your-repository/discussions).
+[GitHub Discussions](https://github.com/joanjcaceres/HybridSuperQubits/discussions).
 
 Happy coding! 🚀
 
