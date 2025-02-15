@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "HybridSuperQubits"
-version = "0.1.5" 
+version = "0.1.6" 
 description = "Package to simulate hybrid superconducting qubits"
 authors = [
     { name = "Joan Caceres", email = "contact@joancaceres.com" }
@@ -19,6 +19,8 @@ dependencies = [
     "numpy>=1.19.3",
     "matplotlib>=3.3.4",
     "scqubits>=3.0",
+    "h5py>=3.0",
+    "pyyaml>=6.0",
     "cython",
     "setuptools>=67.0.0",
     "wheel"
