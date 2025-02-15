@@ -24,43 +24,68 @@ A Python framework for simulating hybrid semiconductor-superconductor quantum ci
 
 ## 🚀 Installation
 
-To install `HybridSuperQubits`, follow these recommended steps:
+Follow these steps to install or contribute to the HybridSuperQubits library.
 
-### **1️⃣ (Optional) Create a Virtual Environment**  
-Using a **virtual environment** is recommended to avoid dependency conflicts:
+### For End Users
 
-#### **📌 Option 1: Conda**
-If you are using `conda`, create a new environment with:
-```bash
-conda create --name hsq_env python=3.10
-conda activate hsq_env
-```
+If you only plan to *use* `HybridSuperQubits` (i.e., you do not need to modify or extend its functionality), you can install it directly from PyPI:
 
-#### **📌 Option 2: Virtualenv (`venv`)**
-```bash
-python3 -m venv hsq_env
-source hsq_env/bin/activate  # macOS/Linux
-hsq_env\Scripts\activate     # Windows
-```
+1. **(Optional) Create a Virtual Environment**
 
+   **Conda example**:
+   ```bash
+   conda create --name hsq_env python=3.10
+   conda activate hsq_env
+   ```
 
-### **2️⃣ Install HybridSuperQubits**  
-Once the environment is set up, install `HybridSuperQubits` using:
+   **Or using `venv`**:
+   ```bash
+   python3 -m venv hsq_env
+   source hsq_env/bin/activate  # macOS/Linux
+   hsq_env/Scripts/activate     # Windows
+   ```
 
-```bash
-pip install hybridsuperqubits
-```
+2. **Install HybridSuperQubits via pip**:
+   ```bash
+   pip install hybridsuperqubits
+   ```
 
-To upgrade to the latest version:
-```bash
-pip install --upgrade hybridsuperqubits
-```
+   To upgrade:
+   ```bash
+   pip install --upgrade hybridsuperqubits
+   ```
 
-💡 **Note for macOS (M1/M2/M3) users:** If you encounter issues with `SciPy`, you may need to install OpenBLAS first:
-```bash
-brew install openblas
-pip install scipy
-```
+   **Note (macOS M1/M2/M3):** If you run into issues with `SciPy` on Apple Silicon, install OpenBLAS first:
+
+   > ```bash
+   > brew install openblas
+   > pip install scipy
+   > ```
+
+### For Contributors or Developers
+
+If you want to *contribute* to the project or modify the code:
+
+1. **Fork and Clone** the repository from GitHub (see detailed steps in [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+2. Create a **new branch** for your feature or bug fix.
+3. (Optional) Set up a **development environment**:
+   ```bash
+   conda create --name hsq_dev python=3.10
+   conda activate hsq_dev
+   ```
+4. **Install in Editable Mode**:
+   ```bash
+   pip install -e .
+   ```
+   This lets you test changes locally without reinstalling the package each time.
+
+5. **Run Tests** (if applicable):
+   ```bash
+   pytest tests/
+   ```
+
+For more details on contributing guidelines, code style, testing, and pull requests, please read our 
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Basic Usage 🚀
 ### Supported Qubit Types
