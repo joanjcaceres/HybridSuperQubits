@@ -1,3 +1,26 @@
 [build-system]
-requires = ["setuptools>=67.0.0", "wheel", "scipy", "numpy", "cython"]
+requires = ["setuptools>=67.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "HybridSuperQubits"
+version = "0.1.2" 
+description = "Package to simulate hybrid superconducting qubits"
+authors = [
+    { name = "Joan Caceres", email = "contact@joancaceres.com" }
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.8"
+
+dependencies = [
+    "scipy>=1.5,<1.13; platform_system!='Darwin'",
+    "scipy==1.11.4; platform_system=='Darwin'",
+    "numpy>=1.19.3",
+    "cython",
+    "setuptools>=67.0.0",
+    "wheel"
+]
+
+[tool.setuptools]
+packages = ["HybridSuperQubits"] 
