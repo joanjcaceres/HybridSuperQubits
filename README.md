@@ -22,9 +22,44 @@ A Python framework for simulating hybrid semiconductor-superconductor quantum ci
 - **SC-Qubits Compatibility** 🔄  
   API-inspired interface for users familiar with scqubits
 
-## Installation ⚙️
+## 🚀 Installation
+
+To install `HybridSuperQubits`, follow these recommended steps:
+
+### **1️⃣ (Optional) Create a Virtual Environment**  
+Using a **virtual environment** is recommended to avoid dependency conflicts:
+
+#### **📌 Option 1: Conda**
+If you are using `conda`, create a new environment with:
 ```bash
-pip install HybridSuperQubits
+conda create --name hsq_env python=3.10
+conda activate hsq_env
+```
+
+#### **📌 Option 2: Virtualenv (`venv`)**
+```bash
+python3 -m venv hsq_env
+source hsq_env/bin/activate  # macOS/Linux
+hsq_env\Scripts\activate     # Windows
+```
+
+
+### **2️⃣ Install HybridSuperQubits**  
+Once the environment is set up, install `HybridSuperQubits` using:
+
+```bash
+pip install hybridsuperqubits
+```
+
+To upgrade to the latest version:
+```bash
+pip install --upgrade hybridsuperqubits
+```
+
+💡 **Note for macOS (M1/M2/M3) users:** If you encounter issues with `SciPy`, you may need to install OpenBLAS first:
+```bash
+brew install openblas
+pip install scipy
 ```
 
 ## Basic Usage 🚀
