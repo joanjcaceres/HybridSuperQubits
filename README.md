@@ -24,68 +24,83 @@ A Python framework for simulating hybrid semiconductor-superconductor quantum ci
 
 ## 🚀 Installation
 
-Follow these steps to install or contribute to the HybridSuperQubits library.
+HybridSuperQubits can be installed from PyPI. However, **SciPy** is not included among the mandatory dependencies so that each user can install it in the most suitable way (especially relevant for macOS Apple Silicon).
 
-### For End Users
+Choose one of the following:
 
-If you only plan to *use* `HybridSuperQubits` (i.e., you do not need to modify or extend its functionality), you can install it directly from PyPI:
+### 1. Quick Installation (includes SciPy)
 
-1. **(Optional) Create a Virtual Environment**
+If you do **not** need to control how SciPy is installed and are fine with default pip wheels:
 
-   **Conda example**:
-   ```bash
-   conda create --name hsq_env python=3.10
-   conda activate hsq_env
-   ```
+    pip install "HybridSuperQubits[scipy]"
 
-   **Or using `venv`**:
-   ```bash
-   python3 -m venv hsq_env
-   source hsq_env/bin/activate  # macOS/Linux
-   hsq_env/Scripts/activate     # Windows
-   ```
+> **Note for Apple Silicon (M1/M2/M3)**: If SciPy builds from source or runs slowly, 
+> see the Apple Silicon notes below.
 
-2. **Install HybridSuperQubits via pip**:
-   ```bash
-   pip install hybridsuperqubits
-   ```
+### 2. Manual / Optimized SciPy Installation
 
-   To upgrade:
-   ```bash
-   pip install --upgrade hybridsuperqubits
-   ```
+If you prefer to handle SciPy yourself (e.g., via conda or compiling from source):
 
-   **Note (macOS M1/M2/M3):** If you run into issues with `SciPy` on Apple Silicon, install OpenBLAS first:
+1. Create or activate a Python environment:
 
-   > ```bash
-   > brew install openblas
-   > pip install scipy
-   > ```
+   Using conda:
 
-### For Contributors or Developers
+       conda create -n hsq_env python=3.10
+       conda activate hsq_env
 
-If you want to *contribute* to the project or modify the code:
+   Using venv:
 
-1. **Fork and Clone** the repository from GitHub (see detailed steps in [`CONTRIBUTING.md`](CONTRIBUTING.md)).
-2. Create a **new branch** for your feature or bug fix.
-3. (Optional) Set up a **development environment**:
-   ```bash
-   conda create --name hsq_dev python=3.10
-   conda activate hsq_dev
-   ```
-4. **Install in Editable Mode**:
-   ```bash
-   pip install -e .
-   ```
-   This lets you test changes locally without reinstalling the package each time.
+       python3 -m venv hsq_env
+       source hsq_env/bin/activate
+       # or on Windows:
+       hsq_env\Scripts\activate
 
-5. **Run Tests** (if applicable):
-   ```bash
-   pytest tests/
-   ```
+2. Install SciPy by your chosen method:
 
-For more details on contributing guidelines, code style, testing, and pull requests, please read our 
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+- With conda:
+
+      conda install scipy
+
+ - With pip (possibly with Homebrew for libraries):
+
+       brew install openblas gcc
+       pip install --upgrade pip setuptools wheel
+       pip install scipy
+
+1. Install HybridSuperQubits (without SciPy extra):
+
+       pip install HybridSuperQubits
+
+### Apple Silicon (M1/M2/M3) Notes
+
+- Make sure you are using a **native** Python build (not under Rosetta).
+- If SciPy compiles from source and is extremely slow, it might not be linking to Accelerate or OpenBLAS.
+- **Conda-forge** or **mambaforge** often provides optimized SciPy builds for Apple Silicon.
+
+### Virtual Environments (Recommended)
+
+Regardless of your method, installing into an isolated environment prevents dependency conflicts:
+
+    conda create -n hsq_env python=3.10
+    conda activate hsq_env
+    pip install "HybridSuperQubits[scipy]"
+
+Or if you installed SciPy separately:
+
+    conda create -n hsq_env python=3.10
+    conda activate hsq_env
+    conda install scipy
+    pip install HybridSuperQubits
+
+### Upgrading
+
+To update:
+
+    pip install --upgrade "HybridSuperQubits[scipy]"
+
+(Or just `HybridSuperQubits` if you're managing SciPy yourself.)
+
+---
 
 ## Basic Usage 🚀
 ### Supported Qubit Types
