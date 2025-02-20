@@ -1,16 +1,4 @@
-import os
-import re
 import numpy as np
-import scipy.constants as const
-import matplotlib.pyplot as plt
-from scipy.integrate import nquad, quad
-from matplotlib.collections import LineCollection
-from scipy.interpolate import interp1d
-from scipy.optimize import curve_fit
-from typing import Callable, List
-import h5py
-import yaml
-import inspect
 
 def sin_kphi_operator(k: int, dimension: int, phi_ext: float = 0) -> np.ndarray:
     """

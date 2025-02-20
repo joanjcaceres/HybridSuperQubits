@@ -12,7 +12,7 @@ class Ferbo(QubitBase):
         'Gamma': r'$\Gamma$',
         'delta_Gamma': r'$\delta \Gamma$',
         'er': r'$\epsilon_r$',
-        'phase': r'$\Phi_{ext} / \Phi_0$'
+        'phase': r'$\Phi_{\mathrm{ext}} / \Phi_0$'
     }
     
     OPERATOR_LABELS = {
@@ -222,7 +222,7 @@ class Ferbo(QubitBase):
         phi_grid: np.ndarray = None,
         esys: Tuple[np.ndarray, np.ndarray] = None,
         basis: str = 'phase',
-        abs_basis: str = 'default',
+        rotate: str = False,
         ) -> Dict[str, Any]:
         """
         Returns a wave function in the phi basis.
@@ -235,6 +235,8 @@ class Ferbo(QubitBase):
             Custom grid for phi; if None, a default grid is used.
         basis : str, optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
+        rotate : bool, optional
+            Whether to rotate the basis (default is False).
         Returns
         -------
         Dict[str, Any]
@@ -248,14 +250,10 @@ class Ferbo(QubitBase):
             
         dim = self.dimension//2
         
-        if abs_basis == 'abs':
+        if rotate:
             U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
             change_of_basis_operator = np.kron(np.eye(dim), U)
             evecs = (change_of_basis_operator @ evecs)
-        elif abs_basis == 'default':
-            pass
-        else:
-            raise ValueError("Invalid basis; must be 'default' or 'abs'.")
         
         evecs = evecs.T
         
@@ -281,6 +279,7 @@ class Ferbo(QubitBase):
             "energy": evals[which]
         }
         
+                
     def potential(self, phi: Union[float, np.ndarray]) -> np.ndarray:
         """
         Calculates the potential energy for given values of phi.
@@ -384,7 +383,7 @@ class Ferbo(QubitBase):
         scaling: Optional[float] = 1,
         plot_potential: bool = False,
         basis: str = 'phase',
-        abs_basis: str = 'default',
+        rotate: bool = False,
         mode: str = 'abs',
         **kwargs
         ) -> Tuple[plt.Figure, plt.Axes]:
@@ -405,6 +404,8 @@ class Ferbo(QubitBase):
             Whether to plot the potential (default is False).
         basis: str, optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
+        rotate : bool, optional
+            Whether to rotate the basis (default is False).
         mode: str, optional
             Mode of the wavefunction ('abs', 'real', or 'imag') (default is 'abs').
         **kwargs
@@ -436,7 +437,7 @@ class Ferbo(QubitBase):
             ax.plot(phi_grid, potential[:, 1], color='black')
 
         for idx in which:
-            wavefunc_data = self.wavefunction(which=idx, phi_grid=phi_grid, esys=esys, basis=basis, abs_basis=abs_basis)
+            wavefunc_data = self.wavefunction(which=idx, phi_grid=phi_grid, esys=esys, basis=basis, rotate=rotate)
             phi_basis_labels = wavefunc_data["basis_labels"]
             wavefunc_amplitudes = wavefunc_data["amplitudes"]
             wavefunc_energy = wavefunc_data["energy"]
