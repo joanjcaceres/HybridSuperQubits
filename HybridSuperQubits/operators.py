@@ -2,7 +2,78 @@ from qutip import Qobj
 import scipy.sparse as sp
 import numpy as np
 
-import numpy as np
+def state_to_density_matrix(state_vector: np.ndarray) -> np.ndarray:
+    """
+    Convert a state vector to a density matrix.
+
+    Parameters
+    ----------
+    state_vector : numpy.ndarray
+        The state vector to be converted.
+
+    Returns
+    -------
+    numpy.ndarray
+        The density matrix.
+    """
+    return np.outer(state_vector, state_vector.conj())
+
+def ptrace(rho: np.ndarray, dims: tuple, subsys: int) -> np.ndarray:
+    """
+    Compute the partial trace of a density matrix over a specified subsystem.
+
+    The partial trace is a method used in quantum mechanics to obtain the reduced 
+    density matrix of a subsystem by tracing out the degrees of freedom of the 
+    other subsystem.
+
+    Parameters
+    ----------
+    rho : numpy.ndarray
+        The density matrix to be traced. It should be a square matrix of shape 
+        (dimA * dimB, dimA * dimB).
+    dims : tuple
+        A tuple (dimA, dimB) specifying the dimensions of the subsystems A and B.
+    subsys : int
+        The subsystem to trace out. Use 0 to trace out subsystem A and 1 to trace 
+        out subsystem B.
+
+    Returns
+    -------
+    numpy.ndarray
+        The reduced density matrix after tracing out the specified subsystem.
+
+    Raises
+    ------
+    ValueError
+        If the subsys parameter is not 0 or 1.
+    """
+    dimA, dimB = dims
+    rho_reshaped = rho.reshape([dimA, dimB, dimA, dimB])
+    if subsys == 0:
+        return np.trace(rho_reshaped, axis1=0, axis2=2)
+    elif subsys == 1:
+        return np.trace(rho_reshaped, axis1=1, axis2=3)
+    else:
+        raise ValueError("subsys must be 0 (to trace out A) or 1 (to trace out B).")
+
+def purity(density_matrix: np.ndarray) -> float:
+    """
+    Calculate the purity of a quantum state.
+
+    The purity is defined as Tr(rho^2), where rho is the density matrix.
+    For a pure state, the purity is 1. For a mixed state of dimension `d`, 1/d <= purity < 1.
+
+    Parameters
+    ----------
+    density_matrix : numpy.ndarray
+        The density matrix of the quantum state.
+
+    Returns
+    -------
+    float
+        The purity of the quantum state.
+    """
+    return np.trace(np.dot(density_matrix, density_matrix)).real
 
 def destroy(dimension: int) -> np.ndarray:
     """
