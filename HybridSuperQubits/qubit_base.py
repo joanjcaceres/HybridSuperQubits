@@ -955,7 +955,8 @@ class QubitBase(ABC):
         p.update(kwargs)
             
         if spectrum_data is None or noise_operator not in spectrum_data.matrixelem_table:
-            spectrum_data = self.get_matelements_vs_paramvals(noise_channel, param_name, param_vals, evals_count=evals_count)
+            new_spec = self.get_matelements_vs_paramvals(noise_operator, param_name, param_vals, evals_count=evals_count)
+            spectrum_data.matrixelem_table[noise_operator] = new_spec.matrixelem_table[noise_operator]
             
         param_vals = spectrum_data.param_vals
                             
@@ -973,7 +974,6 @@ class QubitBase(ABC):
         
         epsilon = 1e-12  # Pequeña constante para evitar divisiones por cero
         rate = np.where(rate == 0, epsilon, rate) 
-        
         rate *= 2 * np.pi * 1e9 # Convert to rad/s
         tphi_table = 1 / rate
         
@@ -1109,10 +1109,13 @@ class QubitBase(ABC):
         if spectrum_data is None:
             spectrum_data = self.get_matelements_vs_paramvals('displacement_operator', param_name, param_vals, evals_count=evals_count)
         elif 'displacement_operator' not in spectrum_data.matrixelem_table:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            spectrum_data = self.get_matelements_vs_paramvals('displacement_operator', param_name, param_vals, evals_count=evals_count)
-            
+            new_spec = self.get_matelements_vs_paramvals(
+                'displacement_operator',
+                spectrum_data.param_name,
+                spectrum_data.param_vals,
+                evals_count=evals_count
+            )
+            spectrum_data.matrixelem_table['displacement_operator'] = new_spec.matrixelem_table['displacement_operator']            
         phase_slip_frequency = 4 * np.sqrt(2)/np.pi * fp / np.sqrt(z) * np.exp(-4 / np.pi / z)
         
         displacement_operator = spectrum_data.matrixelem_table['displacement_operator']
@@ -1146,15 +1149,15 @@ class QubitBase(ABC):
         **kwargs
         ) -> SpectrumData:
         
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError("If spectrum_data is None, param_name and param_vals must be provided.")
+        
         if isinstance(noise_channels, str):
             noise_channels = [noise_channels]
-            
-            if spectrum_data is not None:
-                param_name = spectrum_data.param_name
-                param_vals = spectrum_data.param_vals
-                evals_count = spectrum_data.energy_table.shape[1]
-            elif param_name is None or param_vals is None:
-                raise ValueError("If spectrum_data is None, param_name and param_vals must be provided.")
                         
         if 'flux_noise' in noise_channels:
             A_noise = kwargs.pop('A_noise', 1e-6)
@@ -1476,8 +1479,6 @@ class QubitBase(ABC):
             fig.suptitle(self._generate_suptitle(param_name))
         else:
             fig, ax = fig_ax
-
-
             
         for (i, j) in select_elems:
             for channel in noise_channels:
