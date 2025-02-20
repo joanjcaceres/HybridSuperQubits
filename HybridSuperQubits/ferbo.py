@@ -133,7 +133,7 @@ class Ferbo(QubitBase):
         if self.flux_grouping == 'ABS':
             phase_op -= self.phase * np.eye(self.dimension // 2)
         
-        return - self.Gamma * np.kron(cosm(phase_op/2), sigma_x()) - self.delta_Gamma * np.kron(sinm(phase_op/2), sigma_y()) - self.er * np.kron(np.eye(self.dimension // 2), sigma_z())
+        return - self.Gamma * np.kron(cosm(phase_op/2), sigma_z()) - self.delta_Gamma * np.kron(sinm(phase_op/2), sigma_y()) + self.er * np.kron(np.eye(self.dimension // 2), sigma_x())
     
     # def zazunov_potential(self) -> np.ndarray:
         
@@ -188,7 +188,7 @@ class Ferbo(QubitBase):
             return self.El * (self.phase_operator() + self.phase * np.eye(self.dimension))
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
-            return - self.Gamma/2 * np.kron(sinm(phase_op/2),sigma_x()) + self.delta_Gamma/2 * np.kron(cosm(phase_op/2),sigma_y())
+            return - self.Gamma/2 * np.kron(sinm(phase_op/2),sigma_z()) + self.delta_Gamma/2 * np.kron(cosm(phase_op/2),sigma_y())
                 
     def d_hamiltonian_d_er(self) -> np.ndarray:
         """
@@ -199,7 +199,7 @@ class Ferbo(QubitBase):
         Qobj
             The derivative of the Hamiltonian with respect to the energy relaxation rate.
         """
-        return - np.kron(np.eye(self.dimension // 2),sigma_z())
+        return + np.kron(np.eye(self.dimension // 2),sigma_x())
     
     def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
         """
@@ -302,10 +302,10 @@ class Ferbo(QubitBase):
         for i, phi_val in enumerate(phi_array):
             if self.flux_grouping == 'ABS':
                 inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
-                andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_x() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() - self.er * sigma_z()
+                andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() + self.er * sigma_x()
             elif self.flux_grouping == 'L':
                 inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * np.eye(2)
-                andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_x() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() - self.er * sigma_z()
+                andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_z() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() + self.er * sigma_x()
             
             potential_operator = inductive_term + andreev_term
             evals_array[i] = eigh(
