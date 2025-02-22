@@ -22,7 +22,7 @@ class Andreev(QubitBase):
     'd_hamiltonian_d_er': r'\partial \hat{H} / \partial \epsilon_r',
     }
     
-    def __init__(self, Ec, Gamma, delta_Gamma, er, phase, ng, n_cut):
+    def __init__(self, Ec, Gamma, delta_Gamma, er, phase, ng, n_cut, Delta = 40):
         """
         Initializes the Ferbo class with the given parameters.
 
@@ -40,6 +40,12 @@ class Andreev(QubitBase):
             External magnetic phase.
         dimension : int
             Dimension of the Hilbert space.
+        ng : float
+            Charge offset.
+        n_cut : int
+            Maximum number of charge states.
+        Delta : float
+            Superconducting gap.
         """
         
         self.Ec = Ec
@@ -50,6 +56,7 @@ class Andreev(QubitBase):
         self.ng = ng
         self.n_cut = n_cut
         self.dimension = 2 * (self.n_cut * 4 + 1)
+        self.Delta = Delta
         
         super().__init__(self.dimension)
         
@@ -65,7 +72,7 @@ class Andreev(QubitBase):
         """
         n_values = np.arange(-self.n_cut, self.n_cut+1/2 , 1/2) - self.ng * np.ones(self.dimension // 2)
         n_matrix = np.diag(n_values)
-        return np.kron(n_matrix, np.eye(2))  
+        return np.kron(np.eye(2), n_matrix)  
     
     def jrl_potential(self) -> np.ndarray:
         """
@@ -77,9 +84,9 @@ class Andreev(QubitBase):
             The Josephson Resonance Level potential.
         """
         
-        Gamma_term = -self.Gamma * np.kron(cos_kphi_operator(1, self.dimension // 2, self.phase/2), sigma_x())
-        delta_Gamma_term = - self.delta_Gamma * np.kron(sin_kphi_operator(1, self.dimension // 2, self.phase/2), sigma_y())
-        e_r_term = - self.er * np.kron(np.eye(self.dimension // 2), sigma_z())
+        Gamma_term = -self.Gamma * np.kron(sigma_z(), cos_kphi_operator(1, self.dimension // 2, self.phase/2))
+        delta_Gamma_term = - self.delta_Gamma * np.kron(sigma_y(), sin_kphi_operator(1, self.dimension // 2, self.phase/2))
+        e_r_term = self.er * np.kron(sigma_x(), np.eye(self.dimension // 2))
         
         return Gamma_term + delta_Gamma_term + e_r_term
             
@@ -94,7 +101,10 @@ class Andreev(QubitBase):
         np.ndarray
             The Hamiltonian of the system.
         """
-        charge_term = 4 * self.Ec * np.dot(self.n_operator(), self.n_operator())
+        n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
+        n_op = self.n_operator() + n_x * np.kron(sigma_x(),np.eye(self.dimension//2))
+        
+        charge_term = 4 * self.Ec * n_op @ n_op
 
         potential = self.jrl_potential()
         return charge_term + potential
