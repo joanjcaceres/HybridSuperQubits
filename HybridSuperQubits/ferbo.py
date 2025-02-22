@@ -109,7 +109,7 @@ class Ferbo(QubitBase):
             The charge number operator.
         """
         single_mode_n_operator = 1j * self.n_zpf * (creation(self.dimension //2 ) - destroy(self.dimension // 2))
-        return np.kron(single_mode_n_operator, np.eye(2))
+        return np.kron(np.eye(2), single_mode_n_operator)
     
     def phase_operator(self) -> np.ndarray:
         """
@@ -121,7 +121,7 @@ class Ferbo(QubitBase):
             The total phase operator.
         """
         single_mode_phase_operator = self.phase_zpf * (creation(self.dimension //2) + destroy(self.dimension //2))
-        return np.kron(single_mode_phase_operator, np.eye(2))        
+        return np.kron(np.eye(2), single_mode_phase_operator)        
     
     def jrl_potential(self) -> np.ndarray:
         """
@@ -220,7 +220,7 @@ class Ferbo(QubitBase):
         Qobj
             The derivative of the Hamiltonian with respect to the energy relaxation rate.
         """
-        return + np.kron(np.eye(self.dimension // 2),sigma_x())
+        return + np.kron(sigma_x(), np.eye(self.dimension // 2))
     
     def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
         """
@@ -271,10 +271,13 @@ class Ferbo(QubitBase):
             evals, evecs = esys
             
         dim = self.dimension//2
-        
+                
         if rotate:
-            U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
-            change_of_basis_operator = np.kron(np.eye(dim), U)
+            
+            I = np.eye(self.dimension//2)
+            change_of_basis_operator = (1/np.sqrt(2)) * np.block([[I, I],
+                                        [I, -I]])
+    
             evecs = (change_of_basis_operator @ evecs)
         
         evecs = evecs.T
@@ -292,8 +295,8 @@ class Ferbo(QubitBase):
         phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex128)
         
         for n in range(dim):
-            phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[2 * n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
-            phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[2 * n + 1] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
+            phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
+            phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[self.dimension//2 + n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
 
         return {
             "basis_labels": phi_basis_labels,
