@@ -135,14 +135,11 @@ class Ferbo(QubitBase):
         phase_op = self.phase_operator()[:self.dimension//2, :self.dimension//2]
         if self.flux_grouping == 'ABS':
             phase_op -= self.phase * np.eye(self.dimension // 2)
-            
-        x_term = self.er * np.eye(self.dimension // 2)
-        y_term = - self.Gamma * cosm(phase_op/2) @ sinm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))\
-            + self.delta_Gamma * sinm(phase_op/2) @ cosm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))
-        z_term = self.Gamma * cosm(phase_op/2) @ cosm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))\
-            + self.delta_Gamma * sinm(phase_op/2) @ sinm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))
         
-        return np.kron(sigma_x(), x_term) + np.kron(sigma_y(), y_term) + np.kron(sigma_z(), z_term)
+        return - self.Gamma * np.kron(sigma_z(), cosm(phase_op/2)) \
+            - self.delta_Gamma * np.kron(sigma_y(), sinm(phase_op/2)) \
+                + self.er * np.kron(sigma_x(), np.eye(self.dimension // 2))
+
     
     # def zazunov_potential(self) -> np.ndarray:
         
@@ -155,13 +152,18 @@ class Ferbo(QubitBase):
         np.ndarray
             The Hamiltonian of the system.
         """
+        n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
+        n_op = self.n_operator() + n_x * np.kron(sigma_x(),np.eye(self.dimension//2))
+        
+        charge_term = 4 * self.Ec * n_op @ n_op
         phase_op = self.phase_operator()
-        charge_term = 4 * self.Ec * np.dot(self.n_operator(), self.n_operator())
+        
         if self.flux_grouping == 'ABS':
-            inductive_term = 0.5 * self.El * np.dot(phase_op, phase_op)
+            inductive_term = 0.5 * self.El * phase_op @ phase_op
         else:
             phase_op += self.phase * np.eye(self.dimension)
-            inductive_term = 0.5 * self.El * np.dot(phase_op, phase_op)
+            inductive_term = 0.5 * self.El * phase_op @ phase_op
+            
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential
     
@@ -184,7 +186,7 @@ class Ferbo(QubitBase):
             The derivative of the Hamiltonian with respect to the number of charge offset.
         
         """
-        return 8 * self.Ec * self.n_operator()
+        return 8 * self.Ec * (self.n_operator() - self.delta_Gamma/4/(self.Gamma+self.Delta) * np.kron(sigma_z(), np.eye(self.dimension//2)))
     
     def d_hamiltonian_d_phase(self) -> np.ndarray:
         """
@@ -199,17 +201,8 @@ class Ferbo(QubitBase):
             return self.El * (self.phase_operator() + self.phase * np.eye(self.dimension))
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
-            
-            sum = self.Delta + self.Gamma
-            y_term = 1/4/sum * expm(1j*self.delta_Gamma*phase_op/2/sum) @ \
-                (-self.delta_Gamma*self.Delta * (np.eye(self.dimension//2)+ expm(-1j*self.delta_Gamma*phase_op/sum))@ cosm(phase_op/2) \
-                + 1j * (self.Gamma*sum-self.delta_Gamma**2)*(np.eye(self.dimension//2)-expm(-1j*self.delta_Gamma*phase_op/sum))@ sinm(phase_op/2))
-            
-            z_term = 1/4/sum * expm(1j*self.delta_Gamma*phase_op/2/sum) @ \
-                (-1j*self.delta_Gamma*self.Delta * (-np.eye(self.dimension//2)+ expm(-1j*self.delta_Gamma*phase_op/sum))@ cosm(phase_op/2) \
-                + (self.Gamma*sum-self.delta_Gamma**2)*(np.eye(self.dimension//2)+expm(-1j*self.delta_Gamma*phase_op/sum))@ sinm(phase_op/2))
-            
-            return np.kron(sigma_y(), y_term) + np.kron(sigma_z(), z_term)
+            return - self.Gamma/2 * np.kron(sigma_z(), sinm(phase_op/2)) + self.delta_Gamma/2 * np.kron(sigma_y(), cosm(phase_op/2))
+        
                 
     def d_hamiltonian_d_er(self) -> np.ndarray:
         """
