@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from .qubit_base import QubitBase
-from scipy.linalg import cosm, sinm, eigh
+from scipy.linalg import cosm, sinm, eigh, expm
 from typing import Any, Dict, Optional, Tuple, Union, Iterable
 from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
 
@@ -25,7 +25,7 @@ class Ferbo(QubitBase):
     'd_hamiltonian_d_er': r'\partial \hat{H} / \partial \epsilon_r',
     }
     
-    def __init__(self, Ec, El, Gamma, delta_Gamma, er, phase, dimension, flux_grouping: str = 'ABS'):
+    def __init__(self, Ec, El, Gamma, delta_Gamma, er, phase, dimension, flux_grouping: str = 'ABS', Delta = 40):
         """
         Initializes the Ferbo class with the given parameters.
 
@@ -47,6 +47,8 @@ class Ferbo(QubitBase):
             Dimension of the Hilbert space.
         flux_grouping : str, optional
             Flux grouping ('L' or 'ABS') (default is 'L').
+        Delta : float
+            Superconducting gap.
         """
         if flux_grouping not in ['L', 'ABS']:
             raise ValueError("Invalid flux grouping; must be 'L' or 'ABS'.")
@@ -59,6 +61,7 @@ class Ferbo(QubitBase):
         self.phase = phase
         self.dimension = dimension // 2 * 2
         self.flux_grouping = flux_grouping
+        self.Delta = Delta
         super().__init__(self.dimension)
         
     @property
@@ -129,11 +132,17 @@ class Ferbo(QubitBase):
         np.ndarray
             The Josephson Resonance Level potential.
         """
-        phase_op = self.phase_operator()[::2, ::2]
+        phase_op = self.phase_operator()[:self.dimension//2, :self.dimension//2]
         if self.flux_grouping == 'ABS':
             phase_op -= self.phase * np.eye(self.dimension // 2)
+            
+        x_term = self.er * np.eye(self.dimension // 2)
+        y_term = - self.Gamma * cosm(phase_op/2) @ sinm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))\
+            + self.delta_Gamma * sinm(phase_op/2) @ cosm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))
+        z_term = self.Gamma * cosm(phase_op/2) @ cosm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))\
+            + self.delta_Gamma * sinm(phase_op/2) @ sinm(self.delta_Gamma*phase_op/2/(self.Gamma+self.Delta))
         
-        return - self.Gamma * np.kron(cosm(phase_op/2), sigma_z()) - self.delta_Gamma * np.kron(sinm(phase_op/2), sigma_y()) + self.er * np.kron(np.eye(self.dimension // 2), sigma_x())
+        return np.kron(sigma_x(), x_term) + np.kron(sigma_y(), y_term) + np.kron(sigma_z(), z_term)
     
     # def zazunov_potential(self) -> np.ndarray:
         
@@ -146,11 +155,13 @@ class Ferbo(QubitBase):
         np.ndarray
             The Hamiltonian of the system.
         """
+        phase_op = self.phase_operator()
         charge_term = 4 * self.Ec * np.dot(self.n_operator(), self.n_operator())
         if self.flux_grouping == 'ABS':
-            inductive_term = 0.5 * self.El * np.dot(self.phase_operator(), self.phase_operator())
+            inductive_term = 0.5 * self.El * np.dot(phase_op, phase_op)
         else:
-            inductive_term = 0.5 * self.El * np.dot(self.phase_operator() + self.phase * np.eye(self.dimension), self.phase_operator() + self.phase * np.eye(self.dimension))
+            phase_op += self.phase * np.eye(self.dimension)
+            inductive_term = 0.5 * self.El * np.dot(phase_op, phase_op)
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential
     
@@ -187,8 +198,18 @@ class Ferbo(QubitBase):
         if self.flux_grouping == 'L':
             return self.El * (self.phase_operator() + self.phase * np.eye(self.dimension))
         elif self.flux_grouping == 'ABS':
-            phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
-            return - self.Gamma/2 * np.kron(sinm(phase_op/2),sigma_z()) + self.delta_Gamma/2 * np.kron(cosm(phase_op/2),sigma_y())
+            phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
+            
+            sum = self.Delta + self.Gamma
+            y_term = 1/4/sum * expm(1j*self.delta_Gamma*phase_op/2/sum) @ \
+                (-self.delta_Gamma*self.Delta * (np.eye(self.dimension//2)+ expm(-1j*self.delta_Gamma*phase_op/sum))@ cosm(phase_op/2) \
+                + 1j * (self.Gamma*sum-self.delta_Gamma**2)*(np.eye(self.dimension//2)-expm(-1j*self.delta_Gamma*phase_op/sum))@ sinm(phase_op/2))
+            
+            z_term = 1/4/sum * expm(1j*self.delta_Gamma*phase_op/2/sum) @ \
+                (-1j*self.delta_Gamma*self.Delta * (-np.eye(self.dimension//2)+ expm(-1j*self.delta_Gamma*phase_op/sum))@ cosm(phase_op/2) \
+                + (self.Gamma*sum-self.delta_Gamma**2)*(np.eye(self.dimension//2)+expm(-1j*self.delta_Gamma*phase_op/sum))@ sinm(phase_op/2))
+            
+            return np.kron(sigma_y(), y_term) + np.kron(sigma_z(), z_term)
                 
     def d_hamiltonian_d_er(self) -> np.ndarray:
         """
@@ -211,10 +232,11 @@ class Ferbo(QubitBase):
             The derivative of the Hamiltonian with respect to the coupling strength difference.
         """
         if self.flux_grouping == 'L':
-            phase_op = self.phase_operator()[::2,::2]
+            phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
         else:
-            phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
-        return - np.kron(sinm(phase_op/2),sigma_y())
+            raise NotImplementedError("Not implemented for ABS grouping.")
+            phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
+        return - np.kron(sigma_y(), sinm(phase_op/2))
     
     def wavefunction(
         self, 
