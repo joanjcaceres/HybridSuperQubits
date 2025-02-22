@@ -45,7 +45,6 @@ class Gatemon(QubitBase):
     
     def junction_potential(self):
         
-        junction_term = np.zeros((self.dimension, self.dimension), dtype=np.complex128)
         def f(phi, T, Delta):
             return -Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
 
@@ -56,7 +55,7 @@ class Gatemon(QubitBase):
         
         A_coeffs = [A_k(k, self.T, self.Delta) for k in range(self.num_coef + 1)]
         
-        junction_term = A_coeffs[0] / 2 * np.eye(self.dimension)
+        junction_term = A_coeffs[0] / 2 * np.eye(self.dimension, dtype=np.complex128)
         for k in range(1, self.num_coef + 1 ):
             junction_term += A_coeffs[k] * cos_kphi_operator(k, self.dimension)
             
