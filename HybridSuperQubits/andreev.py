@@ -159,7 +159,47 @@ class Andreev(QubitBase):
         # else:
         #     phase_op = self.phase_operator()[::2,::2] - self.phase * np.eye(self.dimension // 2)
         # return - np.kron(sinm(phase_op/2),sigma_y())
-    
+
+    def numberbasis_wavefunction(
+        self, 
+        which: int = 0,
+        esys: Tuple[np.ndarray, np.ndarray] = None
+        ) -> Dict[str, Any]:
+        """
+        Returns a wave function in the number basis.
+
+        Parameters
+        ----------
+        which : int, optional
+            Index of desired wave function (default is 0).
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors (default is None).
+
+        Returns
+        -------
+        Dict[str, Any]
+            Wave function data containing basis labels, amplitudes, and energy.
+        """
+        if esys is None:
+            evals_count = max(which + 1, 3)
+            evals, evecs = self.eigensys(evals_count)
+        else:
+            evals, evecs = esys
+            
+        dim = self.dimension // 2
+        evecs = evecs.T
+                        
+        n_grid = np.arange(-self.n_cut, self.n_cut + 1/2, 1/2)
+        wf_up = evecs[which, :dim]
+        wf_down = evecs[which, dim:]
+        number_wavefunc_amplitudes = np.vstack((wf_up, wf_down))
+
+        return {
+            "basis_labels": n_grid,
+            "amplitudes": number_wavefunc_amplitudes,
+            "energy": evals[which]
+        }
+        
     def wavefunction(
         self, 
         which: int = 0,
