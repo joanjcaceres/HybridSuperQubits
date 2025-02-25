@@ -184,7 +184,14 @@ class QubitBase(ABC):
         return matrix_elements
 
 
-    def get_matelements_vs_paramvals(self, operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> SpectrumData:
+    def get_matelements_vs_paramvals(
+        self, 
+        operators: Union[str, List[str]], 
+        param_name: str, 
+        param_vals: np.ndarray, 
+        evals_count: int = 6
+        ) -> SpectrumData:
+        #TODO: #9 Add spectrum_data as optional parameter in case it was already computed the esys.
         """
         Calculates the matrix elements for a list of operators over a range of parameter values.
 
@@ -919,7 +926,7 @@ class QubitBase(ABC):
         param_vals: np.ndarray, 
         A_noise: float,
         noise_channel: str,
-        noise_operator: str,
+        noise_operator: Union[str, List[str]],
         evals_count: int = 6,
         spectrum_data: SpectrumData = None,
         **kwargs
@@ -938,7 +945,8 @@ class QubitBase(ABC):
         noise_channel : str
             The noise channel to calculate ('flux', etc.).
         noise_operator : str
-            The noise operator to use.
+            The noise operator(s) to use. The order of the operators must match the order of approximation.
+            i.e. ['d_hamiltonian_d_flux', 'd2_hamiltonian_d_flux2'].
         evals_count : int, optional
             The number of eigenvalues and eigenstates to calculate (default is 6).
         spectrum_data : SpectrumData, optional
@@ -953,25 +961,38 @@ class QubitBase(ABC):
         """
         p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
         p.update(kwargs)
-            
-        if spectrum_data is None or noise_operator not in spectrum_data.matrixelem_table:
+        
+        if isinstance(noise_operator, str):
+            noise_operator = [noise_operator]
+        
+        missing_operators = [op for op in noise_operator if spectrum_data is None or op not in spectrum_data.matrixelem_table]
+        if missing_operators:
             new_spec = self.get_matelements_vs_paramvals(noise_operator, param_name, param_vals, evals_count=evals_count)
             spectrum_data.matrixelem_table[noise_operator] = new_spec.matrixelem_table[noise_operator]
             
         param_vals = spectrum_data.param_vals
                             
-        dE_d_lambda = np.diagonal(spectrum_data.matrixelem_table[noise_operator], axis1=1, axis2 = 2)
+        dE_d_lambda = np.diagonal(spectrum_data.matrixelem_table[noise_operator[0]], axis1=1, axis2 = 2)
         dEij_d_lambda = dE_d_lambda[:,:,np.newaxis] - dE_d_lambda[:,np.newaxis,:]
+        rate_1er = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
         
-        if spectrum_data.param_name == "phase":
-            d2Eij_d_lambda2 = np.gradient(dEij_d_lambda, param_vals, axis=0, edge_order=2)
-            rate_1er = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
-            rate_2nd = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 + 2 * np.log(p["omega_ir"] * p["t_exp"])**2)
+        if len(noise_operator) > 1:
+            d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[noise_operator[1]], axis1=1, axis2 = 2)
+            d2Hij_d_lambda2 = d2H_d_lambda2[:,:,np.newaxis] - d2H_d_lambda2[:,np.newaxis,:]
             
-            rate = np.sqrt(rate_1er**2 + rate_2nd**2)
-        else:
-            rate = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
-        
+            E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
+            E_diff = np.where(E_diff == 0, np.inf, E_diff)
+            dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[noise_operator[0]])**2
+            d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
+            d2Eij_d_lambda2_correction = d2E_d_lambda2_correction[:,:,np.newaxis] - d2E_d_lambda2_correction[:,np.newaxis,:]
+            
+            d2Eij_d_lambda2 = d2Hij_d_lambda2 + d2Eij_d_lambda2_correction
+            rate_2nd = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 +\
+                2 * np.log(p["omega_ir"] * p["t_exp"])**2)
+        elif len(noise_operator) == 1:
+            rate_2nd = 0
+            
+        rate = np.sqrt(rate_1er**2 + rate_2nd**2)        
         epsilon = 1e-12  # Pequeña constante para evitar divisiones por cero
         rate = np.where(rate == 0, epsilon, rate) 
         rate *= 2 * np.pi * 1e9 # Convert to rad/s
@@ -1445,17 +1466,21 @@ class QubitBase(ABC):
         Tuple[plt.Figure, plt.Axes]
             The figure and axes of the plot.
         """
+        if isinstance(noise_channels, str):
+            noise_channels = [noise_channels]
+            
         if spectrum_data is None:
             evals_count = max(max(i,j) for i, j in select_elems) + 1
             operators = set()
             for channel in noise_channels:
                 if channel == 'flux_noise':
                     operators.add('d_hamiltonian_d_phase')
-                if channel == 'charge_noise':
+                    operators.add('d2_hamiltonian_d_phase2')
+                elif channel == 'charge_noise':
                     operators.add('d_hamiltonian_d_ng')
                 else:
                     raise ValueError(f"Unsupported Tphi noise channel: {channel}")
-            spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals, evals_count=evals_count)
+            spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals, evals_count=50)
         else:
             param_name = spectrum_data.param_name
             param_vals = spectrum_data.param_vals
@@ -1463,8 +1488,6 @@ class QubitBase(ABC):
         if isinstance(select_elems, int):
             select_elems = [(i, j) for i in range(select_elems) for j in range(i) if i > j]
 
-        if isinstance(noise_channels, str):
-            noise_channels = [noise_channels]
 
         for channel in noise_channels:
             if channel not in spectrum_data.tphi_table:
