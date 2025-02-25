@@ -1004,6 +1004,10 @@ class QubitBase(ABC):
             noise_operator = [noise_operator]
         
         missing_operators = [op for op in noise_operator if spectrum_data is None or op not in spectrum_data.matrixelem_table]
+        if not missing_operators:
+            if spectrum_data.matrixelem_table[noise_operator[0]].shape[1] != spectrum_data.matrixelem_table[noise_operator[0]].shape[2]:
+                missing_operators = [noise_operator[0]]
+                
         if missing_operators:
             new_spec = self.get_matelements_vs_paramvals(noise_operator, param_name, param_vals, evals_count=evals_count)
             spectrum_data.matrixelem_table[noise_operator] = new_spec.matrixelem_table[noise_operator]
