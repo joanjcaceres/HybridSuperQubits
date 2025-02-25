@@ -1127,7 +1127,7 @@ class QubitBase(ABC):
             param_vals=param_vals, 
             A_noise=A_noise, 
             noise_channel='charge_noise', 
-            noise_operator='d_hamiltonian_d_ng', 
+            noise_operators=['d_hamiltonian_d_ng', 'd2_hamiltonian_d_ng2'], 
             evals_count=evals_count, 
             spectrum_data=spectrum_data, 
             **kwargs
@@ -1519,6 +1519,7 @@ class QubitBase(ABC):
                     operators.add('d2_hamiltonian_d_phase2')
                 elif channel == 'charge_noise':
                     operators.add('d_hamiltonian_d_ng')
+                    operators.add('d2_hamiltonian_d_ng2')
                 else:
                     raise ValueError(f"Unsupported Tphi noise channel: {channel}")
             spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals)
