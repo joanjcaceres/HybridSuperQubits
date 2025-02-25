@@ -913,7 +913,7 @@ class QubitBase(ABC):
         spectrum_data.t1_table[noise_channel] = t1_table        
         return spectrum_data
     
-    def _get_tphi_vs_paramvals(
+    def _get_tphi_1_over_f_vs_paramvals(
         self, 
         param_name: str, 
         param_vals: np.ndarray, 
@@ -1016,7 +1016,7 @@ class QubitBase(ABC):
         SpectrumData
             The Tphi times for flux noise over the range of parameter values.
         """
-        return self._get_tphi_vs_paramvals(
+        return self._get_tphi_1_over_f_vs_paramvals(
             param_name=param_name, 
             param_vals=param_vals, 
             A_noise=A_noise, 
@@ -1059,7 +1059,7 @@ class QubitBase(ABC):
         SpectrumData
             The Tphi times for charge noise over the range of parameter values.
         """
-        return self._get_tphi_vs_paramvals(
+        return self._get_tphi_1_over_f_vs_paramvals(
             param_name=param_name, 
             param_vals=param_vals, 
             A_noise=A_noise, 
