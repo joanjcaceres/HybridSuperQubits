@@ -961,7 +961,7 @@ class QubitBase(ABC):
         param_vals: np.ndarray, 
         A_noise: float,
         noise_channel: str,
-        noise_operator: Union[str, List[str]],
+        noise_operators: Union[str, List[str]],
         evals_count: int = None,
         spectrum_data: SpectrumData = None,
         **kwargs
@@ -979,7 +979,7 @@ class QubitBase(ABC):
             The amplitude of the noise.
         noise_channel : str
             The noise channel to calculate ('flux', etc.).
-        noise_operator : str
+        noise_operators : Union[str, List[str]]
             The noise operator(s) to use. The order of the operators must match the order of approximation.
             i.e. ['d_hamiltonian_d_flux', 'd2_hamiltonian_d_flux2'].
         evals_count : int, optional
@@ -1000,38 +1000,42 @@ class QubitBase(ABC):
         p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
         p.update(kwargs)
         
-        if isinstance(noise_operator, str):
-            noise_operator = [noise_operator]
+        if isinstance(noise_operators, str):
+            noise_operators = [noise_operators]
         
-        missing_operators = [op for op in noise_operator if spectrum_data is None or op not in spectrum_data.matrixelem_table]
-        if not missing_operators:
-            if spectrum_data.matrixelem_table[noise_operator[0]].shape[1] != spectrum_data.matrixelem_table[noise_operator[0]].shape[2]:
-                missing_operators = [noise_operator[0]]
-                
-        if missing_operators:
-            new_spec = self.get_matelements_vs_paramvals(noise_operator, param_name, param_vals, evals_count=evals_count)
-            spectrum_data.matrixelem_table[noise_operator] = new_spec.matrixelem_table[noise_operator]
-            
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(noise_operators, param_name, param_vals, evals_count=evals_count)
+        # Verify if the noise operators are in the matrix elements table
+        elif not all(op in spectrum_data.matrixelem_table for op in noise_operators):
+            missing_operators = [op for op in noise_operators if op not in spectrum_data.matrixelem_table]
+            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count)
+            spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
+        # Verify if the shape of the matrix elements is correct
+        elif all(spectrum_data.matrixelem_table[op].shape[1] != spectrum_data.matrixelem_table[op].shape[2] for op in noise_operators):
+            new_spec = self.get_matelements_vs_paramvals(noise_operators, param_name, param_vals, evals_count=evals_count)
+            for op in noise_operators:
+                spectrum_data.matrixelem_table[op] = new_spec.matrixelem_table[op]
+
         param_vals = spectrum_data.param_vals
                             
-        dE_d_lambda = np.diagonal(spectrum_data.matrixelem_table[noise_operator[0]], axis1=1, axis2 = 2)
+        dE_d_lambda = np.diagonal(spectrum_data.matrixelem_table[noise_operators[0]], axis1=1, axis2 = 2)
         dEij_d_lambda = dE_d_lambda[:,:,np.newaxis] - dE_d_lambda[:,np.newaxis,:]
         rate_1er = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
         
-        if len(noise_operator) > 1:
-            d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[noise_operator[1]], axis1=1, axis2 = 2)
+        if len(noise_operators) > 1:
+            d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[noise_operators[1]], axis1=1, axis2 = 2)
             d2Hij_d_lambda2 = d2H_d_lambda2[:,:,np.newaxis] - d2H_d_lambda2[:,np.newaxis,:]
             
             E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
             E_diff = np.where(E_diff == 0, np.inf, E_diff)
-            dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[noise_operator[0]])**2
+            dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[noise_operators[0]])**2
             d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
             d2Eij_d_lambda2_correction = d2E_d_lambda2_correction[:,:,np.newaxis] - d2E_d_lambda2_correction[:,np.newaxis,:]
             
             d2Eij_d_lambda2 = d2Hij_d_lambda2 + d2Eij_d_lambda2_correction
             rate_2nd = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 +\
                 2 * np.log(p["omega_ir"] * p["t_exp"])**2)
-        elif len(noise_operator) == 1:
+        elif len(noise_operators) == 1:
             rate_2nd = 0
             
         rate = np.sqrt(rate_1er**2 + rate_2nd**2)        
@@ -1084,7 +1088,7 @@ class QubitBase(ABC):
             param_vals=param_vals, 
             A_noise=A_noise, 
             noise_channel='flux_noise', 
-            noise_operator='d_hamiltonian_d_phase', 
+            noise_operators=['d_hamiltonian_d_phase', 'd2_hamiltonian_d_phase2'], 
             evals_count=evals_count, 
             spectrum_data=spectrum_data, 
             **kwargs
