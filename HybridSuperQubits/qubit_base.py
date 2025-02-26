@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from scipy.linalg import expm, eigh
 from scipy.special import factorial, pbdv
 from .storage import SpectrumData
+from .utilities import second_deriv
 from tqdm.notebook import tqdm
 from scipy.constants import hbar, k, h, e
 from scipy.special import k0
@@ -269,6 +270,64 @@ class QubitBase(ABC):
         """
         result = pbdv(n, x / l_osc) / np.sqrt(np.sqrt(2 * np.pi) * factorial(n))
         return result[0]
+    
+    
+    def resonance_shift(self,  
+                        spectrum_data: SpectrumData,
+                        i: int,
+                        lambda_: float,
+                        f_r: float
+                        ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Calculates the shift of the resonance frequency when qubit is in state i. 
+        Based on Eq. (6) of 'From adiabatic to dispersive readout of quantum circuits'
+        by Sunghun Park, C. Metzger, L. Tosi, M. F. Goffman, C. Urbina, H. Pothier, and A. Levy Yeyati
+        DOI: 10.1103/PhysRevLett.125.077701
+        
+        Beware, only works where transitions f_ij are far from resonance f_r and far from 0.
+
+        Parameters
+        ----------
+        spectrum_data : SpectrumData
+            Precomputed spectral data. The operator must be the derivative of the Hamiltonian 
+            with respect to the parameter.
+        i : int
+            The index of the state.
+        lambda_ : float
+            The coupling strength. 
+            \lambda = (C_m/C_r) * sqrt(Rq / 4\pi * Z_r)  capacitive coupling
+            \lambda = (L_m/L_r) * sqrt(\pi * Z_r / R_q)  inductive coupling
+        f_r : float
+            The resonance frequency of the resonator
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]:
+            The resonance shift for the range of parameter values and 
+            contributions of every state in evals_count to the total shift.
+        """
+        param_name = spectrum_data.param_name  # maybe calculate the spectrum data alrady here?
+        param_vals = spectrum_data.param_vals
+        evals_count = spectrum_data.energy_table.shape[1]
+        operator = 'd_hamiltonian_d_' + param_name  # rethink this
+        print(f'using operator {operator} for the matrix elements')
+        
+        # Verificar si el operador existe en la clase
+        if not hasattr(self, operator):
+            raise AttributeError(f"Operator '{operator}' is not implemented in the class.")
+        
+        state_contribution = np.empty((len(param_vals), evals_count))
+        curv = lambda_**2 * second_deriv(spectrum_data.energy_table[:,i], param_vals)
+
+        for j in range(evals_count):
+            if j != i:
+                g2 = (np.abs(spectrum_data.matrixelem_table[operator][:,i,j]) * lambda_)**2
+                f_ij = spectrum_data.energy_table[:,j] - spectrum_data.energy_table[:,i]
+                freq_factor = 2/f_ij - 1/(f_ij - f_r) - 1/(f_ij + f_r)
+                state_contribution[:,j] = 0.5 * g2 * freq_factor
+        shift = curv + state_contribution.sum(axis=1)
+
+        return shift, state_contribution
     
     def plot_matrixelements(
         self,

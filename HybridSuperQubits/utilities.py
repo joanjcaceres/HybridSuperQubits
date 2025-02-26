@@ -72,3 +72,28 @@ def cos_kphi_operator(k:int, dimension: int, phase: float = 0) -> np.ndarray:
     cos_kphi[indices[mask_down], indices[mask_down] - k] = 0.5 * np.exp(1j * phase)
     
     return cos_kphi
+
+def second_deriv(f, x):
+    """
+    Calcula la segunda derivada de una función discretizada en una malla uniforme.
+
+    Parámetros:
+    -----------
+    f : np.ndarray
+        Valores de la función evaluados en la malla x.
+    x : np.ndarray
+        Valores de la variable independiente.
+
+    Retorna:
+    --------
+    np.ndarray
+        Aproximación de la segunda derivada de f en la malla.
+    """
+    dphi = x[1] - x[0]  # Suponiendo malla uniforme
+    d2f = (np.roll(f, -1) - 2*f + np.roll(f, 1)) / dphi**2
+    
+    # Opcional: corregir los bordes (por ejemplo, usando derivadas unilaterales)
+    d2f[0] = (f[2] - 2*f[1] + f[0]) / dphi**2
+    d2f[-1] = (f[-3] - 2*f[-2] + f[-1]) / dphi**2
+    
+    return d2f
