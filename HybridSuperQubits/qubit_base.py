@@ -65,20 +65,23 @@ class QubitBase(ABC):
         """
         pass
     
-    def eigensys(self, evals_count: int = 6) -> Tuple[np.ndarray, np.ndarray]:
+    def eigensys(self, evals_count: int = None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Calculates eigenvalues and corresponding eigenvectors using scipy.linalg.eigh.
 
         Parameters
         ----------
         evals_count : int, optional
-            Number of desired eigenvalues/eigenstates (default is 6).
+            Number of desired eigenvalues/eigenstates (default is None, in which case all are calculated).
 
         Returns
         -------
         Tuple[np.ndarray, np.ndarray]
             Eigenvalues and eigenvectors as numpy arrays.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         hamiltonian_mat = self.hamiltonian()
         evals, evecs = eigh(
             hamiltonian_mat,
@@ -88,20 +91,23 @@ class QubitBase(ABC):
         )
         return evals, evecs
     
-    def eigenvals(self, evals_count: int = 6) -> np.ndarray:
+    def eigenvals(self, evals_count: int = None) -> np.ndarray:
         """
         Calculates eigenvalues using scipy.linalg.eigh.
 
         Parameters
         ----------
         evals_count : int, optional
-            Number of desired eigenvalues (default is 6).
+            Number of desired eigenvalues (default is None, in which case all are calculated).
 
         Returns
         -------
         np.ndarray
             Eigenvalues as a numpy array.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         hamiltonian_mat = self.hamiltonian()
         evals = eigh(
             hamiltonian_mat,
@@ -111,7 +117,7 @@ class QubitBase(ABC):
         )
         return np.sort(evals)
     
-    def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = 6, subtract_ground: bool = False)  -> SpectrumData:
+    def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = None, subtract_ground: bool = False)  -> SpectrumData:
         """
         Calculates the eigenenergies and eigenstates for a range of parameter values.
 
@@ -122,7 +128,7 @@ class QubitBase(ABC):
         param_vals : List[float]
             The values of the parameter to vary.
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         subtract_ground : bool, optional
             Whether to subtract the ground state energy from the eigenenergies (default is False).
 
@@ -131,6 +137,9 @@ class QubitBase(ABC):
         Tuple[np.ndarray, np.ndarray]
             The eigenenergies and eigenstates for the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         eigenenergies_array = []
         eigenstates_array = []
         
@@ -157,7 +166,7 @@ class QubitBase(ABC):
         
         return spectrum_data  
         
-    def matrixelement_table(self, operator: str, evecs: np.ndarray = None, evals_count: int = 6) -> np.ndarray:
+    def matrixelement_table(self, operator: str, evecs: np.ndarray = None, evals_count: int = None) -> np.ndarray:
         """
         Returns a table of matrix elements for a given operator with respect to the eigenstates.
 
@@ -168,13 +177,15 @@ class QubitBase(ABC):
         evecs : np.ndarray, optional
             The eigenstates (default is None, in which case they are calculated).
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
 
         Returns
         -------
         np.ndarray
             The table of matrix elements.
         """
+        if evals_count is None:
+            evals_count = self.dimension
         
         if evecs is None:
             _, evecs = self.eigensys(evals_count)
@@ -184,7 +195,14 @@ class QubitBase(ABC):
         return matrix_elements
 
 
-    def get_matelements_vs_paramvals(self, operators: Union[str, List[str]], param_name: str, param_vals: np.ndarray, evals_count: int = 6) -> SpectrumData:
+    def get_matelements_vs_paramvals(
+        self, 
+        operators: Union[str, List[str]], 
+        param_name: str, 
+        param_vals: np.ndarray, 
+        evals_count: int = None
+        ) -> SpectrumData:
+        #TODO: #9 Add spectrum_data as optional parameter in case it was already computed the esys.
         """
         Calculates the matrix elements for a list of operators over a range of parameter values.
 
@@ -197,13 +215,16 @@ class QubitBase(ABC):
         param_vals : np.ndarray
             The values of the parameter to vary.
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
 
         Returns
         -------
         Dict[str, Dict[str, np.ndarray]]
             The matrix elements for the operators over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         if isinstance(operators, str):
             operators = [operators]
                         
@@ -457,7 +478,7 @@ class QubitBase(ABC):
         noise_channels: Union[str, List[str]],
         param_name: str = None, 
         param_vals: np.ndarray = None, 
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         **kwargs
         ) -> SpectrumData:
@@ -473,7 +494,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray
             The values of the parameter to vary.
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         **kwargs
@@ -484,6 +505,9 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for the specified noise channels over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         if isinstance(noise_channels, str):
             noise_channels = [noise_channels]
             
@@ -515,7 +539,7 @@ class QubitBase(ABC):
         self, 
         param_name: str = None, 
         param_vals: np.ndarray = None, 
-        evals_count: int = 6, 
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         Q_cap: Union[float, Callable] = None,
         T: float = 0.015, 
@@ -531,7 +555,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray, optional
             The values of the parameter to vary.
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         Q_cap : Union[float, Callable], optional
@@ -546,6 +570,9 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for capacitive noise over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         if Q_cap is None:
             Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7 # Assuming that Ec is in GHz
         elif callable(Q_cap):
@@ -568,7 +595,7 @@ class QubitBase(ABC):
         self, 
         param_name: str = None, 
         param_vals: np.ndarray = None, 
-        evals_count: int = 6, 
+        evals_count: int = None, 
         spectrum_data: SpectrumData = None,
         Q_ind: float = None,
         T: float = 0.015, 
@@ -584,7 +611,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray, optional
             The values of the parameter to vary.
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         Q_ind : float, optional
@@ -599,6 +626,9 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for inductive noise over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         if Q_ind is None:
             Q_ind_fun = lambda omega: 500e6 * (
                 k0(h * 0.5e9 / (2 * k * T)) * np.sinh(h * 0.5e9 / (2 * k * T))
@@ -625,7 +655,7 @@ class QubitBase(ABC):
         self,
         param_name: str = None,
         param_vals: np.ndarray = None,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         Z: float = 50,
         T: float = 0.015,
@@ -641,7 +671,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray, optional
             The values of the parameter
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         Z : float, optional
@@ -655,6 +685,9 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for charge impedance noise over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         def spectral_density(omega, T):
             Rk = h / ((2 * e)**2)
             return omega/1e9 / Rk * Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
@@ -670,7 +703,7 @@ class QubitBase(ABC):
         self,
         param_name: str = None,
         param_vals: np.ndarray = None,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         M: float = 2500,
         Z: float = 50,
@@ -687,7 +720,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray, optional
             The values of the parameter
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         M : float, optional
@@ -704,7 +737,9 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for flux bias line noise over the range of parameter values.
         """
-        
+        if evals_count is None:
+            evals_count = self.dimension
+            
         def spectral_density(omega, T):
             return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
         
@@ -719,7 +754,7 @@ class QubitBase(ABC):
         self,
         param_name: str = None,
         param_vals: np.ndarray = None,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         A_noise: float = 1e-6,
         **kwargs
@@ -734,7 +769,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray, optional
             The values of the parameter
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         A_noise : float, optional
@@ -747,6 +782,9 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for 1/f flux noise over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         def spectral_density(omega, T):
             return 2 * np.pi * A_noise**2 / np.abs(omega)
         
@@ -762,7 +800,7 @@ class QubitBase(ABC):
         self,
         param_name: str = None,
         param_vals: np.ndarray = None,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         A_noise: float = 1e-7,
         N: int = 100,
@@ -778,7 +816,7 @@ class QubitBase(ABC):
         param_vals : np.ndarray, optional
             The values of the parameter to vary.
         evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
+            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         A_noise : float, optional
@@ -791,6 +829,8 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for critical current noise over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
         
         def spectral_density(omega, T):
             return 2 * np.pi * (A_noise * self.El / np.sqrt(N))**2 / omega * 1e9
@@ -807,7 +847,7 @@ class QubitBase(ABC):
         self,
         param_name: str = None,
         param_vals: np.ndarray = None,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         A_noise: float = 0.04,
         **kwargs
@@ -834,6 +874,8 @@ class QubitBase(ABC):
         SpectrumData
             The T1 times for Fermi level noise over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
         
         def spectral_density(omega, T):
             return 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(hbar * omega / (2 * k * T)))
@@ -913,14 +955,14 @@ class QubitBase(ABC):
         spectrum_data.t1_table[noise_channel] = t1_table        
         return spectrum_data
     
-    def _get_tphi_vs_paramvals(
+    def _get_tphi_1_over_f_vs_paramvals(
         self, 
         param_name: str, 
         param_vals: np.ndarray, 
         A_noise: float,
         noise_channel: str,
-        noise_operator: str,
-        evals_count: int = 6,
+        noise_operators: Union[str, List[str]],
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         **kwargs
         ) -> SpectrumData:
@@ -937,8 +979,9 @@ class QubitBase(ABC):
             The amplitude of the noise.
         noise_channel : str
             The noise channel to calculate ('flux', etc.).
-        noise_operator : str
-            The noise operator to use.
+        noise_operators : Union[str, List[str]]
+            The noise operator(s) to use. The order of the operators must match the order of approximation.
+            i.e. ['d_hamiltonian_d_flux', 'd2_hamiltonian_d_flux2'].
         evals_count : int, optional
             The number of eigenvalues and eigenstates to calculate (default is 6).
         spectrum_data : SpectrumData, optional
@@ -951,27 +994,51 @@ class QubitBase(ABC):
         SpectrumData
             The Tphi times for the specified noise channels over the range of parameter values.
         """
+        if evals_count is None:
+            evals_count = self.dimension
+            
         p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
         p.update(kwargs)
-            
-        if spectrum_data is None or noise_operator not in spectrum_data.matrixelem_table:
-            new_spec = self.get_matelements_vs_paramvals(noise_operator, param_name, param_vals, evals_count=evals_count)
-            spectrum_data.matrixelem_table[noise_operator] = new_spec.matrixelem_table[noise_operator]
-            
+        
+        if isinstance(noise_operators, str):
+            noise_operators = [noise_operators]
+        
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(noise_operators, param_name, param_vals, evals_count=evals_count)
+        # Verify if the noise operators are in the matrix elements table
+        elif not all(op in spectrum_data.matrixelem_table for op in noise_operators):
+            missing_operators = [op for op in noise_operators if op not in spectrum_data.matrixelem_table]
+            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count)
+            spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
+        # Verify if the shape of the matrix elements is correct
+        elif all(spectrum_data.matrixelem_table[op].shape[1] != spectrum_data.matrixelem_table[op].shape[2] for op in noise_operators):
+            new_spec = self.get_matelements_vs_paramvals(noise_operators, param_name, param_vals, evals_count=evals_count)
+            for op in noise_operators:
+                spectrum_data.matrixelem_table[op] = new_spec.matrixelem_table[op]
+
         param_vals = spectrum_data.param_vals
                             
-        dE_d_lambda = np.diagonal(spectrum_data.matrixelem_table[noise_operator], axis1=1, axis2 = 2)
+        dE_d_lambda = np.diagonal(spectrum_data.matrixelem_table[noise_operators[0]], axis1=1, axis2 = 2)
         dEij_d_lambda = dE_d_lambda[:,:,np.newaxis] - dE_d_lambda[:,np.newaxis,:]
+        rate_1er = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
         
-        if spectrum_data.param_name == "phase":
-            d2Eij_d_lambda2 = np.gradient(dEij_d_lambda, param_vals, axis=0, edge_order=2)
-            rate_1er = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
-            rate_2nd = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 + 2 * np.log(p["omega_ir"] * p["t_exp"])**2)
+        if len(noise_operators) > 1:
+            d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[noise_operators[1]], axis1=1, axis2 = 2)
+            d2Hij_d_lambda2 = d2H_d_lambda2[:,:,np.newaxis] - d2H_d_lambda2[:,np.newaxis,:]
             
-            rate = np.sqrt(rate_1er**2 + rate_2nd**2)
-        else:
-            rate = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
-        
+            E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
+            E_diff = np.where(E_diff == 0, np.inf, E_diff)
+            dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[noise_operators[0]])**2
+            d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
+            d2Eij_d_lambda2_correction = d2E_d_lambda2_correction[:,:,np.newaxis] - d2E_d_lambda2_correction[:,np.newaxis,:]
+            
+            d2Eij_d_lambda2 = d2Hij_d_lambda2 + d2Eij_d_lambda2_correction
+            rate_2nd = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 +\
+                2 * np.log(p["omega_ir"] * p["t_exp"])**2)
+        elif len(noise_operators) == 1:
+            rate_2nd = 0
+            
+        rate = np.sqrt(rate_1er**2 + rate_2nd**2)        
         epsilon = 1e-12  # Pequeña constante para evitar divisiones por cero
         rate = np.where(rate == 0, epsilon, rate) 
         rate *= 2 * np.pi * 1e9 # Convert to rad/s
@@ -989,7 +1056,7 @@ class QubitBase(ABC):
         param_name: str, 
         param_vals: np.ndarray, 
         A_noise: float = 1e-6,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         **kwargs
         ) -> SpectrumData:
@@ -1016,12 +1083,12 @@ class QubitBase(ABC):
         SpectrumData
             The Tphi times for flux noise over the range of parameter values.
         """
-        return self._get_tphi_vs_paramvals(
+        return self._get_tphi_1_over_f_vs_paramvals(
             param_name=param_name, 
             param_vals=param_vals, 
             A_noise=A_noise, 
             noise_channel='flux_noise', 
-            noise_operator='d_hamiltonian_d_phase', 
+            noise_operators=['d_hamiltonian_d_phase', 'd2_hamiltonian_d_phase2'], 
             evals_count=evals_count, 
             spectrum_data=spectrum_data, 
             **kwargs
@@ -1032,7 +1099,7 @@ class QubitBase(ABC):
         param_name: str = None,
         param_vals: np.ndarray = None,
         A_noise: float = 1e-4,
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         **kwargs
     ) -> SpectrumData:
@@ -1059,12 +1126,12 @@ class QubitBase(ABC):
         SpectrumData
             The Tphi times for charge noise over the range of parameter values.
         """
-        return self._get_tphi_vs_paramvals(
+        return self._get_tphi_1_over_f_vs_paramvals(
             param_name=param_name, 
             param_vals=param_vals, 
             A_noise=A_noise, 
             noise_channel='charge_noise', 
-            noise_operator='d_hamiltonian_d_ng', 
+            noise_operators=['d_hamiltonian_d_ng', 'd2_hamiltonian_d_ng2'], 
             evals_count=evals_count, 
             spectrum_data=spectrum_data, 
             **kwargs
@@ -1144,11 +1211,11 @@ class QubitBase(ABC):
         noise_channels: Union[str, List[str]],
         param_name: str = None, 
         param_vals: np.ndarray = None, 
-        evals_count: int = 6,
+        evals_count: int = None,
         spectrum_data: SpectrumData = None,
         **kwargs
         ) -> SpectrumData:
-        
+            
         if spectrum_data is not None:
             param_name = spectrum_data.param_name
             param_vals = spectrum_data.param_vals
@@ -1445,17 +1512,21 @@ class QubitBase(ABC):
         Tuple[plt.Figure, plt.Axes]
             The figure and axes of the plot.
         """
+        if isinstance(noise_channels, str):
+            noise_channels = [noise_channels]
+            
         if spectrum_data is None:
-            evals_count = max(max(i,j) for i, j in select_elems) + 1
             operators = set()
             for channel in noise_channels:
                 if channel == 'flux_noise':
                     operators.add('d_hamiltonian_d_phase')
-                if channel == 'charge_noise':
+                    operators.add('d2_hamiltonian_d_phase2')
+                elif channel == 'charge_noise':
                     operators.add('d_hamiltonian_d_ng')
+                    operators.add('d2_hamiltonian_d_ng2')
                 else:
                     raise ValueError(f"Unsupported Tphi noise channel: {channel}")
-            spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals, evals_count=evals_count)
+            spectrum_data = self.get_matelements_vs_paramvals(list(operators), param_name, param_vals)
         else:
             param_name = spectrum_data.param_name
             param_vals = spectrum_data.param_vals
@@ -1463,8 +1534,6 @@ class QubitBase(ABC):
         if isinstance(select_elems, int):
             select_elems = [(i, j) for i in range(select_elems) for j in range(i) if i > j]
 
-        if isinstance(noise_channels, str):
-            noise_channels = [noise_channels]
 
         for channel in noise_channels:
             if channel not in spectrum_data.tphi_table:

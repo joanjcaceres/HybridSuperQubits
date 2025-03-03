@@ -188,6 +188,18 @@ class Ferbo(QubitBase):
         """
         return 8 * self.Ec * (self.n_operator() - self.delta_Gamma/4/(self.Gamma+self.Delta) * np.kron(sigma_z(), np.eye(self.dimension//2)))
     
+    def d2_hamiltonian_d_ng2(self) -> np.ndarray:
+        """
+        Returns the second derivative of the Hamiltonian with respect to the number of charge offset.
+        
+        Returns
+        -------
+        np.ndarray
+            The second derivative of the Hamiltonian with respect to the number of charge offset.
+        
+        """
+        return 8 * self.Ec * np.eye(self.dimension)
+    
     def d_hamiltonian_d_phase(self) -> np.ndarray:
         """
         Returns the derivative of the Hamiltonian with respect to the external magnetic phase.
