@@ -1003,6 +1003,12 @@ class QubitBase(ABC):
         if isinstance(noise_operators, str):
             noise_operators = [noise_operators]
         
+        first_op = noise_operators[0]
+        if 'd_hamiltonian_d_' in first_op:
+            deriv_param = first_op.split('d_hamiltonian_d_')[1]
+        else:
+            raise ValueError("The operator must be of the form 'd_hamiltonian_d_X'")
+        
         if spectrum_data is None:
             spectrum_data = self.get_matelements_vs_paramvals(noise_operators, param_name, param_vals, evals_count=evals_count)
         # Verify if the noise operators are in the matrix elements table
@@ -1022,17 +1028,10 @@ class QubitBase(ABC):
         dEij_d_lambda = dE_d_lambda[:,:,np.newaxis] - dE_d_lambda[:,np.newaxis,:]
         rate_1er = np.abs(dEij_d_lambda) * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
         
-        if len(noise_operators) > 1:
-            d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[noise_operators[1]], axis1=1, axis2 = 2)
-            d2Hij_d_lambda2 = d2H_d_lambda2[:,:,np.newaxis] - d2H_d_lambda2[:,np.newaxis,:]
-            
-            E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
-            E_diff = np.where(E_diff == 0, np.inf, E_diff)
-            dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[noise_operators[0]])**2
-            d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
-            d2Eij_d_lambda2_correction = d2E_d_lambda2_correction[:,:,np.newaxis] - d2E_d_lambda2_correction[:,np.newaxis,:]
-            
-            d2Eij_d_lambda2 = d2Hij_d_lambda2 + d2Eij_d_lambda2_correction
+        if len(noise_operators) > 1:            
+            spectrum_data = self.get_d2E_d_param_vs_paramvals(operators=noise_operators, spectrum_data=spectrum_data)
+            d2E_dX2 = spectrum_data.d2E_table[f'd2E_d_{deriv_param}2']
+            d2Eij_d_lambda2 = d2E_dX2[:,:,np.newaxis] - d2E_dX2[:,np.newaxis,:]
             rate_2nd = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 +\
                 2 * np.log(p["omega_ir"] * p["t_exp"])**2)
         elif len(noise_operators) == 1:
@@ -1610,3 +1609,82 @@ class QubitBase(ABC):
             for param, label in self.PARAM_LABELS.items()
         ]
         return ', '.join(filter(None, title_parts))
+    
+    def get_d2E_d_param_vs_paramvals(
+        self, 
+        operators: List[str],
+        param_name: str = None, 
+        param_vals: np.ndarray = None, 
+        evals_count: int = None,
+        spectrum_data: SpectrumData = None,
+        **kwargs
+    ) -> SpectrumData:
+        """
+        Calculates the second derivative of energy with respect to a parameter over a range of parameter values.
+
+        Parameters
+        ----------
+        operators : List[str]
+            The operators used to calculate the derivatives. Must contain two elements:
+            First element: first derivative operator (e.g., 'd_hamiltonian_d_phase')
+            Second element: second derivative operator (e.g., 'd2_hamiltonian_d_phase2')
+        param_name : str, optional
+            The name of the parameter to vary.
+        param_vals : np.ndarray, optional
+            The values of the parameter to vary.
+        evals_count : int, optional
+            The number of eigenvalues and eigenstates to calculate (default is None, which uses self.dimension).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+
+        Returns
+        -------
+        SpectrumData
+            The spectral data with added second derivatives.
+        """
+        if evals_count is None:
+            evals_count = self.dimension
+            
+        if len(operators) != 2:
+            raise ValueError("operators must contain exactly two elements: first and second derivative operators")
+
+        first_op = operators[0]
+        if 'd_hamiltonian_d_' in first_op:
+            deriv_param = first_op.split('d_hamiltonian_d_')[1]
+        else:
+            raise ValueError("The operators must be of the form 'd_hamiltonian_d_X' and 'd2_hamiltonian_d_X2'.")
+        
+        # Check if spectrum_data has enough eigenvalues
+        if spectrum_data is not None and spectrum_data.energy_table.shape[1] < self.dimension:
+            print(f"Warning: spectrum_data contains only {spectrum_data.energy_table.shape[1]} eigenvalues, but {self.dimension} are needed for accurate second derivative calculation.")
+            print("Recalculating spectrum_data with sufficient eigenvalues...")
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            spectrum_data = None
+
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
+        elif not all(op in spectrum_data.matrixelem_table for op in operators):
+            missing_operators = [op for op in operators if op not in spectrum_data.matrixelem_table]
+            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count)
+            spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
+
+        param_vals = spectrum_data.param_vals
+        
+        # Calculate diagonal elements of the second derivative operator
+        d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[operators[1]], axis1=1, axis2=2)
+        
+        # Calculate energy differences
+        E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
+        E_diff = np.where(E_diff == 0, np.inf, E_diff)
+        
+        # Calculate the second derivative correction
+        dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[operators[0]])**2
+        d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
+        
+        # Calculate the total second derivative
+        d2E_d_lambda2 = d2H_d_lambda2 + d2E_d_lambda2_correction
+        
+        spectrum_data.d2E_table[f'd2E_d_{deriv_param}2'] = np.real(d2E_d_lambda2)
+        
+        return spectrum_data

@@ -15,6 +15,7 @@ class SpectrumData:
         matrixelem_table: Dict[str, np.ndarray] = None,
         t1_table: Dict[str, np.ndarray] = None,
         tphi_table: Dict[Tuple[int, int, str], np.ndarray] = None,
+        d2E_table: Dict[str, np.ndarray] = None,
         **kwargs
     ) -> None:
         
@@ -26,6 +27,7 @@ class SpectrumData:
         self.matrixelem_table = matrixelem_table if matrixelem_table is not None else {}
         self.t1_table = t1_table if t1_table is not None else {}
         self.tphi_table = tphi_table if tphi_table is not None else {}
+        self.d2E_table = d2E_table if d2E_table is not None else {}
         for dataname, data in kwargs.items():
             setattr(self, dataname, data)
 
