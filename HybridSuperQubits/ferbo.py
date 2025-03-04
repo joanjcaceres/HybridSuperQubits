@@ -188,6 +188,18 @@ class Ferbo(QubitBase):
         """
         return 8 * self.Ec * (self.n_operator() - self.delta_Gamma/4/(self.Gamma+self.Delta) * np.kron(sigma_z(), np.eye(self.dimension//2)))
     
+    def d2_hamiltonian_d_ng2(self) -> np.ndarray:
+        """
+        Returns the second derivative of the Hamiltonian with respect to the number of charge offset.
+        
+        Returns
+        -------
+        np.ndarray
+            The second derivative of the Hamiltonian with respect to the number of charge offset.
+        
+        """
+        return 8 * self.Ec * np.eye(self.dimension)
+    
     def d_hamiltonian_d_phase(self) -> np.ndarray:
         """
         Returns the derivative of the Hamiltonian with respect to the external magnetic phase.
@@ -202,6 +214,21 @@ class Ferbo(QubitBase):
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
             return - self.Gamma/2 * np.kron(sigma_z(), sinm(phase_op/2)) + self.delta_Gamma/2 * np.kron(sigma_y(), cosm(phase_op/2))
+        
+    def d2_hamiltonian_d_phase2(self) -> np.ndarray:
+        """
+        Returns the second derivative of the Hamiltonian with respect to the external magnetic phase.
+
+        Returns
+        -------
+        np.ndarray
+            The second derivative of the Hamiltonian with respect to the external magnetic phase.
+        """
+        if self.flux_grouping == 'L':
+            return self.El * np.eye(self.dimension)
+        elif self.flux_grouping == 'ABS':
+            phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
+            return self.Gamma/4 * np.kron(sigma_z(), cosm(phase_op/2)) + self.delta_Gamma/4 * np.kron(sigma_y(), sinm(phase_op/2))
         
                 
     def d_hamiltonian_d_er(self) -> np.ndarray:

@@ -1,5 +1,6 @@
 from qutip import Qobj
 import scipy.sparse as sp
+from scipy.linalg import sqrtm
 import numpy as np
 
 def state_to_density_matrix(state_vector: np.ndarray) -> np.ndarray:
@@ -73,7 +74,51 @@ def purity(density_matrix: np.ndarray) -> float:
     float
         The purity of the quantum state.
     """
-    return np.trace(np.dot(density_matrix, density_matrix)).real
+    return np.abs(np.trace(density_matrix @ density_matrix))
+
+def trace_distance(rho1: np.ndarray, rho2: np.ndarray) -> float:
+    """
+    Calculate the trace distance between two density matrices.
+
+    The trace distance between two density matrices rho1 and rho2 is defined as:
+    0.5 * Tr(|rho1 - rho2|), where |A| = sqrt(A^\dagger A) is the absolute value of A.
+
+    Parameters
+    ----------
+    rho1 : numpy.ndarray
+        The first density matrix.
+    rho2 : numpy.ndarray
+        The second density matrix.
+
+    Returns
+    -------
+    float
+        The trace distance between the two density matrices.
+    """
+    return 0.5 * np.linalg.norm(rho1 - rho2, ord=1)
+
+def fidelity(rho1: np.ndarray, rho2: np.ndarray) -> float:
+    """
+    Calculate the fidelity between two density matrices.
+
+    The fidelity between two density matrices rho1 and rho2 is defined as:
+    |Tr(sqrt(sqrt(rho1) * rho2 * sqrt(rho1)))|^2.
+
+    Parameters
+    ----------
+    rho1 : numpy.ndarray
+        The first density matrix.
+    rho2 : numpy.ndarray
+        The second density matrix.
+
+    Returns
+    -------
+    float
+        The fidelity between the two density matrices.
+    """
+    sqrt_rho1 = sqrtm(rho1)
+    fidelity = np.abs(np.trace(sqrtm(sqrt_rho1 @ rho2 @ sqrt_rho1)))**2
+    return fidelity
 
 def destroy(dimension: int) -> np.ndarray:
     """
