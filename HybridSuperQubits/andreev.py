@@ -70,7 +70,7 @@ class Andreev(QubitBase):
         np.ndarray
             The charge number operator.
         """
-        n_values = np.arange(-self.n_cut, self.n_cut+1/2 , 1/2) - self.ng * np.ones(self.dimension // 2)
+        n_values = np.arange(-self.n_cut, self.n_cut+1/2 , 1/2)
         n_matrix = np.diag(n_values)
         return np.kron(np.eye(2), n_matrix)  
     
@@ -102,7 +102,7 @@ class Andreev(QubitBase):
             The Hamiltonian of the system.
         """
         n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
-        n_op = self.n_operator() + n_x * np.kron(sigma_x(),np.eye(self.dimension//2))
+        n_op = self.n_operator() + n_x * np.kron(sigma_x(),np.eye(self.dimension//2)) - self.ng * np.kron(np.eye(2),np.eye(self.dimension//2))
         
         charge_term = 4 * self.Ec * n_op @ n_op
 
@@ -119,7 +119,10 @@ class Andreev(QubitBase):
             The derivative of the Hamiltonian with respect to the number of charge offset.
         
         """
-        return  - 8 * self.Ec * self.n_operator()
+        n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
+        n_op = self.n_operator() + n_x * np.kron(sigma_x(),np.eye(self.dimension//2)) - self.ng * np.kron(np.eye(2),np.eye(self.dimension//2))
+
+        return  - 8 * self.Ec * n_op
     
     def d_hamiltonian_d_phase(self) -> np.ndarray:
         """
