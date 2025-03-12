@@ -1065,7 +1065,7 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
             
-        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
+        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e9, "t_exp": 10e-6}
         p.update(kwargs)
         
         if isinstance(noise_operators, str):
