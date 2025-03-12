@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .qubit_base import QubitBase
 from scipy.linalg import cosm, sinm, eigh, expm
-from typing import Any, Dict, Optional, Tuple, Union, Iterable
+from typing import Any, Dict, Optional, Tuple, Union, Iterable, List
 from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
 
 class Ferbo(QubitBase):
@@ -363,13 +363,11 @@ class Ferbo(QubitBase):
     def tphi_1_over_f_flux(
         self, 
         A_noise: float = 1e-6,
-        i: int = 0, 
-        j: int = 1, 
         esys: Tuple[np.ndarray, np.ndarray] = None, 
         get_rate: bool = False, 
         **kwargs
         ) -> float:
-        return self.tphi_1_over_f(A_noise, i, j, 'd_hamiltonian_d_phase', esys=esys, get_rate=get_rate, **kwargs)
+        return self.tphi_1_over_f(A_noise, ['d_hamiltonian_d_phase', 'd2_hamiltonian_d_phase'], esys=esys, get_rate=get_rate, **kwargs)
 
     def plot_wavefunction(
         self, 
