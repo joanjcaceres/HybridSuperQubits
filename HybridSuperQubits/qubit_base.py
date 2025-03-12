@@ -547,6 +547,51 @@ class QubitBase(ABC):
         rate *= 2 * np.pi * 1e9 # Convert to rad/s
 
         return rate if get_rate else 1 / rate
+    
+    def tphi_CQPS(
+        self,
+        fp: float = 17e9,
+        z: float = 0.05,
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        get_rate: bool = False,
+        ) -> np.ndarray:
+        """
+        Calculates the CQPS dephasing time (or rate).
+        
+        Parameters
+        ----------
+        fp : float
+            Plasma frequency.
+        z : float
+            Normalized impedance (z = Z / RQ).
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors (default is None).
+        get_rate : bool, optional
+            Whether to return the rate instead of the Tphi time (default is False).
+            
+        Returns
+        -------
+        np.ndarray
+            The CQPS dephasing time (or rate).
+        """
+        
+        if esys is None:
+            evals, evecs = self.eigensys()
+        else:
+            evals, evecs = esys
+            
+        phase_slip_frequency = 4 * np.sqrt(2)/np.pi * fp / np.sqrt(z) * np.exp(-4 / np.pi / z)
+        displacement_operator_melem = self.matrixelement_table('displacement_operator', evecs=evecs)
+        displacement_operator_diagonal = np.diagonal(displacement_operator_melem)
+        
+        structure_factor = displacement_operator_diagonal[:, np.newaxis] - displacement_operator_diagonal[np.newaxis, :]
+        N_junctions = fp / 2 / np.pi / (self.El * 1e9) / z
+        
+        rate = np.pi * np.sqrt(N_junctions) * phase_slip_frequency * np.abs(structure_factor)
+        rate = np.where(rate == 0, np.inf, rate)
+        
+        return rate if get_rate else 1 / rate
+        
         
     def get_t1_vs_paramvals(
         self, 
