@@ -472,6 +472,74 @@ class QubitBase(ABC):
         rate = 2 * np.pi * matrix_element**2 * s
         rate *= 1e9  # Convert to GHz
         return rate if get_rate else 1 / rate
+    
+    def tphi_1_over_f(
+        self, 
+        A_noise: float, 
+        noise_op: Union[str, List[str]],
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        get_rate: bool = False,
+        **kwargs
+        ) -> np.ndarray:
+        """
+        Calculates the 1/f dephasing time (or rate) due to an arbitrary noise source.
+
+        Parameters
+        ----------
+        A_noise : float
+            Noise strength.
+        noise_op : Union[str, List[str]]
+            Noise operator(s) to use.
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors (default is None).
+        get_rate : bool, optional
+            Whether to return the rate instead of the Tphi time (default is False).
+
+        Returns
+        -------
+        np.ndarray
+            The 1/f dephasing time (or rate) due to an arbitrary noise source.
+        """
+        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e9, "t_exp": 10e-6}
+        p.update(kwargs)
+                
+        if esys is None:
+            evals, evecs = self.eigensys()
+        else:
+            evals, evecs = esys
+            
+        if isinstance(noise_op, str):
+            noise_op = [noise_op]
+
+        dH_d_lambda = self.matrixelement_table(noise_op[0], evecs=evecs)
+        dE_d_lambda = np.real(np.diagonal(dH_d_lambda))
+        dEij_d_lambda = dE_d_lambda[:, np.newaxis] - dE_d_lambda[np.newaxis, :]
+
+        rate_ij_1st_order = (dEij_d_lambda * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"]))))
+        
+        if len(noise_op) > 1:
+            noise_operator_2nd = getattr(self, noise_op[1])()
+            d2H_d_lambda2 = np.diagonal(noise_operator_2nd)
+            E_diff = evals[:, np.newaxis] - evals[np.newaxis, :]
+            E_diff = np.where(E_diff == 0, np.inf, E_diff)
+            
+            dH_d_lambda_matelems_square = np.abs(dH_d_lambda)**2
+            d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff)
+            
+            d2E_d_lambda2 = d2H_d_lambda2 + d2E_d_lambda2_correction
+            d2Eij_d_lambda2 = d2E_d_lambda2[:, np.newaxis] + d2E_d_lambda2[np.newaxis, :]
+            
+            rate_ij_2nd_order = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 +\
+                2 * np.log(p["omega_ir"] * p["t_exp"])**2)
+        elif len(noise_op) == 1:
+            rate_ij_2nd_order = 0
+            
+        rate = np.sqrt(rate_ij_1st_order**2 + rate_ij_2nd_order**2)
+        epsilon = 1e-12
+        rate = np.where(rate == 0, epsilon, rate)
+        rate *= 2 * np.pi * 1e9 # Convert to rad/s
+
+        return rate if get_rate else 1 / rate
         
     def get_t1_vs_paramvals(
         self, 

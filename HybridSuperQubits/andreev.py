@@ -228,37 +228,6 @@ class Andreev(QubitBase):
             Wave function data containing basis labels, amplitudes, and energy.
         """
         return NotImplementedError("Not implemented yet")
-        # if esys is None:
-        #     evals_count = max(which + 1, 3)
-        #     evals, evecs = self.eigensys(evals_count)
-        # else:
-        #     evals, evecs = esys
-            
-        # dim = self.dimension//2
-        
-        # if basis == 'default':
-        #     evecs = evecs.T
-        # elif basis == 'abs':
-        #     U = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])
-        #     change_of_basis_operator = np.kron(np.eye(dim), U)
-        #     evecs = (change_of_basis_operator @ evecs).T        
-                        
-        # if phi_grid is None:
-        #     phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
-
-        # phi_basis_labels = phi_grid
-        # wavefunc_osc_basis_amplitudes = evecs[which, :]
-        # phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex_)
-        # phi_osc = self.phi_osc()
-        # for n in range(dim):
-        #     phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[2 * n] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
-        #     phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[2 * n + 1] * self.harm_osc_wavefunction(n, phi_basis_labels, phi_osc)
-
-        # return {
-        #     "basis_labels": phi_basis_labels,
-        #     "amplitudes": phi_wavefunc_amplitudes,
-        #     "energy": evals[which]
-        # }
         
     def potential(self, phi: Union[float, np.ndarray]) -> np.ndarray:
         """
@@ -275,86 +244,7 @@ class Andreev(QubitBase):
             The potential energy values.
         """
         return NotImplementedError("Not implemented yet")
-        # phi_array = np.atleast_1d(phi)
-        # evals_array = np.zeros((len(phi_array), 2))
-        # phi_ext = 2 * np.pi * self.phase
 
-        # for i, phi_val in enumerate(phi_array):
-        #     if self.flux_grouping == 'ABS':
-        #         inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
-        #         andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_x() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() - self.er * sigma_z()
-        #     elif self.flux_grouping == 'L':
-        #         inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * np.eye(2)
-        #         andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_x() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() - self.er * sigma_z()
-            
-        #     potential_operator = inductive_term + andreev_term
-        #     evals_array[i] = eigh(
-        #         potential_operator,
-        #         eigvals_only=True,
-        #         check_finite=False,
-        # )
-
-        # return evals_array
-    
-    def tphi_1_over_f(
-        self, 
-        A_noise: float, 
-        i: int, 
-        j: int, 
-        noise_op: str,
-        esys: Tuple[np.ndarray, np.ndarray] = None,
-        get_rate: bool = False,
-        **kwargs
-        ) -> float:
-        """
-        Calculates the 1/f dephasing time (or rate) due to an arbitrary noise source.
-
-        Parameters
-        ----------
-        A_noise : float
-            Noise strength.
-        i : int
-            State index that along with j defines a qubit.
-        j : int
-            State index that along with i defines a qubit.
-        noise_op : str
-            Name of the noise operator, typically Hamiltonian derivative w.r.t. noisy parameter.
-        esys : Tuple[np.ndarray, np.ndarray], optional
-            Precomputed eigenvalues and eigenvectors (default is None).
-        get_rate : bool, optional
-            Whether to return the rate instead of the Tphi time (default is False).
-
-        Returns
-        -------
-        float
-            The 1/f dephasing time (or rate).
-        """
-        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
-        p.update(kwargs)
-                
-        if esys is None:
-            evals, evecs = self.eigensys(evals_count=max(j, i) + 1)
-        else:
-            evals, evecs = esys
-
-        noise_operator = getattr(self, noise_op)()    
-        dEij_d_lambda = np.abs(evecs[i].conj().T @ noise_operator @ evecs[i] - evecs[j].conj().T @ noise_operator @ evecs[j])
-
-        rate = (dEij_d_lambda * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"]))))
-        rate *= 2 * np.pi * 1e9 # Convert to rad/s
-
-        return rate if get_rate else 1 / rate
-    
-    def tphi_1_over_f_flux(
-        self, 
-        A_noise: float = 1e-6,
-        i: int = 0, 
-        j: int = 1, 
-        esys: Tuple[np.ndarray, np.ndarray] = None, 
-        get_rate: bool = False, 
-        **kwargs
-        ) -> float:
-        return self.tphi_1_over_f(A_noise, i, j, 'd_hamiltonian_d_phase', esys=esys, get_rate=get_rate, **kwargs)
 
     def plot_wavefunction(
         self, 

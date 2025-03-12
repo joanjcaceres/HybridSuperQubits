@@ -360,55 +360,6 @@ class Ferbo(QubitBase):
 
         return evals_array
     
-    def tphi_1_over_f(
-        self, 
-        A_noise: float, 
-        i: int, 
-        j: int, 
-        noise_op: str,
-        esys: Tuple[np.ndarray, np.ndarray] = None,
-        get_rate: bool = False,
-        **kwargs
-        ) -> float:
-        """
-        Calculates the 1/f dephasing time (or rate) due to an arbitrary noise source.
-
-        Parameters
-        ----------
-        A_noise : float
-            Noise strength.
-        i : int
-            State index that along with j defines a qubit.
-        j : int
-            State index that along with i defines a qubit.
-        noise_op : str
-            Name of the noise operator, typically Hamiltonian derivative w.r.t. noisy parameter.
-        esys : Tuple[np.ndarray, np.ndarray], optional
-            Precomputed eigenvalues and eigenvectors (default is None).
-        get_rate : bool, optional
-            Whether to return the rate instead of the Tphi time (default is False).
-
-        Returns
-        -------
-        float
-            The 1/f dephasing time (or rate).
-        """
-        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
-        p.update(kwargs)
-                
-        if esys is None:
-            evals, evecs = self.eigensys(evals_count=max(j, i) + 1)
-        else:
-            evals, evecs = esys
-
-        noise_operator = getattr(self, noise_op)()    
-        dEij_d_lambda = np.abs(evecs[i].conj().T @ noise_operator @ evecs[i] - evecs[j].conj().T @ noise_operator @ evecs[j])
-
-        rate = (dEij_d_lambda * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"]))))
-        rate *= 2 * np.pi * 1e9 # Convert to rad/s
-
-        return rate if get_rate else 1 / rate
-    
     def tphi_1_over_f_flux(
         self, 
         A_noise: float = 1e-6,
