@@ -363,6 +363,7 @@ class QubitBase(ABC):
         j: int = 0, 
         Q_cap: Union[float, Callable] = None,
         T: float = 0.015, 
+        total: bool = True,
         esys: Tuple[np.ndarray, np.ndarray] = None, 
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
@@ -378,7 +379,8 @@ class QubitBase(ABC):
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
-            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_op = noise_op or self.n_operator()
             
@@ -389,7 +391,8 @@ class QubitBase(ABC):
             
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
         
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
+        
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table('n_operator', evecs=evecs, evals_count=max(i, j) + 1)
         matrix_element = np.abs(matrix_elements[i, j])
@@ -405,6 +408,7 @@ class QubitBase(ABC):
         j: int = 0,
         Q_ind: float = None,
         T: float = 0.015, 
+        total: bool = True,
         esys: Tuple[np.ndarray, np.ndarray] = None,
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
@@ -424,7 +428,8 @@ class QubitBase(ABC):
             Q_ind_fun = lambda omega: Q_ind
         
         def spectral_density(omega, T):
-            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -432,7 +437,7 @@ class QubitBase(ABC):
             evals, evecs = esys
             
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
         
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table('phase_operator', evecs=evecs, evals_count=max(i, j) + 1)
@@ -449,13 +454,15 @@ class QubitBase(ABC):
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015, 
+        total: bool = True,
         esys: Tuple[np.ndarray, np.ndarray] = None,
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
         ) -> float:
         
         def spectral_density(omega, T):
-            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
+            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -463,7 +470,7 @@ class QubitBase(ABC):
             evals, evecs = esys
             
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
         
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table('d_hamiltonian_d_phase', evecs=evecs, evals_count=max(i, j) + 1)
@@ -611,6 +618,7 @@ class QubitBase(ABC):
         spectrum_data: SpectrumData = None,
         Q_cap: Union[float, Callable] = None,
         T: float = 0.015, 
+        total: bool = True,
         **kwargs
         ) -> SpectrumData:
         """
@@ -650,13 +658,14 @@ class QubitBase(ABC):
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
-            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_operator = 'n_operator'
         noise_channel = 'capacitive'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, total, **kwargs
         )
     
     def get_t1_inductive_vs_paramvals(
@@ -667,6 +676,7 @@ class QubitBase(ABC):
         spectrum_data: SpectrumData = None,
         Q_ind: float = None,
         T: float = 0.015, 
+        total: bool = True,
         **kwargs
         ) -> SpectrumData:
         """
@@ -686,6 +696,8 @@ class QubitBase(ABC):
             The inductance quality factor (default is 500e6).
         T : float, optional
             The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
         **kwargs
             Additional arguments to pass to the T1 calculation method.
 
@@ -710,13 +722,14 @@ class QubitBase(ABC):
         else:
             Q_ind_fun = lambda omega: Q_ind
         def spectral_density(omega, T):
-            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_operator = 'phase_operator'
         noise_channel = 'inductive'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T,total, **kwargs
         )
         
     def get_t1_charge_impedance_vs_paramvals(
@@ -727,6 +740,7 @@ class QubitBase(ABC):
         spectrum_data: SpectrumData = None,
         Z: float = 50,
         T: float = 0.015,
+        total: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -746,6 +760,8 @@ class QubitBase(ABC):
             The impedance (default is 50).
         T : float, optional
             The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
         **kwargs
         
         Returns
@@ -758,13 +774,14 @@ class QubitBase(ABC):
             
         def spectral_density(omega, T):
             Rk = h / ((2 * e)**2)
-            return omega/1e9 / Rk * Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
+            return omega/1e9 / Rk * Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_operator = 'n_operator'
         noise_channel = 'charge_impedance'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, total, **kwargs
         )
         
     def get_t1_flux_bias_line_vs_paramvals(
@@ -776,6 +793,7 @@ class QubitBase(ABC):
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015,
+        total: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -797,6 +815,8 @@ class QubitBase(ABC):
             The impedance (default is 50).
         T : float, optional
             The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
         **kwargs
             Additional arguments to pass to the T1 calculation method.
             
@@ -809,13 +829,14 @@ class QubitBase(ABC):
             evals_count = self.dimension
             
         def spectral_density(omega, T):
-            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
+            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
         
         noise_operator = 'd_hamiltonian_d_phase'
         noise_channel = 'flux_bias_line'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T,total, **kwargs
         )
         
     def get_t1_1_over_f_flux_vs_paramvals(
@@ -918,6 +939,7 @@ class QubitBase(ABC):
         evals_count: int = None,
         spectrum_data: SpectrumData = None,
         A_noise: float = 0.04,
+        total: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -946,14 +968,15 @@ class QubitBase(ABC):
             evals_count = self.dimension
         
         def spectral_density(omega, T):
-            return 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(hbar * omega / (2 * k * T)))
+            return 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(hbar * omega / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
         
         noise_operator = 'd_hamiltonian_d_er'
         noise_channel = 'Andreev'
         
         T = 0.015
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel,T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel,T,total, **kwargs
         )
         
         
@@ -967,6 +990,7 @@ class QubitBase(ABC):
         noise_operator: str, 
         noise_channel: str,
         T: float, 
+        total: bool = True,
         **kwargs
         ) -> SpectrumData:
         """
@@ -1008,7 +1032,7 @@ class QubitBase(ABC):
         epsilon = 1e-12  # Pequeña constante para evitar divisiones por cero
         omega = np.where(omega == 0, epsilon, omega) 
         
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
         
         matrix_element = spectrum_data.matrixelem_table[noise_operator]
         rate = 2 * np.pi * np.abs(matrix_element)**2 * s
