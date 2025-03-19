@@ -363,6 +363,7 @@ class QubitBase(ABC):
         j: int = 0, 
         Q_cap: Union[float, Callable] = None,
         T: float = 0.015, 
+        total: bool = True,
         esys: Tuple[np.ndarray, np.ndarray] = None, 
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
@@ -378,7 +379,8 @@ class QubitBase(ABC):
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
-            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_op = noise_op or self.n_operator()
             
@@ -389,7 +391,8 @@ class QubitBase(ABC):
             
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
         
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
+        
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table('n_operator', evecs=evecs, evals_count=max(i, j) + 1)
         matrix_element = np.abs(matrix_elements[i, j])
@@ -405,6 +408,7 @@ class QubitBase(ABC):
         j: int = 0,
         Q_ind: float = None,
         T: float = 0.015, 
+        total: bool = True,
         esys: Tuple[np.ndarray, np.ndarray] = None,
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
@@ -424,7 +428,8 @@ class QubitBase(ABC):
             Q_ind_fun = lambda omega: Q_ind
         
         def spectral_density(omega, T):
-            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -432,7 +437,7 @@ class QubitBase(ABC):
             evals, evecs = esys
             
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
         
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table('phase_operator', evecs=evecs, evals_count=max(i, j) + 1)
@@ -449,13 +454,15 @@ class QubitBase(ABC):
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015, 
+        total: bool = True,
         esys: Tuple[np.ndarray, np.ndarray] = None,
         matrix_elements: np.ndarray = None, 
         get_rate: bool = False,
         ) -> float:
         
         def spectral_density(omega, T):
-            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
+            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -463,7 +470,7 @@ class QubitBase(ABC):
             evals, evecs = esys
             
         omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
         
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table('d_hamiltonian_d_phase', evecs=evecs, evals_count=max(i, j) + 1)
@@ -472,6 +479,119 @@ class QubitBase(ABC):
         rate = 2 * np.pi * matrix_element**2 * s
         rate *= 1e9  # Convert to GHz
         return rate if get_rate else 1 / rate
+    
+    def tphi_1_over_f(
+        self, 
+        A_noise: float, 
+        noise_op: Union[str, List[str]],
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        get_rate: bool = False,
+        **kwargs
+        ) -> np.ndarray:
+        """
+        Calculates the 1/f dephasing time (or rate) due to an arbitrary noise source.
+
+        Parameters
+        ----------
+        A_noise : float
+            Noise strength.
+        noise_op : Union[str, List[str]]
+            Noise operator(s) to use.
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors (default is None).
+        get_rate : bool, optional
+            Whether to return the rate instead of the Tphi time (default is False).
+
+        Returns
+        -------
+        np.ndarray
+            The 1/f dephasing time (or rate) due to an arbitrary noise source.
+        """
+        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e9, "t_exp": 10e-6}
+        p.update(kwargs)
+                
+        if esys is None:
+            evals, evecs = self.eigensys()
+        else:
+            evals, evecs = esys
+            
+        if isinstance(noise_op, str):
+            noise_op = [noise_op]
+
+        dH_d_lambda = self.matrixelement_table(noise_op[0], evecs=evecs)
+        dE_d_lambda = np.real(np.diagonal(dH_d_lambda))
+        dEij_d_lambda = dE_d_lambda[:, np.newaxis] - dE_d_lambda[np.newaxis, :]
+
+        rate_ij_1st_order = (dEij_d_lambda * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"]))))
+        
+        if len(noise_op) > 1:
+            noise_operator_2nd = getattr(self, noise_op[1])()
+            d2H_d_lambda2 = np.diagonal(noise_operator_2nd)
+            E_diff = evals[:, np.newaxis] - evals[np.newaxis, :]
+            E_diff = np.where(E_diff == 0, np.inf, E_diff)
+            
+            dH_d_lambda_matelems_square = np.abs(dH_d_lambda)**2
+            d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff)
+            
+            d2E_d_lambda2 = d2H_d_lambda2 + d2E_d_lambda2_correction
+            d2Eij_d_lambda2 = d2E_d_lambda2[:, np.newaxis] + d2E_d_lambda2[np.newaxis, :]
+            
+            rate_ij_2nd_order = np.abs(d2Eij_d_lambda2) * A_noise**2  * np.sqrt(2 * np.log(p['omega_uv']/p['omega_ir'])**2 +\
+                2 * np.log(p["omega_ir"] * p["t_exp"])**2)
+        elif len(noise_op) == 1:
+            rate_ij_2nd_order = 0
+            
+        rate = np.sqrt(rate_ij_1st_order**2 + rate_ij_2nd_order**2)
+        epsilon = 1e-12
+        rate = np.where(rate == 0, epsilon, rate)
+        rate *= 2 * np.pi * 1e9 # Convert to rad/s
+
+        return rate if get_rate else 1 / rate
+    
+    def tphi_CQPS(
+        self,
+        fp: float = 17e9,
+        z: float = 0.05,
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        get_rate: bool = False,
+        ) -> np.ndarray:
+        """
+        Calculates the CQPS dephasing time (or rate).
+        
+        Parameters
+        ----------
+        fp : float
+            Plasma frequency.
+        z : float
+            Normalized impedance (z = Z / RQ).
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors (default is None).
+        get_rate : bool, optional
+            Whether to return the rate instead of the Tphi time (default is False).
+            
+        Returns
+        -------
+        np.ndarray
+            The CQPS dephasing time (or rate).
+        """
+        
+        if esys is None:
+            evals, evecs = self.eigensys()
+        else:
+            evals, evecs = esys
+            
+        phase_slip_frequency = 4 * np.sqrt(2)/np.pi * fp / np.sqrt(z) * np.exp(-4 / np.pi / z)
+        displacement_operator_melem = self.matrixelement_table('displacement_operator', evecs=evecs)
+        displacement_operator_diagonal = np.diagonal(displacement_operator_melem)
+        
+        structure_factor = displacement_operator_diagonal[:, np.newaxis] - displacement_operator_diagonal[np.newaxis, :]
+        N_junctions = fp / 2 / np.pi / (self.El * 1e9) / z
+        
+        rate = np.pi * np.sqrt(N_junctions) * phase_slip_frequency * np.abs(structure_factor)
+        rate = np.where(rate == 0, np.inf, rate)
+        
+        return rate if get_rate else 1 / rate
+        
         
     def get_t1_vs_paramvals(
         self, 
@@ -543,6 +663,7 @@ class QubitBase(ABC):
         spectrum_data: SpectrumData = None,
         Q_cap: Union[float, Callable] = None,
         T: float = 0.015, 
+        total: bool = True,
         **kwargs
         ) -> SpectrumData:
         """
@@ -582,13 +703,14 @@ class QubitBase(ABC):
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
-            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 8 * self.Ec / Q_cap_fun(omega) * 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_operator = 'n_operator'
         noise_channel = 'capacitive'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, total, **kwargs
         )
     
     def get_t1_inductive_vs_paramvals(
@@ -599,6 +721,7 @@ class QubitBase(ABC):
         spectrum_data: SpectrumData = None,
         Q_ind: float = None,
         T: float = 0.015, 
+        total: bool = True,
         **kwargs
         ) -> SpectrumData:
         """
@@ -618,6 +741,8 @@ class QubitBase(ABC):
             The inductance quality factor (default is 500e6).
         T : float, optional
             The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
         **kwargs
             Additional arguments to pass to the T1 calculation method.
 
@@ -642,13 +767,14 @@ class QubitBase(ABC):
         else:
             Q_ind_fun = lambda omega: Q_ind
         def spectral_density(omega, T):
-            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T))
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(hbar * np.abs(omega) / (2 * k * T)) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_operator = 'phase_operator'
         noise_channel = 'inductive'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T,total, **kwargs
         )
         
     def get_t1_charge_impedance_vs_paramvals(
@@ -659,6 +785,7 @@ class QubitBase(ABC):
         spectrum_data: SpectrumData = None,
         Z: float = 50,
         T: float = 0.015,
+        total: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -678,6 +805,8 @@ class QubitBase(ABC):
             The impedance (default is 50).
         T : float, optional
             The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
         **kwargs
         
         Returns
@@ -690,13 +819,14 @@ class QubitBase(ABC):
             
         def spectral_density(omega, T):
             Rk = h / ((2 * e)**2)
-            return omega/1e9 / Rk * Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
+            return omega/1e9 / Rk * Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
 
         noise_operator = 'n_operator'
         noise_channel = 'charge_impedance'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, total, **kwargs
         )
         
     def get_t1_flux_bias_line_vs_paramvals(
@@ -708,6 +838,7 @@ class QubitBase(ABC):
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015,
+        total: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -729,6 +860,8 @@ class QubitBase(ABC):
             The impedance (default is 50).
         T : float, optional
             The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
         **kwargs
             Additional arguments to pass to the T1 calculation method.
             
@@ -741,13 +874,14 @@ class QubitBase(ABC):
             evals_count = self.dimension
             
         def spectral_density(omega, T):
-            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T)))
+            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(hbar * np.abs(omega) / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
         
         noise_operator = 'd_hamiltonian_d_phase'
         noise_channel = 'flux_bias_line'
         
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel, T,total, **kwargs
         )
         
     def get_t1_1_over_f_flux_vs_paramvals(
@@ -850,6 +984,7 @@ class QubitBase(ABC):
         evals_count: int = None,
         spectrum_data: SpectrumData = None,
         A_noise: float = 0.04,
+        total: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -878,14 +1013,15 @@ class QubitBase(ABC):
             evals_count = self.dimension
         
         def spectral_density(omega, T):
-            return 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(hbar * omega / (2 * k * T)))
+            return 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(hbar * omega / (2 * k * T))) / \
+                (1 + np.exp(-hbar * omega / (k * T)))
         
         noise_operator = 'd_hamiltonian_d_er'
         noise_channel = 'Andreev'
         
         T = 0.015
         return self._get_t1_vs_paramvals(
-            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel,T, **kwargs
+            param_name, param_vals, evals_count, spectrum_data, spectral_density, noise_operator, noise_channel,T,total, **kwargs
         )
         
         
@@ -899,6 +1035,7 @@ class QubitBase(ABC):
         noise_operator: str, 
         noise_channel: str,
         T: float, 
+        total: bool = True,
         **kwargs
         ) -> SpectrumData:
         """
@@ -940,7 +1077,7 @@ class QubitBase(ABC):
         epsilon = 1e-12  # Pequeña constante para evitar divisiones por cero
         omega = np.where(omega == 0, epsilon, omega) 
         
-        s = spectral_density(omega, T)
+        s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
         
         matrix_element = spectrum_data.matrixelem_table[noise_operator]
         rate = 2 * np.pi * np.abs(matrix_element)**2 * s
@@ -997,7 +1134,7 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
             
-        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
+        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e9, "t_exp": 10e-6}
         p.update(kwargs)
         
         if isinstance(noise_operators, str):
@@ -1238,6 +1375,85 @@ class QubitBase(ABC):
             z = kwargs.pop('z', 0.05)
             spectrum_data = self.get_tphi_CQPS_vs_paramvals(param_name, param_vals, fp, z, evals_count, spectrum_data, **kwargs)
             
+        return spectrum_data
+    
+    def get_d2E_d_param_vs_paramvals(
+        self, 
+        operators: List[str],
+        param_name: str = None, 
+        param_vals: np.ndarray = None, 
+        evals_count: int = None,
+        spectrum_data: SpectrumData = None,
+        **kwargs
+    ) -> SpectrumData:
+        """
+        Calculates the second derivative of energy with respect to a parameter over a range of parameter values.
+
+        Parameters
+        ----------
+        operators : List[str]
+            The operators used to calculate the derivatives. Must contain two elements:
+            First element: first derivative operator (e.g., 'd_hamiltonian_d_phase')
+            Second element: second derivative operator (e.g., 'd2_hamiltonian_d_phase2')
+        param_name : str, optional
+            The name of the parameter to vary.
+        param_vals : np.ndarray, optional
+            The values of the parameter to vary.
+        evals_count : int, optional
+            The number of eigenvalues and eigenstates to calculate (default is None, which uses self.dimension).
+        spectrum_data : SpectrumData, optional
+            Precomputed spectral data to use (default is None).
+
+        Returns
+        -------
+        SpectrumData
+            The spectral data with added second derivatives.
+        """
+        if evals_count is None:
+            evals_count = self.dimension
+            
+        if len(operators) != 2:
+            raise ValueError("operators must contain exactly two elements: first and second derivative operators")
+
+        first_op = operators[0]
+        if 'd_hamiltonian_d_' in first_op:
+            deriv_param = first_op.split('d_hamiltonian_d_')[1]
+        else:
+            raise ValueError("The operators must be of the form 'd_hamiltonian_d_X' and 'd2_hamiltonian_d_X2'.")
+        
+        # Check if spectrum_data has enough eigenvalues
+        if spectrum_data is not None and spectrum_data.energy_table.shape[1] < self.dimension:
+            print(f"Warning: spectrum_data contains only {spectrum_data.energy_table.shape[1]} eigenvalues, but {self.dimension} are needed for accurate second derivative calculation.")
+            print("Recalculating spectrum_data with sufficient eigenvalues...")
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            spectrum_data = None
+
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
+        elif not all(op in spectrum_data.matrixelem_table for op in operators):
+            missing_operators = [op for op in operators if op not in spectrum_data.matrixelem_table]
+            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count)
+            spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
+
+        param_vals = spectrum_data.param_vals
+        
+        # Calculate diagonal elements of the second derivative operator
+        d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[operators[1]], axis1=1, axis2=2)
+        
+        # Calculate energy differences
+        E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
+        E_diff = np.where(E_diff == 0, np.inf, E_diff)
+        
+        # Calculate the second derivative correction
+        dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[operators[0]])**2
+        d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
+        
+        # Calculate the total second derivative
+        d2E_d_lambda2 = d2H_d_lambda2 + d2E_d_lambda2_correction
+        
+        spectrum_data.d2E_table[f'd2E_d_{deriv_param}2'] = np.real(d2E_d_lambda2)
+        
         return spectrum_data
     
     def plot_evals_vs_paramvals(
@@ -1609,82 +1825,3 @@ class QubitBase(ABC):
             for param, label in self.PARAM_LABELS.items()
         ]
         return ', '.join(filter(None, title_parts))
-    
-    def get_d2E_d_param_vs_paramvals(
-        self, 
-        operators: List[str],
-        param_name: str = None, 
-        param_vals: np.ndarray = None, 
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
-        **kwargs
-    ) -> SpectrumData:
-        """
-        Calculates the second derivative of energy with respect to a parameter over a range of parameter values.
-
-        Parameters
-        ----------
-        operators : List[str]
-            The operators used to calculate the derivatives. Must contain two elements:
-            First element: first derivative operator (e.g., 'd_hamiltonian_d_phase')
-            Second element: second derivative operator (e.g., 'd2_hamiltonian_d_phase2')
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter to vary.
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, which uses self.dimension).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-
-        Returns
-        -------
-        SpectrumData
-            The spectral data with added second derivatives.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-            
-        if len(operators) != 2:
-            raise ValueError("operators must contain exactly two elements: first and second derivative operators")
-
-        first_op = operators[0]
-        if 'd_hamiltonian_d_' in first_op:
-            deriv_param = first_op.split('d_hamiltonian_d_')[1]
-        else:
-            raise ValueError("The operators must be of the form 'd_hamiltonian_d_X' and 'd2_hamiltonian_d_X2'.")
-        
-        # Check if spectrum_data has enough eigenvalues
-        if spectrum_data is not None and spectrum_data.energy_table.shape[1] < self.dimension:
-            print(f"Warning: spectrum_data contains only {spectrum_data.energy_table.shape[1]} eigenvalues, but {self.dimension} are needed for accurate second derivative calculation.")
-            print("Recalculating spectrum_data with sufficient eigenvalues...")
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            spectrum_data = None
-
-        if spectrum_data is None:
-            spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
-        elif not all(op in spectrum_data.matrixelem_table for op in operators):
-            missing_operators = [op for op in operators if op not in spectrum_data.matrixelem_table]
-            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count)
-            spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
-
-        param_vals = spectrum_data.param_vals
-        
-        # Calculate diagonal elements of the second derivative operator
-        d2H_d_lambda2 = np.diagonal(spectrum_data.matrixelem_table[operators[1]], axis1=1, axis2=2)
-        
-        # Calculate energy differences
-        E_diff = spectrum_data.energy_table[:, :, np.newaxis] - spectrum_data.energy_table[:, np.newaxis, :]
-        E_diff = np.where(E_diff == 0, np.inf, E_diff)
-        
-        # Calculate the second derivative correction
-        dH_d_lambda_matelems_square = np.abs(spectrum_data.matrixelem_table[operators[0]])**2
-        d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff, axis=2)
-        
-        # Calculate the total second derivative
-        d2E_d_lambda2 = d2H_d_lambda2 + d2E_d_lambda2_correction
-        
-        spectrum_data.d2E_table[f'd2E_d_{deriv_param}2'] = np.real(d2E_d_lambda2)
-        
-        return spectrum_data

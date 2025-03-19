@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .qubit_base import QubitBase
 from scipy.linalg import cosm, sinm, eigh, expm
-from typing import Any, Dict, Optional, Tuple, Union, Iterable
+from typing import Any, Dict, Optional, Tuple, Union, Iterable, List
 from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
 
 class Ferbo(QubitBase):
@@ -186,7 +186,8 @@ class Ferbo(QubitBase):
             The derivative of the Hamiltonian with respect to the number of charge offset.
         
         """
-        return 8 * self.Ec * (self.n_operator() - self.delta_Gamma/4/(self.Gamma+self.Delta) * np.kron(sigma_z(), np.eye(self.dimension//2)))
+        n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
+        return - 8 * self.Ec * (self.n_operator() + n_x * np.kron(sigma_x(), np.eye(self.dimension//2)))
     
     def d2_hamiltonian_d_ng2(self) -> np.ndarray:
         """
@@ -360,65 +361,14 @@ class Ferbo(QubitBase):
 
         return evals_array
     
-    def tphi_1_over_f(
-        self, 
-        A_noise: float, 
-        i: int, 
-        j: int, 
-        noise_op: str,
-        esys: Tuple[np.ndarray, np.ndarray] = None,
-        get_rate: bool = False,
-        **kwargs
-        ) -> float:
-        """
-        Calculates the 1/f dephasing time (or rate) due to an arbitrary noise source.
-
-        Parameters
-        ----------
-        A_noise : float
-            Noise strength.
-        i : int
-            State index that along with j defines a qubit.
-        j : int
-            State index that along with i defines a qubit.
-        noise_op : str
-            Name of the noise operator, typically Hamiltonian derivative w.r.t. noisy parameter.
-        esys : Tuple[np.ndarray, np.ndarray], optional
-            Precomputed eigenvalues and eigenvectors (default is None).
-        get_rate : bool, optional
-            Whether to return the rate instead of the Tphi time (default is False).
-
-        Returns
-        -------
-        float
-            The 1/f dephasing time (or rate).
-        """
-        p = {"omega_ir": 2 * np.pi * 1, "omega_uv": 3 * 2 * np.pi * 1e6, "t_exp": 10e-6}
-        p.update(kwargs)
-                
-        if esys is None:
-            evals, evecs = self.eigensys(evals_count=max(j, i) + 1)
-        else:
-            evals, evecs = esys
-
-        noise_operator = getattr(self, noise_op)()    
-        dEij_d_lambda = np.abs(evecs[i].conj().T @ noise_operator @ evecs[i] - evecs[j].conj().T @ noise_operator @ evecs[j])
-
-        rate = (dEij_d_lambda * A_noise * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"]))))
-        rate *= 2 * np.pi * 1e9 # Convert to rad/s
-
-        return rate if get_rate else 1 / rate
-    
     def tphi_1_over_f_flux(
         self, 
         A_noise: float = 1e-6,
-        i: int = 0, 
-        j: int = 1, 
         esys: Tuple[np.ndarray, np.ndarray] = None, 
         get_rate: bool = False, 
         **kwargs
         ) -> float:
-        return self.tphi_1_over_f(A_noise, i, j, 'd_hamiltonian_d_phase', esys=esys, get_rate=get_rate, **kwargs)
+        return self.tphi_1_over_f(A_noise, ['d_hamiltonian_d_phase', 'd2_hamiltonian_d_phase'], esys=esys, get_rate=get_rate, **kwargs)
 
     def plot_wavefunction(
         self, 
