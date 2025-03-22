@@ -42,9 +42,6 @@ class SpectrumData:
         # Reshape ground state energies to allow broadcasting
         ground_energies = self.energy_table[:, 0].reshape(-1, 1)
         self.energy_table = self.energy_table - ground_energies
-        
-        # Remove the first column (ground state) which is now identically zero
-        self.energy_table = self.energy_table[:, 1:]
 
     def filewrite(self, filename: str, overwrite: bool = False) -> None:
         """Save the SpectrumData to an HDF5 file."""
