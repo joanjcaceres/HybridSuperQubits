@@ -1,6 +1,6 @@
 [project]
 name = "HybridSuperQubits"
-version = "0.5.0"
+version = "0.5.1"
 description = "Package to simulate hybrid superconducting qubits"
 authors = [{ name = "Joan Caceres", email = "contact@joancaceres.com" }]
 license = { text = "MIT" }
