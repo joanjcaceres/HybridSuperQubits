@@ -32,8 +32,19 @@ class SpectrumData:
             setattr(self, dataname, data)
 
     def subtract_ground(self) -> None:
-        """Subtract ground state energies from spectrum"""
-        self.energy_table -= self.energy_table[:, 0]
+        """Subtract ground state energies from spectrum.
+        
+        The energy_table has dimensions (param_vals_count, evals_count).
+        This method subtracts the ground state energy (column 0) from all states
+        at each parameter value (each row) and then removes the ground state column
+        which becomes identically zero.
+        """
+        # Reshape ground state energies to allow broadcasting
+        ground_energies = self.energy_table[:, 0].reshape(-1, 1)
+        self.energy_table = self.energy_table - ground_energies
+        
+        # Remove the first column (ground state) which is now identically zero
+        self.energy_table = self.energy_table[:, 1:]
 
     def filewrite(self, filename: str, overwrite: bool = False) -> None:
         """Save the SpectrumData to an HDF5 file."""
@@ -45,8 +56,8 @@ class SpectrumData:
         with h5py.File(filename, 'w') as f:
             f.create_dataset('energy_table', data=self.energy_table)
             f.create_dataset('param_vals', data=self.param_vals)
-            f.create_dataset('param_name', data=np.string_(self.param_name))
-            f.create_dataset('system_params', data=np.string_(str(self.system_params)))
+            f.create_dataset('param_name', data=np.bytes_(self.param_name))
+            f.create_dataset('system_params', data=np.bytes_(str(self.system_params)))
             
             if isinstance(self.state_table, list) and isinstance(self.state_table[0], Qobj):
                 state_data = np.array([state.full() for state in self.state_table])

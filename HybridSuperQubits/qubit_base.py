@@ -631,12 +631,12 @@ class QubitBase(ABC):
         if isinstance(noise_channels, str):
             noise_channels = [noise_channels]
             
-            if spectrum_data is not None:
-                param_name = spectrum_data.param_name
-                param_vals = spectrum_data.param_vals
-                evals_count = spectrum_data.energy_table.shape[1]
-            elif param_name is None or param_vals is None:
-                raise ValueError("If spectrum_data is None, param_name and param_vals must be provided.")
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError("If spectrum_data is None, param_name and param_vals must be provided.")
                         
         if 'capacitive' in noise_channels:
             spectrum_data = self.get_t1_capacitive_vs_paramvals(param_name, param_vals, evals_count, spectrum_data, **kwargs)
