@@ -379,11 +379,8 @@ class QubitBase(ABC):
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
-            x = hbar * omega / (k * T)
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
-            
-            s = 8 * self.Ec / Q_cap_fun(omega) * 1 / np.tanh(np.abs(x)/2) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            x = hbar * omega / (k * T)            
+            return 8 * self.Ec / Q_cap_fun(omega) * 1 / np.tanh(np.abs(x)/2) / (1 + np.exp(-x))
 
         noise_op = noise_op or self.n_operator()
             
@@ -431,10 +428,8 @@ class QubitBase(ABC):
             Q_ind_fun = lambda omega: Q_ind
         
         def spectral_density(omega, T):
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
             x = hbar * omega / (k * T)
-            s = 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(np.abs(x) / 2) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(np.abs(x) / 2) / (1 + np.exp(-x))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -466,10 +461,8 @@ class QubitBase(ABC):
         ) -> float:
         
         def spectral_density(omega, T):
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
             x = hbar * omega / (k * T)
-            s = 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(np.abs(x)) / 2) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(np.abs(x)) / 2) / (1 + np.exp(-x))
             
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
@@ -709,11 +702,9 @@ class QubitBase(ABC):
             Q_cap_fun = lambda omega: Q_cap
 
         def spectral_density(omega, T):
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
             # Assuming that Ec is in GHz
             x = hbar * omega / (k * T)
-            s = 8 * self.Ec / Q_cap_fun(omega) * 1 / np.tanh(np.abs(x)/2) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return 8 * self.Ec / Q_cap_fun(omega) * 1 / np.tanh(np.abs(x)/2) / (1 + np.exp(-x))
 
         noise_operator = 'n_operator'
         noise_channel = 'capacitive'
@@ -770,19 +761,16 @@ class QubitBase(ABC):
             def q_ind(omega):
                 x = (hbar * np.abs(omega)) / (2 * k * T)
                 q_ind_inv  = (k0(x) * np.sinh(x))
-                return np.where(q_ind_inv == 0, np.inf, 1 / q_ind_inv)
+                return 1 / q_ind_inv
 
             Q_ind_fun = lambda omega: Q_ind_ref * q_ind(omega) / q_ind(omega_ref)
         elif callable(Q_ind):
             Q_ind_fun = Q_ind
         else:
             Q_ind_fun = lambda omega: Q_ind
-        def spectral_density(omega, T):
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
-            
+        def spectral_density(omega, T):            
             x = hbar * omega / (k * T)
-            s = 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(np.abs(x) / 2) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(np.abs(x) / 2) / (1 + np.exp(-x))
 
         noise_operator = 'phase_operator'
         noise_channel = 'inductive'
@@ -833,10 +821,8 @@ class QubitBase(ABC):
             
         def spectral_density(omega, T):
             Rk = h / ((2 * e)**2)
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
             x = hbar * omega / (k * T)
-            s = omega/1e9 / Rk * Z * (1 + 1/np.tanh(np.abs(x) / 2)) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return omega/1e9 / Rk * Z * (1 + 1/np.tanh(np.abs(x) / 2)) / (1 + np.exp(-x))
 
         noise_operator = 'n_operator'
         noise_channel = 'charge_impedance'
@@ -891,9 +877,7 @@ class QubitBase(ABC):
             
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
-            s = 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(np.abs(x) / 2)) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return 4 * np.pi**2 * M**2 * np.abs(omega) * 1e9 * h / Z * (1 + 1/np.tanh(np.abs(x) / 2)) / (1 + np.exp(-x))
         
         noise_operator = 'd_hamiltonian_d_phase'
         noise_channel = 'flux_bias_line'
@@ -1032,9 +1016,7 @@ class QubitBase(ABC):
         
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
-            epsilon = 2 * np.pi * 1 # Cutoff frequency of 1 Hz.
-            s = 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(np.abs(x)/2)) / (1 + np.exp(-x))
-            return np.where(np.abs(omega) < epsilon, np.inf, s)
+            return 2 * np.pi * 1e9 * A_noise**2 *np.abs(1/(omega*1e-9) + 0.01 * omega*1e-9 * 1/np.tanh(np.abs(x)/2)) / (1 + np.exp(-x))
         
         noise_operator = 'd_hamiltonian_d_er'
         noise_channel = 'Andreev'
@@ -1096,36 +1078,21 @@ class QubitBase(ABC):
         evals_array = spectrum_data.energy_table
         transition_table = evals_array[:, :, np.newaxis] - evals_array[:, np.newaxis, :]
         
+        min_freq_cutoff = 1e-9  # Minimum frequency in GHz (1 Hz)
+        max_freq_cutoff = 80.0  # Maximum frequency in GHz (80 GHz)
+        transition_table = np.where(np.abs(transition_table) < min_freq_cutoff, np.nan, transition_table)
+        transition_table = np.where(np.abs(transition_table) > max_freq_cutoff, np.nan, transition_table)
+                
         omega = 2 * np.pi * transition_table * 1e9
-        epsilon = 1e-12
-        omega = np.where(omega == 0, epsilon, omega)
         s = spectral_density(omega, T) + spectral_density(-omega, T) if total else spectral_density(omega, T)
-
-        # zero_mask = (omega == 0)
-        
-        # # Apply spectral density only to non-zero frequencies
-        # s = np.empty_like(omega)
-        
-        # if total:
-        #     # Calculate total spectral density (S(ω) + S(-ω)) for non-zero frequencies
-        #     s[~zero_mask] = spectral_density(omega[~zero_mask], T) + spectral_density(-omega[~zero_mask], T)
-        # else:
-        #     # Calculate one-sided spectral density S(ω) for non-zero frequencies
-        #     s[~zero_mask] = spectral_density(omega[~zero_mask], T)
-
                 
         matrix_element = spectrum_data.matrixelem_table[noise_operator]
         rate = 2 * np.pi * np.abs(matrix_element)**2 * s
         
         rate *= 1e9  # Convert to rad/s
-        rate = np.where(rate == 0, epsilon, rate)
+        rate = np.where(rate == 0, np.nan, rate)
         t1_table = 1 / rate
 
-        # t1_table = np.zeros_like(rate)
-        # nonzero_rate = (rate != 0)
-        # t1_table[nonzero_rate] = 1 / rate[nonzero_rate]
-        # t1_table[~nonzero_rate] = np.inf
-        
         for idx in range(t1_table.shape[0]):
             np.fill_diagonal(t1_table[idx], np.nan)
                     
