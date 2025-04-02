@@ -231,6 +231,20 @@ class Ferbo(QubitBase):
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
             return self.Gamma/4 * np.kron(sigma_z(), cosm(phase_op/2)) + self.delta_Gamma/4 * np.kron(sigma_y(), sinm(phase_op/2))
         
+    def d_hamiltonian_d_Gamma(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to Gamma.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to Gamma.
+        """
+        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+        
+        return - np.kron(sigma_z(), sinm(phase_op/2))
                 
     def d_hamiltonian_d_er(self) -> np.ndarray:
         """
@@ -252,11 +266,10 @@ class Ferbo(QubitBase):
         Qobj
             The derivative of the Hamiltonian with respect to the coupling strength difference.
         """
-        if self.flux_grouping == 'L':
-            phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
-        else:
-            raise NotImplementedError("Not implemented for ABS grouping.")
-            phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
+        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+            
         return - np.kron(sigma_y(), sinm(phase_op/2))
     
     def wavefunction(
