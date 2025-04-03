@@ -1,4 +1,44 @@
 import numpy as np
+from typing import Dict, Any
+
+def calculate_error_metrics(
+    fitted_values: np.ndarray, 
+    measured_values: np.ndarray,
+    relative: bool = True
+    ) -> Dict[str, Any]:
+    """
+    Calculate error metrics between fitted and measured values.
+    
+    Parameters:
+    -----------
+    fitted_values : np.ndarray
+        Fitted values from a model
+    measured_values : np.ndarray
+        Measured/observed values
+    relative : bool, optional
+        Whether to calculate relative errors. Default is True.
+    
+    Returns:
+    --------
+    Dict[str, Union[np.ndarray, float]]
+        Dictionary with different error metrics
+    """
+    residuals = fitted_values - measured_values
+    
+    results = {
+        'residuals': residuals,
+        'rms_error': np.sqrt(np.mean(residuals**2)),
+        'std_dev': np.std(residuals),
+        'max_error': np.max(np.abs(residuals)),
+        'mean_error': np.mean(residuals)
+    }
+    
+    if relative:
+        rel_error = residuals / measured_values * 100
+        results['relative_error_percent'] = rel_error
+        results['mean_relative_error_percent'] = np.mean(np.abs(rel_error))
+        
+    return results
 
 def sin_kphi_operator(k: int, dimension: int, phi_ext: float = 0) -> np.ndarray:
     """

@@ -3,6 +3,7 @@ from scipy.sparse import diags
 from scipy.linalg import eigh
 from typing import Optional, List, Dict, Tuple, Any
 from scipy.optimize import curve_fit
+from .utilities import calculate_error_metrics
 
 class JosephsonJunctionArray:
     
@@ -114,42 +115,8 @@ class JosephsonJunctionArray:
             'C_ratio': (0.0001, 0.1)  # Reasonable Cg/Cj range
         }
         
-        fixed_params = {
-            'Cj': 50e-15  # 50 fF (typical junction capacitance)
-        }
-        
-        return initial_params, param_bounds, fixed_params
+        return initial_params, param_bounds
 
-    @staticmethod
-    def _calculate_error_metrics(fitted_freqs: np.ndarray, measured_frequencies: np.ndarray) -> Dict[str, np.ndarray]:
-        """
-        Calculate error metrics between fitted and measured frequencies.
-        
-        Parameters:
-        -----------
-        fitted_freqs : np.ndarray
-            Fitted frequency values
-        measured_frequencies : np.ndarray
-            Measured frequency values
-        
-        Returns:
-        --------
-        Dict[str, np.ndarray]
-            Dictionary with different error metrics
-        """
-        residuals = fitted_freqs - measured_frequencies
-        rel_error = residuals / measured_frequencies * 100
-        rms_error = np.sqrt(np.mean(residuals**2))
-        std_dev = np.std(residuals)
-        max_error = np.max(np.abs(residuals))
-        
-        return {
-            'residuals': residuals,
-            'relative_error_percent': rel_error,
-            'rms_error_Hz': rms_error,
-            'std_dev_Hz': std_dev,
-            'max_error_Hz': max_error
-        }
 
     @staticmethod
     def _create_results_dict(
@@ -174,7 +141,7 @@ class JosephsonJunctionArray:
         Dict[str, Any]
             Comprehensive results dictionary
         """
-        error_metrics = JosephsonJunctionArray._calculate_error_metrics(fitted_freqs, measured_frequencies)
+        error_metrics = calculate_error_metrics(fitted_freqs, measured_frequencies)
         
         return {
             'parameters': {
@@ -203,7 +170,7 @@ class JosephsonJunctionArray:
         initial_params: Optional[Dict[str, float]] = None, 
         param_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
         fixed_params: Optional[Dict[str, float]] = None
-    ) -> Tuple['JosephsonJunctionArray', Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
         Fit JJA parameters to measured resonance frequencies.
         
@@ -242,7 +209,7 @@ class JosephsonJunctionArray:
         
         # Get default parameters if needed
         if initial_params is None or param_bounds is None or fixed_params is None:
-            default_initial, default_bounds, default_fixed = JosephsonJunctionArray._get_default_params()
+            default_initial, default_bounds = JosephsonJunctionArray._get_default_params()
             
             if initial_params is None:
                 initial_params = default_initial
@@ -250,8 +217,6 @@ class JosephsonJunctionArray:
             if param_bounds is None:
                 param_bounds = default_bounds
             
-            if fixed_params is None:
-                fixed_params = default_fixed
         
         # Prepare parameters for curve_fit
         p0 = [initial_params['f_p'], initial_params['C_ratio']]
@@ -277,21 +242,11 @@ class JosephsonJunctionArray:
             )
             
             # Extract fitted parameters
-            fitted_f_p = popt[0]
-            fitted_C_ratio = popt[1]
-            
+            fitted_f_p, fitted_C_ratio = popt
+                        
             # Calculate parameter uncertainties
             perr = np.sqrt(np.diag(pcov))
-            f_p_uncertainty = perr[0]
-            c_ratio_uncertainty = perr[1]
-            
-            # Convert to physical parameters
-            Cj = fixed_params['Cj']
-            Lj = 1/((2*np.pi*fitted_f_p)**2 * Cj)
-            Cg = fitted_C_ratio * Cj
-            
-            # Create JJA instance with fitted parameters
-            fitted_jja = JosephsonJunctionArray(Lj, Cj, Cg, N)
+            f_p_uncertainty, c_ratio_uncertainty = perr
             
             fitted_freqs = fitting_model(mode_indices_array, fitted_f_p, fitted_C_ratio)
             
@@ -303,7 +258,7 @@ class JosephsonJunctionArray:
                 mode_indices_array
             )
             
-            return fitted_jja, results
+            return results
             
         except RuntimeError as e:
             # Handle fitting failure
@@ -313,7 +268,6 @@ class JosephsonJunctionArray:
                 'input_parameters': {
                     'initial_params': initial_params,
                     'param_bounds': param_bounds,
-                    'fixed_params': fixed_params,
                     'N': N,
                     'measured_frequencies': measured_frequencies,
                     'mode_indices': mode_indices
