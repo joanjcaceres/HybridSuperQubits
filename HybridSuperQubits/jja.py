@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.sparse import diags
 from scipy.linalg import eigh
 from scipy.constants import hbar, h, e
 from typing import Optional, List, Dict, Tuple, Any, Callable
@@ -326,15 +325,120 @@ class JosephsonJunctionArray:
                     'mode_indices': mode_indices
                 }
             }
+
+
+class NumericalJosephsonJunctionArray(JosephsonJunctionArray):
+    def __init__(
+        self,
+        Lj: float,
+        Cj: float,
+        Cg: float,
+        N: int,
+        build_C_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray],
+        build_L_inv_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray]
+    ):
+        super().__init__(Lj, Cj, Cg, N)
+        self._build_C_matrix_fn = build_C_matrix_fn
+        self._build_L_inv_matrix_fn = build_L_inv_matrix_fn
+
+    def resonance_frequencies(self) -> np.ndarray:
+        C = self._build_C_matrix_fn(self)
+        L_inv = self._build_L_inv_matrix_fn(self)
+        eigvals = self._diagonalize(C, L_inv)
+        return np.sqrt(eigvals) / (2 * np.pi * 1e9)
+
+    def _diagonalize(self, C: np.ndarray, L_inv: np.ndarray) -> np.ndarray:
+        eigvals_C, eigvecs_C = eigh(C)
+        Lambda_inv_sqrt = np.diag(1 / np.sqrt(eigvals_C))
+        C_inv_sqrt = eigvecs_C @ Lambda_inv_sqrt @ eigvecs_C.T
+        op = C_inv_sqrt @ L_inv @ C_inv_sqrt
+        return eigh(op, eigvals_only=True)
+    
+    @staticmethod
+    def fit_from_measurements(
+        measured_frequencies: np.ndarray,
+        N: int,
+        build_C_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray],
+        build_L_inv_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray],
+        initial_params: Optional[List[float]] = None,
+        bounds: Optional[Tuple[List[float], List[float]]] = None,
+        relative_error: bool = False,
+        verbose: bool = True
+    ) -> Tuple['NumericalJosephsonJunctionArray', Dict[str, Any]]:
+        """
+        Fit JJA parameters to measured resonance frequencies using numerical matrix-based model.
+        Parameters
+        ----------
+        measured_frequencies : np.ndarray
+            Experimentally measured resonance frequencies in Hz.
+        N : int
+            Number of junctions in the array.
+        build_C_matrix_fn : Callable
+            Function to build the capacitance matrix.
+        build_L_inv_matrix_fn : Callable
+            Function to build the inverse inductance matrix.
+        initial_params : List[float], optional
+            Initial guess for [Lj (nH), Cj (fF), Cg (aF)].
+        bounds : Tuple[List[float], List[float]], optional
+            Bounds for the parameters as ([min_vals], [max_vals]).
+        Returns
+        -------
+        Tuple[NumericalJosephsonJunctionArray, Dict[str, Any]]
+            Fitted instance and results dictionary.
+        """
+        if initial_params is None:
+            initial_params = [1.0, 30.0, 50.0]  # Lj [nH], Cj [fF], Cg [aF]
         
+        def model(params):
+            Lj, Cj, Cg = params[0]*1e-9, params[1]*1e-15, params[2]*1e-18
+            jja = NumericalJosephsonJunctionArray(
+                Lj, Cj, Cg, N,
+                build_C_matrix_fn, build_L_inv_matrix_fn
+            )
+            return jja.resonance_frequencies()[:len(measured_frequencies)]
+        
+        def cost(params):
+            diff = model(params) - measured_frequencies
+            if relative_error:
+                return diff / measured_frequencies
+            return diff
+        
+        from scipy.optimize import least_squares
+        result = least_squares(cost, initial_params, bounds=bounds, loss='soft_l1')
+        Lj_fit, Cj_fit, Cg_fit = result.x[0]*1e-9, result.x[1]*1e-15, result.x[2]*1e-18
+        jja_fitted = NumericalJosephsonJunctionArray(
+            Lj_fit, Cj_fit, Cg_fit, N,
+            build_C_matrix_fn, build_L_inv_matrix_fn
+        )
+        
+        residuals = result.fun
+        if not relative_error:
+            residuals = residuals / 1e9  # convert to GHz
+            measured = measured_frequencies / 1e9
+        else:
+            measured = measured_frequencies  # ya están normalizados
 
+        if verbose:
+            print("Fit summary:")
+            print("Parameters:", result.x)
+            print("Cost:", result.cost)
+            print("Message:", result.message)
 
-def L_inv_matrix(N,Ljj):
-    matrix_diagonals = [(-1/Ljj)*np.ones(N),(2/Ljj)*np.ones(N+1),(-1/Ljj)*np.ones(N)]
-    matrix = diags(matrix_diagonals,[-1,0,1]).toarray()
-    matrix[0,0] = 1/Ljj
-    matrix[-1,-1] = 1/Ljj
-    return matrix
+        return jja_fitted, {
+            "parameters": {
+                "Lj_nH": result.x[0],
+                "Cj_fF": result.x[1],
+                "Cg_aF": result.x[2]
+            },
+            "residuals": result.fun,
+            "success": result.success,
+            "cost": result.cost,
+            "message": result.message,
+            "fit_metrics": {
+                "rmse": float(np.sqrt(np.mean(residuals**2))),
+                "r_squared": float(1 - np.sum(residuals**2) / np.sum((measured - np.mean(measured))**2))
+            }
+        }
 
 def jja_resonances(params):
     Ljj = params[0]*1e-9
