@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.sparse import diags
 from scipy.linalg import eigh
-from typing import Optional, List, Dict, Tuple, Any
+from scipy.constants import hbar, h, e
+from typing import Optional, List, Dict, Tuple, Any, Callable
 from scipy.optimize import curve_fit
 from .utilities import calculate_error_metrics
 
@@ -28,9 +29,9 @@ class JosephsonJunctionArray:
         Calculate the plasma frequency of the Josephson Junction Array.
 
         Returns:
-        float: Plasma frequency in Hz.
+        float: Plasma frequency in GHz.
         """
-        f_p = 1 / np.sqrt(self.Lj * self.Cj) / 2 / np.pi
+        f_p = 1 / np.sqrt(self.Lj * self.Cj) / 2 / np.pi / 1e9  # Convert to GHz
         return f_p
     
     @property
@@ -56,10 +57,62 @@ class JosephsonJunctionArray:
         f_p = self.plasma_frequency
         c_ratio = self.C_ratio
         
-        return self.calculate_resonance_frequencies(f_p, c_ratio, self.N, k)
+        return self.analytical_mode_frequencies(f_p, c_ratio, self.N, k)
+    
+    def group_velocity(self) -> float:
+        """
+        Calculate the group velocity of the Josephson Junction Array at k = 0.
+
+        Returns:
+        float: Group velocity in GHz.
+        """
+        k = np.arange(1, self.N)
+        f_p = self.plasma_frequency
+        c_ratio = self.C_ratio
+        angle = np.pi * k / self.N
+        
+        v_g = np.zeros_like(k, dtype=float)
+        
+        # Group velocity formula
+        v_g = f_p / 2 * np.sin(angle) / ((1 - np.cos(angle) + c_ratio / 2)**(3/2) * np.sqrt(1 - np.cos(angle)))
+        
+        return v_g
+
+    def kerr_matrix(self) -> np.ndarray:
+        """
+        Compute the Kerr matrix K_{kk'} for the Josephson Junction Array using the analytical formula.
+        Units in GHz.
+
+        This implementation is based on Eq. (14) from:
+        Krupko et al., "Kerr nonlinearity in a superconducting Josephson metamaterial".
+
+        Returns
+        -------
+        np.ndarray
+            A (N, N) matrix of Kerr coefficients.
+        """
+ 
+        # Derived quantities
+        Ej = (hbar / 2 / e)**2 / self.Lj / h / 1e9 # Josephson energy (GHz)
+        N = self.N
+        f_k = self.resonance_frequencies()  # Angular frequencies (rad/s)
+ 
+        # Compute f_k * f_k'
+        f_outer = np.outer(f_k, f_k)
+ 
+        # Delta_{kk'} = identity matrix
+        delta = np.eye(N)
+ 
+        # Factor: (1/2 + delta/8)
+        prefactor = 0.5 + delta / 8
+ 
+        # Final Kerr matrix
+        K = prefactor * f_outer / (2 * N * Ej)
+ 
+        return K
 
     @staticmethod
-    def calculate_resonance_frequencies(
+    def analytical_mode_frequencies(
         f_p: float, 
         c_ratio: float, 
         N: int, 
@@ -106,12 +159,12 @@ class JosephsonJunctionArray:
             Default initial parameters, bounds, and fixed parameters
         """
         initial_params = {
-            'f_p': 20e9,      # 20 GHz plasma frequency
-            'C_ratio': 0.002  # Cg/Cj ratio (typical value)
+            'f_p': 20,      # 20 GHz plasma frequency
+            'C_ratio': 0.001  # Cg/Cj ratio (typical value)
         }
         
         param_bounds = {
-            'f_p': (5e9, 50e9),       # 5-50 GHz
+            'f_p': (5, 50),       # 5-50 GHz
             'C_ratio': (0.0001, 0.1)  # Reasonable Cg/Cj range
         }
         
@@ -177,14 +230,14 @@ class JosephsonJunctionArray:
         Parameters:
         -----------
         measured_frequencies : np.ndarray
-            Experimentally measured resonance frequencies in Hz.
+            Experimentally measured resonance frequencies in GHz.
         N : int
             Number of junctions in the array.
         mode_indices : List[int], optional
             Indices of the modes corresponding to the measured frequencies.
             If None, assumes consecutive modes starting from 1.
         initial_params : Dict[str, float], optional
-            Initial guess for parameters. Can include 'f_p' (plasma frequency in Hz) 
+            Initial guess for parameters. Can include 'f_p' (plasma frequency in GHz) 
             and 'C_ratio' (Cg/Cj ratio). If None, reasonable defaults will be used.
         param_bounds : Dict[str, Tuple[float, float]], optional
             Bounds for parameters as (min, max) tuples. 
@@ -227,7 +280,7 @@ class JosephsonJunctionArray:
         
         # Define the fitting model
         def fitting_model(k, f_p, c_ratio):
-            return JosephsonJunctionArray.calculate_resonance_frequencies(f_p, c_ratio, N, k)
+            return JosephsonJunctionArray.analytical_mode_frequencies(f_p, c_ratio, N, k)
             
         # Perform the curve fit
         try:
