@@ -335,11 +335,13 @@ class NumericalJosephsonJunctionArray(JosephsonJunctionArray):
         Cg: float,
         N: int,
         build_C_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray],
-        build_L_inv_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray]
+        build_L_inv_matrix_fn: Callable[['NumericalJosephsonJunctionArray'], np.ndarray],
+        extra_params: Optional[Dict[str, float]] = None
     ):
         super().__init__(Lj, Cj, Cg, N)
         self._build_C_matrix_fn = build_C_matrix_fn
         self._build_L_inv_matrix_fn = build_L_inv_matrix_fn
+        self.extra_params = extra_params or {}
 
     def resonance_frequencies(self) -> np.ndarray:
         C = self._build_C_matrix_fn(self)
@@ -363,7 +365,9 @@ class NumericalJosephsonJunctionArray(JosephsonJunctionArray):
         initial_params: Optional[List[float]] = None,
         bounds: Optional[Tuple[List[float], List[float]]] = None,
         relative_error: bool = False,
-        verbose: bool = True
+        verbose: bool = True,
+        extra_param_names: Optional[List[str]] = None,
+        build_extra_params_fn: Optional[Callable[[List[float]], Dict[str, float]]] = None
     ) -> Tuple['NumericalJosephsonJunctionArray', Dict[str, Any]]:
         """
         Fit JJA parameters to measured resonance frequencies using numerical matrix-based model.
@@ -389,13 +393,21 @@ class NumericalJosephsonJunctionArray(JosephsonJunctionArray):
         if initial_params is None:
             initial_params = [1.0, 30.0, 50.0]  # Lj [nH], Cj [fF], Cg [aF]
         
-        def model(params):
-            Lj, Cj, Cg = params[0]*1e-9, params[1]*1e-15, params[2]*1e-18
-            jja = NumericalJosephsonJunctionArray(
+        def create_jja_instance(params: List[float]) -> NumericalJosephsonJunctionArray:
+            base_params = params[:3]
+            extra_param_values = params[3:] if extra_param_names else []
+            extra_params = build_extra_params_fn(extra_param_values) if build_extra_params_fn else {}
+
+            Lj, Cj, Cg = base_params[0]*1e-9, base_params[1]*1e-15, base_params[2]*1e-18
+
+            return NumericalJosephsonJunctionArray(
                 Lj, Cj, Cg, N,
-                build_C_matrix_fn, build_L_inv_matrix_fn
+                build_C_matrix_fn, build_L_inv_matrix_fn,
+                extra_params=extra_params
             )
-            return jja.resonance_frequencies()[:len(measured_frequencies)]
+        
+        def model(params):
+            return create_jja_instance(params).resonance_frequencies()[:len(measured_frequencies)]
         
         def cost(params):
             diff = model(params) - measured_frequencies
@@ -405,18 +417,9 @@ class NumericalJosephsonJunctionArray(JosephsonJunctionArray):
         
         from scipy.optimize import least_squares
         result = least_squares(cost, initial_params, bounds=bounds, loss='soft_l1')
-        Lj_fit, Cj_fit, Cg_fit = result.x[0]*1e-9, result.x[1]*1e-15, result.x[2]*1e-18
-        jja_fitted = NumericalJosephsonJunctionArray(
-            Lj_fit, Cj_fit, Cg_fit, N,
-            build_C_matrix_fn, build_L_inv_matrix_fn
-        )
-        
+        jja_fitted = create_jja_instance(result.x)
         residuals = result.fun
-        if not relative_error:
-            residuals = residuals / 1e9  # convert to GHz
-            measured = measured_frequencies / 1e9
-        else:
-            measured = measured_frequencies  # ya están normalizados
+        measured = measured_frequencies
 
         if verbose:
             print("Fit summary:")
@@ -424,28 +427,31 @@ class NumericalJosephsonJunctionArray(JosephsonJunctionArray):
             print("Cost:", result.cost)
             print("Message:", result.message)
 
-        return jja_fitted, {
-            "parameters": {
-                "Lj_nH": result.x[0],
-                "Cj_fF": result.x[1],
-                "Cg_aF": result.x[2]
-            },
-            "residuals": result.fun,
-            "success": result.success,
-            "cost": result.cost,
-            "message": result.message,
-            "fit_metrics": {
-                "rmse": float(np.sqrt(np.mean(residuals**2))),
-                "r_squared": float(1 - np.sum(residuals**2) / np.sum((measured - np.mean(measured))**2))
-            }
+        param_dict = {
+            "Lj_nH": result.x[0],
+            "Cj_fF": result.x[1],
+            "Cg_aF": result.x[2],
         }
 
-def jja_resonances(params):
-    Ljj = params[0]*1e-9
-    Cjj = params[1]*1e-15
-    Cg = params[2]*1e-18
-    Cg_big = params[3]*1e-15
-    Cin = params[4]*1e-15
+        if extra_param_names:
+            for i, name in enumerate(extra_param_names):
+                param_dict[name] = result.x[3 + i]
+
+        return jja_fitted, {
+            "parameters": param_dict,
+            "frequencies": {
+                "measured": measured,
+                "fitted": jja_fitted.resonance_frequencies()[:len(measured)]
+            },
+            "errors": {
+                "rmse": float(np.sqrt(np.mean(residuals**2))),
+                "r_squared": float(1 - np.sum(residuals**2) / np.sum((measured - np.mean(measured))**2))
+            },
+            "residuals": residuals,
+            "fit_success": result.success,
+            "cost": result.cost,
+            "message": result.message
+        }
     
     N = 170
     Cout = 0
