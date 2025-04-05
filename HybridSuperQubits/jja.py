@@ -60,10 +60,10 @@ class JosephsonJunctionArray:
     
     def group_velocity(self) -> float:
         """
-        Calculate the group velocity of the Josephson Junction Array at k = 0.
+        Calculate the group velocity of the Josephson Junction Array.
 
         Returns:
-        float: Group velocity in GHz.
+        np.ndarray: Group velocity in GHz for each mode.
         """
         k = np.arange(1, self.N)
         f_p = self.plasma_frequency
