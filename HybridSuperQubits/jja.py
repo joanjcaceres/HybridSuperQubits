@@ -247,8 +247,8 @@ class JosephsonJunctionArray:
         
         Returns:
         --------
-        Tuple[JosephsonJunctionArray, Dict[str, Any]]
-            (JJA instance with fitted parameters, dict with detailed results)
+        Dict[str, Any]
+            Dict with detailed results.
         """
         # Set up parameters
         if mode_indices is None:
