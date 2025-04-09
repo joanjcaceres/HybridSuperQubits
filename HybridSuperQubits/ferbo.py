@@ -46,12 +46,12 @@ class Ferbo(QubitBase):
         dimension : int
             Dimension of the Hilbert space.
         flux_grouping : str, optional
-            Flux grouping ('L' or 'ABS') (default is 'L').
+            Flux grouping ('EL' or 'ABS') (default is 'EL').
         Delta : float
             Superconducting gap.
         """
-        if flux_grouping not in ['L', 'ABS']:
-            raise ValueError("Invalid flux grouping; must be 'L' or 'ABS'.")
+        if flux_grouping not in ['EL', 'ABS']:
+            raise ValueError("Invalid flux grouping; must be 'EL' or 'ABS'.")
         
         self.Ec = Ec
         self.El = El
@@ -169,7 +169,7 @@ class Ferbo(QubitBase):
     
     def d_hamiltonian_d_EL(self) -> np.ndarray:
         
-        if self.flux_grouping == 'L':
+        if self.flux_grouping == 'EL':
             phase_op = self.phase_operator()
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator() - self.phase * np.eye(self.dimension)
@@ -210,7 +210,7 @@ class Ferbo(QubitBase):
         np.ndarray
             The derivative of the Hamiltonian with respect to the external magnetic phase.
         """
-        if self.flux_grouping == 'L':
+        if self.flux_grouping == 'EL':
             return self.El * (self.phase_operator() + self.phase * np.eye(self.dimension))
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
@@ -225,7 +225,7 @@ class Ferbo(QubitBase):
         np.ndarray
             The second derivative of the Hamiltonian with respect to the external magnetic phase.
         """
-        if self.flux_grouping == 'L':
+        if self.flux_grouping == 'EL':
             return self.El * np.eye(self.dimension)
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
@@ -355,14 +355,13 @@ class Ferbo(QubitBase):
         """
         phi_array = np.atleast_1d(phi)
         evals_array = np.zeros((len(phi_array), 2))
-        phi_ext = 2 * np.pi * self.phase
 
         for i, phi_val in enumerate(phi_array):
             if self.flux_grouping == 'ABS':
                 inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
                 andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() + self.er * sigma_x()
-            elif self.flux_grouping == 'L':
-                inductive_term = 0.5 * self.El * (phi_val + phi_ext)**2 * np.eye(2)
+            elif self.flux_grouping == 'EL':
+                inductive_term = 0.5 * self.El * (phi_val + self.phase)**2 * np.eye(2)
                 andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_z() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() + self.er * sigma_x()
             
             potential_operator = inductive_term + andreev_term
