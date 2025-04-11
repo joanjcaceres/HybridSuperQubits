@@ -332,6 +332,13 @@ class Ferbo(QubitBase):
             phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
             phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[self.dimension//2 + n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
 
+        if basis == 'charge':
+            phi_wavefunc_amplitudes[0] /= np.sqrt(self.n_zpf)
+            phi_wavefunc_amplitudes[1] /= np.sqrt(self.n_zpf)
+        elif basis == 'phase':
+            phi_wavefunc_amplitudes[0] /= np.sqrt(self.phase_zpf)
+            phi_wavefunc_amplitudes[1] /= np.sqrt(self.phase_zpf)
+            
         return {
             "basis_labels": phi_basis_labels,
             "amplitudes": phi_wavefunc_amplitudes,

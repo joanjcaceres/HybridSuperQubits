@@ -256,6 +256,11 @@ class Fluxonium(QubitBase):
         for n in range(dim):
             phi_wavefunc_amplitudes += wavefunc_osc_basis_amplitudes[n] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
 
+        if basis == 'charge':
+            phi_wavefunc_amplitudes /= np.sqrt(self.n_zpf)
+        elif basis == 'phase':
+            phi_wavefunc_amplitudes /= np.sqrt(self.phase_zpf)
+            
         return {
             "basis_labels": phi_basis_labels,
             "amplitudes": phi_wavefunc_amplitudes,
