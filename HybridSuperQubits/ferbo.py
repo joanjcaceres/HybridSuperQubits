@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from .qubit_base import QubitBase
-from scipy.linalg import cosm, sinm, eigh, expm
-from typing import Any, Dict, Optional, Tuple, Union, Iterable, List
-from .operators import destroy, creation, sigma_z, sigma_y, sigma_x
+from scipy.linalg import cosm, sinm, eigh
+from typing import Any, Dict, Optional, Tuple, Union, Iterable
+from .operators import destroy, creation, sigma_z, sigma_y, sigma_x, state_to_density_matrix, ptrace
+from qutip import Qobj, Bloch
+from qutip import wigner
 
 class Ferbo(QubitBase):
     PARAM_LABELS = {
@@ -271,6 +273,83 @@ class Ferbo(QubitBase):
             phase_op -= self.phase * np.eye(self.dimension // 2)
             
         return - np.kron(sigma_y(), sinm(phase_op/2))
+    
+    def wigner(
+        self,
+        which: int = 0,
+        phi_grid: np.ndarray = None,
+        n_grid: np.ndarray = None,
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+    ):
+        """
+        Computes the Wigner function for a given wavefunction.
+
+        Parameters
+        ----------
+        which : int, optional
+            Index of desired wavefunction (default is 0).
+        phi_grid : np.ndarray, optional
+            Custom grid for phi; if None, a default grid is used.
+        n_grid : np.ndarray, optional
+            Custom grid for n; if None, a default grid is used.
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors.
+
+        Returns
+        -------
+        np.ndarray
+            The Wigner function.
+        """ 
+        rho_reduced = self.reduced_density_matrix(
+            which=which, esys=esys, subsys=0
+        )
+        
+        if phi_grid is None:
+            phi_grid = np.linspace(-5, 5, 151)
+        if n_grid is None:
+            n_grid = np.linspace(-5, 5, 151)
+          
+        rho_reduced_qobj = Qobj(rho_reduced)
+        
+        wigner_func = wigner(rho_reduced_qobj, phi_grid, n_grid)
+        return wigner_func
+    
+    def reduced_density_matrix(
+        self,
+        which: int = 0,
+        esys: Tuple[np.ndarray, np.ndarray] = None,
+        subsys: int = 0,
+    ) -> np.ndarray:
+        """
+        Computes the reduced density matrix for a given wavefunction.
+
+        Parameters
+        ----------
+        which : int, optional
+            Index of desired wavefunction (default is 0).
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors.
+        subsys : int, optional
+            Subsystem to compute the reduced density matrix for (default is 0).
+            0 for the tracing out the Fock states, 1 for the Andreev states.
+
+        Returns
+        -------
+        np.ndarray
+            The reduced density matrix.
+        """
+        
+        if esys is None:
+            evals_count = max(which + 1, 3)
+            _, evecs = self.eigensys(evals_count)
+        else:
+            _, evecs = esys
+            
+        rho = state_to_density_matrix(evecs[:, which])
+        rho_reduced = ptrace(rho, dims=(2, self.dimension//2), subsys=subsys)
+        
+        return rho_reduced
+           
     
     def wavefunction(
         self, 
