@@ -568,4 +568,108 @@ class Ferbo(QubitBase):
         ax.legend()
         ax.grid(True)
 
-        return fig, ax      
+        return fig, ax  
+    
+    def plot_state(self,
+                   which: int = 0,
+                   phi_grid : np.ndarray = None,
+                   n_grid : np.ndarray = None,
+                   wigner_func: bool = False,
+                   esys: Tuple[np.ndarray, np.ndarray] = None,
+                   plot_bloch: bool = False,
+                   **kwargs
+                   ) -> Tuple[plt.Figure, plt.Axes]:
+        """
+        Plot the Wigner function of the state and the Bloch sphere.
+        
+        Parameters
+        ----------
+        which : int, optional
+            Index of desired wavefunction (default is 0).
+        phi_grid : np.ndarray, optional
+            Custom grid for phi; if None, a default grid is used.
+        n_grid : np.ndarray, optional
+            Custom grid for n; if None, a default grid is used.
+        wigner_func : bool, optional
+            Precomputed wigner_func function (default is False).
+        esys : Tuple[np.ndarray, np.ndarray], optional
+            Precomputed eigenvalues and eigenvectors. 
+        plot_bloch : bool, optional
+            Whether to plot the Bloch sphere (default is False).
+             
+        **kwargs : dict, optional
+            Additional arguments for plotting. Can include:
+            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
+                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
+            - cmap: str, optional
+                Colormap to use for the Wigner function (default is 'seismic').
+            - bloch_view: Tuple[float, float], optional
+                Tuple with (elevation, azimuth) for Bloch sphere view (default is (-30, 60)).
+            
+        Returns
+        -------
+        Tuple[plt.Figure, plt.Axes]
+            The figure and axes of the plot.
+        """
+        if phi_grid is None:
+            phi_grid = np.linspace(-5, 5, 151)
+        if n_grid is None:
+            n_grid = np.linspace(-5, 5, 151)
+
+        if wigner is False:
+            wigner_func = self.wigner(which=which, phi_grid=phi_grid, n_grid=n_grid, esys=esys)
+        
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(self._generate_suptitle())
+        else:
+            fig, ax = fig_ax
+            
+        cmap = kwargs.get("cmap", "seismic")
+        
+        map = ax.imshow(
+            wigner_func,
+            aspect='auto',
+            origin='lower', 
+            extent=[phi_grid[0], phi_grid[-1], n_grid[0], n_grid[-1]],
+            cmap=cmap
+            )
+        
+        vmax = np.max(np.abs(wigner_func))
+        vmin = -vmax
+        map.set_clim(vmin, vmax)
+        
+        ax.set_xlabel(r"$\Phi/\Phi_0$")
+        ax.set_ylabel(r"$n$")
+        # ax.set_aspect('equal')
+        
+        if plot_bloch:
+            
+            bloch_view = kwargs.get("bloch_view", (30, -60))
+            
+            bbox = ax.get_position()  # posición del Axes principal en coordenadas de figura
+            inset_width = 0.3 * bbox.width
+            inset_height = 0.3 * bbox.height
+            inset_left = bbox.x0 + bbox.width -inset_width*1.01
+            inset_bottom = bbox.y0 + bbox.height - inset_height*1.01
+            inset_ax = fig.add_axes([inset_left, inset_bottom, inset_width, inset_height], projection='3d')
+            inset_ax.view_init(elev = bloch_view[0], azim = bloch_view[1])
+            rho_reduced = self.reduced_density_matrix(which=which, esys=esys, subsys=1)
+            rho_reduced_qobj = Qobj(rho_reduced)
+            
+            b = Bloch(fig=fig, axes=inset_ax)
+            b.vector_width = 1.5
+            b.xlabel = ["", ""]
+            b.ylabel = ["", ""]
+            b.zlabel = ["", ""]
+
+            b.add_states(state=rho_reduced_qobj, colors= 'blue')
+            b.render()
+        
+        # fig.colorbar(map, ax=ax, label=r"$W(\Phi,n)$", shrink=0.8)
+        # fig.tight_layout()
+        
+        return fig, ax
+        
+        
