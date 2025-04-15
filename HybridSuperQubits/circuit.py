@@ -37,7 +37,9 @@ class Circuit:
     def flux_modes(self) -> np.ndarray:
         op = self.dynamical_matrix()
         _, evecs = eigh(op)
-        return (self.C_inv_sqrt() @ evecs).T[1:]
+        flux_modes = (self.C_inv_sqrt() @ evecs).T[1:]
+        norms = np.sqrt(np.sum(flux_modes**2, axis=1, keepdims=True))
+        return flux_modes / norms
     
     def resonance_frequencies(self) -> np.ndarray:
         """
