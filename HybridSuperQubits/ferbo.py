@@ -559,7 +559,7 @@ class Ferbo(QubitBase):
                 )
             
         if basis == 'phase':
-            ax.set_xlabel(r"$2 \pi \Phi / \Phi_0$")
+            ax.set_xlabel(r"$\varphi$")
             ax.set_ylabel(r"$\psi(\varphi)$, Energy [GHz]")
         elif basis == 'charge':
             ax.set_xlabel(r"$n$")
@@ -640,7 +640,7 @@ class Ferbo(QubitBase):
         vmin = -vmax
         map.set_clim(vmin, vmax)
         
-        ax.set_xlabel(r"$\Phi/\Phi_0$")
+        ax.set_xlabel(r"$\varphi/2\pi$")
         ax.set_ylabel(r"$n$")
         # ax.set_aspect('equal')
         
