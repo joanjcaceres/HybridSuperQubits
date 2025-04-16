@@ -3,6 +3,7 @@ from .ferbo import Ferbo
 from .gatemon import Gatemon
 from .gatemonium import Gatemonium
 from .fluxonium import Fluxonium
+from .circuit import Circuit
 
 from .operators import *
 from .storage import *
@@ -14,6 +15,7 @@ __all__ = [
     "Gatemon",
     "Gatemonium",
     "Fluxonium",
+    "Circuit",
     "operators",
     "storage",
     "utilities",
