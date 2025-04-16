@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.linalg import eigh
+from scipy.constants import hbar, e, h
 
+PHI0 = h / (2 * e)
 class Circuit:
     def __init__(
         self,
@@ -30,16 +32,31 @@ class Circuit:
         return self.C_inv_sqrt() @ self.L_inv_matrix @ self.C_inv_sqrt()
 
     def eigenvals(self) -> np.ndarray:
+        """
+        Compute the eigenvalues of the dynamical matrix.
+        The eigenvalues are the square of the angular frequencies (omega^2).
+        They are returned in SI (rad/s)^2.
+        """
         op = self.dynamical_matrix()
         evals = eigh(op, eigvals_only=True)
         return evals
     
-    def flux_modes(self) -> np.ndarray:
+    def eigensys(self) -> tuple:
+        """
+        Compute the eigenvalues and eigenvectors of the dynamical matrix.
+        Returns a tuple of (eigenvalues, eigenvectors).
+        """
         op = self.dynamical_matrix()
-        _, evecs = eigh(op)
-        flux_modes = (self.C_inv_sqrt() @ evecs).T[1:]
-        norms = np.sqrt(np.sum(flux_modes**2, axis=1, keepdims=True))
-        return flux_modes / norms
+        evals, evecs = eigh(op)
+        return evals, evecs
+    
+    def phase_modes(self) -> np.ndarray:
+        evals, evecs = self.eigensys()
+        omega = np.sqrt(evals)
+        flux_modes = (self.C_inv_sqrt() @ evecs)
+        factor = np.sqrt(hbar / 2 / omega)
+        phase_modes = 2 * np.pi / PHI0 * factor * flux_modes
+        return phase_modes[:, 1:]
     
     def resonance_frequencies(self) -> np.ndarray:
         """
