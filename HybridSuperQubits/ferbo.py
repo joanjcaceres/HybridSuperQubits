@@ -90,6 +90,19 @@ class Ferbo(QubitBase):
         """
         return 1/2 * (self.El / 2 / self.Ec) ** 0.25
     
+    @property
+    def transparency(self) -> float:
+        """
+        Return the transparency of the weak link.
+        
+        Returns
+        -------
+        float
+            Transparency of the weak link.
+        """
+        
+        return (self.Gamma**2 - self.delta_Gamma**2) / (self.Gamma**2 + self.er**2)
+    
     def phi_osc(self) -> float:
         """
         Returns the oscillator length for the LC oscillator composed of the inductance and capacitance.
@@ -142,9 +155,7 @@ class Ferbo(QubitBase):
             - self.delta_Gamma * np.kron(sigma_y(), sinm(phase_op/2)) \
                 + self.er * np.kron(sigma_x(), np.eye(self.dimension // 2))
 
-    
-    # def zazunov_potential(self) -> np.ndarray:
-        
+            
     def hamiltonian(self) -> np.ndarray:
         """
         Returns the Hamiltonian of the system.
@@ -616,7 +627,7 @@ class Ferbo(QubitBase):
         if n_grid is None:
             n_grid = np.linspace(-5, 5, 151)
 
-        if wigner is False:
+        if wigner_func is False:
             wigner_func = self.wigner(which=which, phi_grid=phi_grid, n_grid=n_grid, esys=esys)
         
         fig_ax = kwargs.get("fig_ax")
