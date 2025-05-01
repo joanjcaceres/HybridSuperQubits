@@ -1,5 +1,6 @@
 # HybridSuperQubits 🌀⚡
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14826349.svg)](https://doi.org/10.5281/zenodo.14826349)
 [![PyPI Version](https://img.shields.io/pypi/v/HybridSuperQubits)](https://pypi.org/project/HybridSuperQubits/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/hybridsuperqubits/badge/?version=latest)](https://hybridsuperqubits.readthedocs.io/en/latest/?badge=latest)
@@ -151,3 +152,19 @@ This project is licensed under the MIT License. However, it includes portions of
 
 For more details, please refer to the [`LICENSE`](./LICENSE) file.
 
+## 📖 Citation
+
+If you use this software in your research, please cite it using the following BibTeX entry
+
+```bibtex
+@software{joan_j_caceres_2025_15315785,
+  author       = {Joan J. Cáceres},
+  title        = {joanjcaceres/HybridSuperQubits},
+  month        = may,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {v0.8.2},
+  doi          = {10.5281/zenodo.15315785},
+  url          = {https://doi.org/10.5281/zenodo.15315785},
+}
+```
