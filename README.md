@@ -168,3 +168,5 @@ If you use this software in your research, please cite it using the following Bi
   url          = {https://doi.org/10.5281/zenodo.15315785},
 }
 ```
+
+or using the Citation tool at [HybridSuperQubits' Zenodo](https://zenodo.org/records/15315785)
