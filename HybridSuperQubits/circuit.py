@@ -1,27 +1,80 @@
 import numpy as np
-from scipy.linalg import eigh
+from scipy.linalg import eigh, cho_factor, cho_solve, null_space
 from scipy.constants import hbar, e, h
+from typing import Tuple
 
 PHI0 = h / (2 * e)
 class Circuit:
     def __init__(
         self,
         C_matrix: np.ndarray,
+        cycle_matrix: np.ndarray,
         L_inv_matrix: np.ndarray,
     ):
         self.C_matrix = C_matrix
         self.L_inv_matrix = L_inv_matrix
         
+        # Validate that C_matrix and L_inv_matrix are symmetric positive definite
+        if not np.allclose(C_matrix, C_matrix.T):
+            raise ValueError("C_matrix must be symmetric.")
+        if not np.allclose(L_inv_matrix, L_inv_matrix.T):
+            raise ValueError("L_inv_matrix must be symmetric.")
+        
+        self.cycle_matrix = np.atleast_2d(cycle_matrix)
+        self.N = self.cycle_matrix.shape[1] - self.cycle_matrix.shape[0] # Number of dynamical variables
+        self.C_inv = self._C_inv()
+        self.M_matrix = self._M_matrix()
+        self.M_augmented_inv = self._M_augmented_inv()
+        self.C_eff_inv_sqrt = self._C_eff_inv_sqrt()
+        self.L_inv_eff, self.L_inv_cycle = self._L_inv_eff_matrix()
+        
+    def _C_inv(self) -> np.ndarray:
+        """
+        Compute the inverse of the capacitance matrix (C^(-1)).
+        """
+        c, lower = cho_factor(self.C_matrix)
+        C_inv = cho_solve((c, lower), np.eye(self.C_matrix.shape[0]))
+        return C_inv
+    
+    def _M_matrix(self) -> np.ndarray:
+        """
+        Compute the reduction matrix (M_+).
+        """
+        M_matrix = null_space(self.cycle_matrix @ self.C_inv).T
+        return M_matrix
 
-    def C_inv_sqrt(self) -> np.ndarray:
+    def _M_augmented_inv(self) -> np.ndarray:
+        """
+        Compute the reduction matrix (M_+^{-1}).
+        """
+        M_augmented = np.vstack((self.M_matrix, self.cycle_matrix))
+        M_augmented_inv = np.linalg.inv(M_augmented)
+
+        return M_augmented_inv
+    
+    def _C_eff_inv_sqrt(self) -> np.ndarray:
         """
         Compute the inverse square root of the capacitance matrix (C^(-1/2)).
         This is used in the dynamical matrix calculation.
         """
-        eigvals_C, eigvecs_C = eigh(self.C_matrix)
+        C_eff_matrix = self.M_augmented_inv.T @ self.C_matrix @ self.M_augmented_inv
+        eigvals_C, eigvecs_C = eigh(C_eff_matrix)
         Lambda_inv_sqrt = np.diag(1 / np.sqrt(eigvals_C))
-        return eigvecs_C @ Lambda_inv_sqrt @ eigvecs_C.T
-        
+        total_matrix = eigvecs_C @ Lambda_inv_sqrt @ eigvecs_C.T
+        return total_matrix[:self.N, :self.N]
+    
+    def _L_inv_eff_matrix(self) -> np.ndarray:
+        """
+        Compute the effective inverse inductance matrix (L_inv_eff).
+        The effective inverse inductance matrix is defined as:
+        L_inv_eff = M_+^{-1} * L_inv * M_+^{-1}
+        where M is the reduction matrix.
+        The first N rows and columns correspond to the dynamical variables
+        The last rows and columns correspond to the cycle variables
+        """
+        total_matrix = self.M_augmented_inv.T @ self.L_inv_matrix @ self.M_augmented_inv
+        return total_matrix[:self.N, :self.N], total_matrix[self.N:, :self.N]
+    
     def dynamical_matrix(self) -> np.ndarray:
         """
         Compute the dynamical matrix for the circuit.
@@ -29,7 +82,7 @@ class Circuit:
         D = C^(-1/2) * L^(-1) * C^(-1/2)
         where C is the capacitance matrix and L is the inductance matrix.
         """
-        return self.C_inv_sqrt() @ self.L_inv_matrix @ self.C_inv_sqrt()
+        return self.C_eff_inv_sqrt @ self.L_inv_eff @ self.C_eff_inv_sqrt
 
     def eigenvals(self) -> np.ndarray:
         """
@@ -45,18 +98,23 @@ class Circuit:
         """
         Compute the eigenvalues and eigenvectors of the dynamical matrix.
         Returns a tuple of (eigenvalues, eigenvectors).
+        The eigenvalues are the square of the angular frequencies (omega^2).
         """
         op = self.dynamical_matrix()
         evals, evecs = eigh(op)
         return evals, evecs
     
-    def phase_modes(self) -> np.ndarray:
-        evals, evecs = self.eigensys()
+    def phase_modes(self, esys: Tuple[np.ndarray, np.ndarray] = None) -> np.ndarray:
+        """
+        Compute the phase modes of the circuit.
+        The phase modes are obtained from the eigenvectors of the dynamical matrix.
+        They are returned in units radians.
+        """
+        if esys is None:
+            evals, evecs = self.eigensys()
         omega = np.sqrt(evals)
-        flux_modes = (self.C_inv_sqrt() @ evecs)
-        factor = np.sqrt(hbar / 2 / omega)
-        phase_modes = 2 * np.pi / PHI0 * factor * flux_modes
-        return phase_modes[:, 1:]
+        M_inv = np.linalg.pinv(self.M_matrix)
+        return 2 * np.pi / PHI0 * (M_inv @ self.C_eff_inv_sqrt @ evecs) * np.sqrt(hbar / 2 / omega)
     
     def resonance_frequencies(self) -> np.ndarray:
         """
@@ -65,102 +123,4 @@ class Circuit:
         They are returned in GHz.
         """
         evals = self.eigenvals()
-        return np.sqrt(evals) / (2 * np.pi * 1e9)
-
-    
-    # @staticmethod
-    # def fit_from_measurements(
-    #     measured_frequencies: np.ndarray,
-    #     N: int,
-    #     build_C_matrix_fn: Callable[['Circuit'], np.ndarray],
-    #     build_L_inv_matrix_fn: Callable[['Circuit'], np.ndarray],
-    #     initial_params: Optional[List[float]] = None,
-    #     bounds: Optional[Tuple[List[float], List[float]]] = None,
-    #     relative_error: bool = False,
-    #     verbose: bool = True,
-    #     extra_param_names: Optional[List[str]] = None,
-    #     build_extra_params_fn: Optional[Callable[[List[float]], Dict[str, float]]] = None
-    # ) -> Tuple['Circuit', Dict[str, Any]]:
-    #     """
-    #     Fit JJA parameters to measured resonance frequencies using numerical matrix-based model.
-    #     Parameters
-    #     ----------
-    #     measured_frequencies : np.ndarray
-    #         Experimentally measured resonance frequencies in Hz.
-    #     N : int
-    #         Number of junctions in the array.
-    #     build_C_matrix_fn : Callable
-    #         Function to build the capacitance matrix.
-    #     build_L_inv_matrix_fn : Callable
-    #         Function to build the inverse inductance matrix.
-    #     initial_params : List[float], optional
-    #         Initial guess for [Lj (nH), Cj (fF), Cg (aF)].
-    #     bounds : Tuple[List[float], List[float]], optional
-    #         Bounds for the parameters as ([min_vals], [max_vals]).
-    #     Returns
-    #     -------
-    #     Tuple[Circuit, Dict[str, Any]]
-    #         Fitted instance and results dictionary.
-    #     """
-    #     if initial_params is None:
-    #         initial_params = [1.0, 30.0, 50.0]  # Lj [nH], Cj [fF], Cg [aF]
-        
-    #     def create_jja_instance(params: List[float]) -> Circuit:
-    #         base_params = params[:3]
-    #         extra_param_values = params[3:] if extra_param_names else []
-    #         extra_params = build_extra_params_fn(extra_param_values) if build_extra_params_fn else {}
-
-    #         Lj, Cj, Cg = base_params[0]*1e-9, base_params[1]*1e-15, base_params[2]*1e-18
-
-    #         return Circuit(
-    #             Lj, Cj, Cg, N,
-    #             build_C_matrix_fn, build_L_inv_matrix_fn,
-    #             extra_params=extra_params
-    #         )
-        
-    #     def model(params):
-    #         return create_jja_instance(params).resonance_frequencies()[:len(measured_frequencies)]
-        
-    #     def cost(params):
-    #         diff = model(params) - measured_frequencies
-    #         if relative_error:
-    #             return diff / measured_frequencies
-    #         return diff
-        
-    #     from scipy.optimize import least_squares
-    #     result = least_squares(cost, initial_params, bounds=bounds, loss='soft_l1')
-    #     jja_fitted = create_jja_instance(result.x)
-    #     residuals = result.fun
-    #     measured = measured_frequencies
-
-    #     if verbose:
-    #         print("Fit summary:")
-    #         print("Parameters:", result.x)
-    #         print("Cost:", result.cost)
-    #         print("Message:", result.message)
-
-    #     param_dict = {
-    #         "Lj_nH": result.x[0],
-    #         "Cj_fF": result.x[1],
-    #         "Cg_aF": result.x[2],
-    #     }
-
-    #     if extra_param_names:
-    #         for i, name in enumerate(extra_param_names):
-    #             param_dict[name] = result.x[3 + i]
-
-    #     return jja_fitted, {
-    #         "parameters": param_dict,
-    #         "frequencies": {
-    #             "measured": measured,
-    #             "fitted": jja_fitted.resonance_frequencies()[:len(measured)]
-    #         },
-    #         "errors": {
-    #             "rmse": float(np.sqrt(np.mean(residuals**2))),
-    #             "r_squared": float(1 - np.sum(residuals**2) / np.sum((measured - np.mean(measured))**2))
-    #         },
-    #         "residuals": residuals,
-    #         "fit_success": result.success,
-    #         "cost": result.cost,
-    #         "message": result.message
-    #     }
+        return np.sqrt(evals) / (2 * np.pi * 1e9) 
