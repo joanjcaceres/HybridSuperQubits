@@ -1,9 +1,10 @@
 import numpy as np
-from scipy.linalg import eigh, cho_factor, cho_solve, null_space
+from scipy.linalg import eigh, cho_factor, cho_solve, null_space, expm
 from scipy.constants import hbar, e, h
-from typing import Tuple
+import scipy.sparse as sp
+import functools
 
-PHI0 = h / (2 * e)
+PHI0 = hbar / (2 * e)
 class Circuit:
     def __init__(
         self,
@@ -27,6 +28,9 @@ class Circuit:
         self.M_augmented_inv = self._M_augmented_inv()
         self.C_eff_inv_sqrt = self._C_eff_inv_sqrt()
         self.L_inv_eff, self.L_inv_cycle = self._L_inv_eff_matrix()
+        # Cache eigen-decomposition of dynamical matrix for reuse
+        self._eigenvals2, self._eigenvecs = eigh(self.dynamical_matrix())
+        self._omega = np.sqrt(self._eigenvals2)  # mode frequencies in rad/s
         
     def _C_inv(self) -> np.ndarray:
         """
@@ -59,6 +63,8 @@ class Circuit:
         """
         C_eff_matrix = self.M_augmented_inv.T @ self.C_matrix @ self.M_augmented_inv
         eigvals_C, eigvecs_C = eigh(C_eff_matrix)
+        # clamp eigenvalues to avoid numerical issues
+        eigvals_C = np.clip(eigvals_C, 1e-15, None)
         Lambda_inv_sqrt = np.diag(1 / np.sqrt(eigvals_C))
         total_matrix = eigvecs_C @ Lambda_inv_sqrt @ eigvecs_C.T
         return total_matrix[:self.N, :self.N]
@@ -84,43 +90,78 @@ class Circuit:
         """
         return self.C_eff_inv_sqrt @ self.L_inv_eff @ self.C_eff_inv_sqrt
 
-    def eigenvals(self) -> np.ndarray:
+    def _matrix_cos(self, op: np.ndarray) -> np.ndarray:
         """
-        Compute the eigenvalues of the dynamical matrix.
-        The eigenvalues are the square of the angular frequencies (omega^2).
-        They are returned in SI (rad/s)^2.
+        Compute the matrix cosine via exponentials.
         """
-        op = self.dynamical_matrix()
-        evals = eigh(op, eigvals_only=True)
-        return evals
-    
-    def eigensys(self) -> tuple:
+        return (expm(1j * op) + expm(-1j * op)).real * 0.5
+
+    @functools.lru_cache(maxsize=None)
+    def creation_operator(self, dim: int) -> sp.csr_matrix:
         """
-        Compute the eigenvalues and eigenvectors of the dynamical matrix.
-        Returns a tuple of (eigenvalues, eigenvectors).
-        The eigenvalues are the square of the angular frequencies (omega^2).
+        Sparse creation operator of given Hilbert-space dimension.
         """
-        op = self.dynamical_matrix()
-        evals, evecs = eigh(op)
-        return evals, evecs
-    
-    def phase_modes(self, esys: Tuple[np.ndarray, np.ndarray] = None) -> np.ndarray:
+        data = np.sqrt(np.arange(1, dim))
+        return sp.diags([data], [1], shape=(dim, dim), format='csr')
+
+    @functools.lru_cache(maxsize=None)
+    def annihilation_operator(self, dim: int) -> sp.csr_matrix:
         """
-        Compute the phase modes of the circuit.
-        The phase modes are obtained from the eigenvectors of the dynamical matrix.
-        They are returned in units radians.
+        Sparse annihilation operator of given Hilbert-space dimension.
         """
-        if esys is None:
-            evals, evecs = self.eigensys()
-        omega = np.sqrt(evals)
-        M_inv = np.linalg.pinv(self.M_matrix)
-        return 2 * np.pi / PHI0 * (M_inv @ self.C_eff_inv_sqrt @ evecs) * np.sqrt(hbar / 2 / omega)
-    
-    def resonance_frequencies(self) -> np.ndarray:
+        data = np.sqrt(np.arange(1, dim))
+        return sp.diags([data], [-1], shape=(dim, dim), format='csr')
+
+    @functools.lru_cache(maxsize=None)
+    def phase_operator(self, dim: int, mode_idx: int) -> sp.csr_matrix:
         """
-        Compute the resonance frequencies of the circuit.
-        The resonance frequencies are the square roots of the eigenvalues of the dynamical matrix.
-        They are returned in GHz.
+        Cached phase operator φ̂ = sqrt(ħ/(2ω)) (a + a†) for given mode.
         """
-        evals = self.eigenvals()
-        return np.sqrt(evals) / (2 * np.pi * 1e9) 
+        a = self.annihilation_operator(dim)
+        adag = self.creation_operator(dim)
+        factor = np.sqrt(hbar / (2 * self._omega[mode_idx]))
+        return factor * (a + adag)
+
+    def hamiltonian_0(self, dim: int, mode_idx: int = 0) -> sp.csr_matrix:
+        """
+        Diagonal harmonic Hamiltonian H0 = ħω (n + 1/2), returned in GHz units.
+        """
+        # freq in GHz
+        freq_ghz = self._omega[mode_idx] / (2 * np.pi * 1e9)
+        n = np.arange(dim)
+        diag = (n + 0.5) * freq_ghz
+        return sp.diags([diag], [0], format='csr')
+
+    def hamiltonian_1(self, dim: int, phi_ext: float, mode_idx: int = 0) -> sp.csr_matrix:
+        """
+        Linear coupling Hamiltonian H1 = φ_ext * (Φ0/h) * coupling * φ̂ (in GHz).
+        """
+        phase_op = self.phase_operator(dim, mode_idx)
+        # coupling coefficient from circuit structure
+        coupling = (self.L_inv_cycle @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx, mode_idx]
+        # scale by flux quantum, external flux, and convert to GHz
+        scale = PHI0 / h / 1e9 * phi_ext
+        return scale * coupling * phase_op
+
+    def hamiltonian_nl(
+        self,
+        dim: int,
+        Ej: float,  # Josephson energy in GHz
+        phi_ext: float,
+        mode_idx: int = 0
+    ) -> sp.csr_matrix:
+        """
+        Nonlinear Josephson Hamiltonian H_nl = -Ej [cos(φ̂+φ_ext)+½(φ̂+φ_ext)²] (in GHz).
+        """
+        # build phase operator
+        phase_op = self.phase_operator(dim, mode_idx)
+        # displacement due to mode and circuit
+        weight = (self.M_augmented_inv[mode_idx, :-1] @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx]
+        phi_x_0 = weight * phase_op / PHI0
+        phi_total = phi_x_0 + phi_ext * self.M_augmented_inv[mode_idx, -1] * sp.eye(dim, format='csr')
+        # convert to dense for matrix functions
+        phi_dense = phi_total.toarray()
+        cos_term = self._matrix_cos(phi_dense)
+        quad_term = 0.5 * (phi_dense @ phi_dense)
+        H_nl = -Ej * (cos_term + quad_term)
+        return sp.csr_matrix(H_nl)
