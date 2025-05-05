@@ -159,9 +159,10 @@ class Circuit:
         weight = (self.M_augmented_inv[mode_idx, :-1] @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx]
         phi_x_0 = weight * phase_op / PHI0
         phi_total = phi_x_0 + phi_ext * self.M_augmented_inv[mode_idx, -1] * sp.eye(dim, format='csr')
-        # convert to dense for matrix functions
+        # Convert to dense for matrix functions
         phi_dense = phi_total.toarray()
-        cos_term = self._matrix_cos(phi_dense)
-        quad_term = 0.5 * (phi_dense @ phi_dense)
-        H_nl = -Ej * (cos_term + quad_term)
+        eigvals_phi, eigvecs_phi = eigh(phi_dense)
+        # calculte f(phi) = cos(phi) + 1/2 * phi^2
+        f_vals = np.cos(eigvals_phi) + 0.5 * eigvals_phi**2
+        H_nl = -Ej * (eigvecs_phi @ np.diag(f_vals) @ eigvecs_phi.T)
         return sp.csr_matrix(H_nl)
