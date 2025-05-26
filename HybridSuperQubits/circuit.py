@@ -28,9 +28,9 @@ class Circuit:
         self.M_augmented_inv = self._M_augmented_inv()
         self.C_eff_inv_sqrt = self._C_eff_inv_sqrt()
         self.L_inv_eff, self.L_inv_cycle = self._L_inv_eff_matrix()
-        # Cache eigen-decomposition of dynamical matrix for reuse
         self._eigenvals2, self._eigenvecs = eigh(self.dynamical_matrix())
         self._omega = np.sqrt(self._eigenvals2)  # mode frequencies in rad/s
+        self.linear_coupling_matrix = self.linear_coupling()
         
     def _C_inv(self) -> np.ndarray:
         """
@@ -113,7 +113,7 @@ class Circuit:
         return sp.diags([data], [-1], shape=(dim, dim), format='csr')
 
     @functools.lru_cache(maxsize=None)
-    def phase_operator(self, dim: int, mode_idx: int) -> sp.csr_matrix:
+    def normal_phase_operator(self, dim: int, mode_idx: int) -> sp.csr_matrix:
         """
         Cached phase operator φ̂ = sqrt(ħ/(2ω)) (a + a†) for given mode.
         """
@@ -131,16 +131,24 @@ class Circuit:
         n = np.arange(dim)
         diag = (n + 0.5) * freq_ghz
         return sp.diags([diag], [0], format='csr')
-
+    
+    def linear_coupling(self) -> np.ndarray:
+        """
+        Linear coupling operator for the circuit.
+        It has the dimension of (N_loops) x (N dynamical variables).
+        """
+        # coupling coefficient from circuit structure
+        coupling = PHI0 * (self.L_inv_cycle @ self.C_eff_inv_sqrt @ self._eigenvecs)
+        return coupling
+        
     def hamiltonian_1(self, dim: int, phi_ext: float, mode_idx: int = 0) -> sp.csr_matrix:
         """
         Linear coupling Hamiltonian H1 = φ_ext * (Φ0/h) * coupling * φ̂ (in GHz).
         """
-        phase_op = self.phase_operator(dim, mode_idx)
+        phase_op = self.normal_phase_operator(dim, mode_idx)
         # coupling coefficient from circuit structure
-        coupling = (self.L_inv_cycle @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx, mode_idx]
-        # scale by flux quantum, external flux, and convert to GHz
-        scale = PHI0 / h / 1e9 * phi_ext
+        coupling = self.linear_coupling_matrix[0, mode_idx] # Assuming a single loop.
+        scale = phi_ext / h / 1e9 # convert to GHz
         return scale * coupling * phase_op
 
     def hamiltonian_nl(
@@ -154,15 +162,21 @@ class Circuit:
         Nonlinear Josephson Hamiltonian H_nl = -Ej [cos(φ̂+φ_ext)+½(φ̂+φ_ext)²] (in GHz).
         """
         # build phase operator
-        phase_op = self.phase_operator(dim, mode_idx)
+        phase_op = self.normal_phase_operator(dim, mode_idx)
         # displacement due to mode and circuit
-        weight = (self.M_augmented_inv[mode_idx, :-1] @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx]
-        phi_x_0 = weight * phase_op / PHI0
-        phi_total = phi_x_0 + phi_ext * self.M_augmented_inv[mode_idx, -1] * sp.eye(dim, format='csr')
-        # Convert to dense for matrix functions
+        alpha = (self.M_augmented_inv[:, :-1] @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx] / PHI0
+        beta = self.M_augmented_inv[mode_idx, -1]
+        
+        cos_suppresion_term = np.exp(-0.5 * np.sum((alpha[1:]*np.sqrt(hbar/2/self._omega[1:]))**2))
+        fast_coupling = self.linear_coupling_matrix[0, 1:] # Assuming a single loop.
+        cos_offset = np.sum(fast_coupling * alpha[1:] / self._omega[1:]**2)
+        linear_term = - np.sum(fast_coupling * np.sqrt(2/hbar/self._omega[1:]**3))
+        
+        alpha_k = alpha[mode_idx]
+        phi_total = alpha_k * phase_op + beta * phi_ext * sp.eye(dim, format='csr')
         phi_dense = phi_total.toarray()
         eigvals_phi, eigvecs_phi = eigh(phi_dense)
-        # calculte f(phi) = cos(phi) + 1/2 * phi^2
-        f_vals = np.cos(eigvals_phi) + 0.5 * eigvals_phi**2
+        
+        f_vals = cos_suppresion_term * np.cos(eigvals_phi + cos_offset) + 0.5 * eigvals_phi**2 + linear_term * eigvals_phi
         H_nl = -Ej * (eigvecs_phi @ np.diag(f_vals) @ eigvecs_phi.T)
         return sp.csr_matrix(H_nl)
