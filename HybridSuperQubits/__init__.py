@@ -1,3 +1,7 @@
+from importlib.metadata import version
+
+__version__ = version("HybridSuperQubits")
+
 from .andreev import Andreev
 from .ferbo import Ferbo
 from .gatemon import Gatemon
