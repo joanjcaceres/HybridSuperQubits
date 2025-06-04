@@ -6,12 +6,11 @@ on:
       - "v*.*.*"
 
 jobs:
-  permissions:
-    contents: read
-    id-token: write
-    attestations: write
-
   build:
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ubuntu-latest       # un solo runner basta
     steps:
       - uses: actions/checkout@v4
@@ -28,11 +27,9 @@ jobs:
         run: poetry build
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v1
         with:
-          subject-path: 'dist/*.tar.gz'
-          predicate-type: 'https://slsa.dev/provenance/v1'
-          predicate: '{}'
+          subject-path: 'dist/*'
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
