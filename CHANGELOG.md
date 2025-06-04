@@ -1,3 +1,7 @@
+## [v0.8.4] - 2025-06-04
+### Main changes
+- Add version retrieval in the `__init__.py`.
+
 ## [v0.2.0] - 2025-02-21
 ### Main changes
 - Add methods  `state_to_density_matrix`, `ptrace` and `purity` in ``operators.py``.
