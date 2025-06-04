@@ -91,6 +91,18 @@ class Ferbo(QubitBase):
         return 1/2 * (self.El / 2 / self.Ec) ** 0.25
     
     @property
+    def lc_energy(self) -> float:
+        """
+        Returns the plasma energy.
+
+        Returns
+        -------
+        float
+            Plasma energy.
+        """
+        return np.sqrt(8 * self.Ec * self.El)
+    
+    @property
     def transparency(self) -> float:
         """
         Return the transparency of the weak link.
@@ -616,6 +628,9 @@ class Ferbo(QubitBase):
                 Colormap to use for the Wigner function (default is 'seismic').
             - bloch_view: Tuple[float, float], optional
                 Tuple with (elevation, azimuth) for Bloch sphere view (default is (-30, 60)).
+            - bloch_position: Tuple[float, float, float, float], optional
+                Position of the Bloch sphere inset in figure coordinates (left, bottom, width, height).
+                If not provided, a default position is calculated.
             
         Returns
         -------
@@ -658,13 +673,19 @@ class Ferbo(QubitBase):
         if plot_bloch:
             
             bloch_view = kwargs.get("bloch_view", (30, -60))
-            
+            bloch_position = kwargs.get("bloch_position")  # Custom position for Bloch sphere
+
             bbox = ax.get_position()  # posición del Axes principal en coordenadas de figura
-            inset_width = 0.3 * bbox.width
-            inset_height = 0.3 * bbox.height
-            inset_left = bbox.x0 + bbox.width -inset_width*1.01
-            inset_bottom = bbox.y0 + bbox.height - inset_height*1.01
-            inset_ax = fig.add_axes([inset_left, inset_bottom, inset_width, inset_height], projection='3d')
+            if bloch_position is None:
+                inset_width = 0.3 * bbox.width
+                inset_height = 0.3 * bbox.height
+                inset_left = bbox.width -inset_width*1.01
+                inset_bottom = bbox.height - inset_height*1.01
+                bloch_position = [inset_left, inset_bottom, inset_width, inset_height]
+
+            bloch_position[0] += bbox.x0
+            bloch_position[1] += bbox.y0
+            inset_ax = fig.add_axes(bloch_position, projection='3d')
             inset_ax.view_init(elev = bloch_view[0], azim = bloch_view[1])
             rho_reduced = self.reduced_density_matrix(which=which, esys=esys, subsys=1)
             rho_reduced_qobj = Qobj(rho_reduced)
