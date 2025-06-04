@@ -22,7 +22,6 @@ class Circuit:
             raise ValueError("L_inv_matrix must be symmetric.")
         
         self.cycle_matrix = np.atleast_2d(cycle_matrix)
-        self.N = self.cycle_matrix.shape[1] - self.cycle_matrix.shape[0] # Number of dynamical variables
         self.C_inv = self._C_inv()
         self.M_matrix = self._M_matrix()
         self.M_augmented_inv = self._M_augmented_inv()
@@ -31,6 +30,20 @@ class Circuit:
         self._eigenvals2, self._eigenvecs = eigh(self.dynamical_matrix())
         self._omega = np.sqrt(self._eigenvals2)  # mode frequencies in rad/s
         self.linear_coupling_matrix = self.linear_coupling()
+        
+    @property
+    def n_meshes(self) -> int:
+        """
+        Number of meshes in the circuit.
+        """
+        return self.cycle_matrix.shape[0]
+    
+    @property
+    def n_dynamical_vars(self) -> int:
+        """
+        Number of dynamical variables in the circuit.
+        """
+        return self.cycle_matrix.shape[1] - self.n_meshes
         
     def _C_inv(self) -> np.ndarray:
         """
@@ -67,7 +80,8 @@ class Circuit:
         eigvals_C = np.clip(eigvals_C, 1e-15, None)
         Lambda_inv_sqrt = np.diag(1 / np.sqrt(eigvals_C))
         total_matrix = eigvecs_C @ Lambda_inv_sqrt @ eigvecs_C.T
-        return total_matrix[:self.N, :self.N]
+
+        return total_matrix[:self.n_dynamical_vars, :self.n_dynamical_vars]
     
     def _L_inv_eff_matrix(self) -> np.ndarray:
         """
@@ -79,7 +93,7 @@ class Circuit:
         The last rows and columns correspond to the cycle variables
         """
         total_matrix = self.M_augmented_inv.T @ self.L_inv_matrix @ self.M_augmented_inv
-        return total_matrix[:self.N, :self.N], total_matrix[self.N:, :self.N]
+        return total_matrix[:self.n_dynamical_vars, :self.n_dynamical_vars], total_matrix[self.n_dynamical_vars:, :self.n_dynamical_vars]
     
     def dynamical_matrix(self) -> np.ndarray:
         """
@@ -88,7 +102,11 @@ class Circuit:
         D = C^(-1/2) * L^(-1) * C^(-1/2)
         where C is the capacitance matrix and L is the inductance matrix.
         """
-        return self.C_eff_inv_sqrt @ self.L_inv_eff @ self.C_eff_inv_sqrt
+        
+        # Ensure there is no nan or inf in the matrices
+        dynamical_matrix = self.C_eff_inv_sqrt @ self.L_inv_eff @ self.C_eff_inv_sqrt
+        dynamical_matrix = (dynamical_matrix + dynamical_matrix.T) / 2 # Force to be hermitian
+        return dynamical_matrix
 
     def _matrix_cos(self, op: np.ndarray) -> np.ndarray:
         """
@@ -155,17 +173,22 @@ class Circuit:
         self,
         dim: int,
         Ej: float,  # Josephson energy in GHz
-        phi_ext: float,
+        phi_ext: np.ndarray,
         mode_idx: int = 0
     ) -> sp.csr_matrix:
         """
         Nonlinear Josephson Hamiltonian H_nl = -Ej [cos(φ̂+φ_ext)+½(φ̂+φ_ext)²] (in GHz).
         """
+
+        if phi_ext.ndim != 1 or phi_ext.size != self.n_meshes:
+            raise ValueError(f"phi_ext must be a 1D array with {self.n_meshes} elements.")
+        
         # build phase operator
         phase_op = self.normal_phase_operator(dim, mode_idx)
         # displacement due to mode and circuit
-        alpha = (self.M_augmented_inv[:, :-1] @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx] / PHI0
-        beta = self.M_augmented_inv[mode_idx, -1]
+        
+        alpha = (self.M_augmented_inv[:, :-self.n_meshes] @ self.C_eff_inv_sqrt @ self._eigenvecs)[mode_idx] / PHI0
+        beta = self.M_augmented_inv[mode_idx, self.n_dynamical_vars:]
         
         cos_suppresion_term = np.exp(-0.5 * np.sum((alpha[1:]*np.sqrt(hbar/2/self._omega[1:]))**2))
         fast_coupling = self.linear_coupling_matrix[0, 1:] # Assuming a single loop.
@@ -173,7 +196,7 @@ class Circuit:
         linear_term = - np.sum(fast_coupling * np.sqrt(2/hbar/self._omega[1:]**3))
         
         alpha_k = alpha[mode_idx]
-        phi_total = alpha_k * phase_op + beta * phi_ext * sp.eye(dim, format='csr')
+        phi_total = alpha_k * phase_op + (beta * phi_ext)[0] * sp.eye(dim, format='csr') # Temporary patch taking only one effective phi ext
         phi_dense = phi_total.toarray()
         eigvals_phi, eigvecs_phi = eigh(phi_dense)
         
