@@ -1602,6 +1602,9 @@ class QubitBase(ABC):
             if mode == "abs":
                 values = np.abs(matrixelem_table[:, i, j])
                 ylabel = rf"$|\langle {{i}} | {operator_label} | {{j}} \rangle|$"
+            elif mode == "abs_squared":
+                values = np.abs(matrixelem_table[:, i, j])**2
+                ylabel = rf"$|\langle {{i}} | {operator_label} | {{j}} \rangle|^2$"
             elif mode == "real":
                 values = matrixelem_table[:, i, j].real
                 ylabel = rf"$\Re(\langle {{i}} | {operator_label} | {{j}} \rangle)$"
