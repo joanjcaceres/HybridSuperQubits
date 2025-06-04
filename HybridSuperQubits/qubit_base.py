@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scqubits.utils.plotting as plot
+# import scqubits.utils.plotting as plot
 from abc import ABC, abstractmethod
 from scipy.linalg import expm, eigh
 from scipy.special import factorial, pbdv
@@ -291,71 +291,71 @@ class QubitBase(ABC):
         result = pbdv(n, x / l_osc) / np.sqrt(np.sqrt(2 * np.pi) * factorial(n))
         return result[0]
     
-    def plot_matrixelements(
-        self,
-        operator: str,
-        evecs: np.ndarray = None,
-        evals_count: int = 6,
-        mode: str = "abs",
-        show_numbers: bool = False,
-        show_colorbar: bool = True,
-        show3d: bool = True,
-        **kwargs,
-    ) -> Union[Tuple[plt.Figure, Tuple[plt.Axes, plt.Axes]], Tuple[plt.Figure, plt.Axes]]:
-        """
-        Plots the matrix elements for a given operator with respect to the eigenstates.
+    # def plot_matrixelements(
+    #     self,
+    #     operator: str,
+    #     evecs: np.ndarray = None,
+    #     evals_count: int = 6,
+    #     mode: str = "abs",
+    #     show_numbers: bool = False,
+    #     show_colorbar: bool = True,
+    #     show3d: bool = True,
+    #     **kwargs,
+    # ) -> Union[Tuple[plt.Figure, Tuple[plt.Axes, plt.Axes]], Tuple[plt.Figure, plt.Axes]]:
+    #     """
+    #     Plots the matrix elements for a given operator with respect to the eigenstates.
 
-        Parameters
-        ----------
-        operator : str
-            The name of the operator.
-        evecs : np.ndarray, optional
-            The eigenstates (default is None, in which case they are calculated).
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
-        mode : str, optional
-            The mode for displaying matrix elements ('abs', 'real', 'imag') (default is 'abs').
-        show_numbers : bool, optional
-            Whether to show the matrix element values as numbers (default is False).
-        show_colorbar : bool, optional
-            Whether to show a colorbar (default is True).
-        show3d : bool, optional
-            Whether to show a 3D plot (default is True).
+    #     Parameters
+    #     ----------
+    #     operator : str
+    #         The name of the operator.
+    #     evecs : np.ndarray, optional
+    #         The eigenstates (default is None, in which case they are calculated).
+    #     evals_count : int, optional
+    #         The number of eigenvalues and eigenstates to calculate (default is 6).
+    #     mode : str, optional
+    #         The mode for displaying matrix elements ('abs', 'real', 'imag') (default is 'abs').
+    #     show_numbers : bool, optional
+    #         Whether to show the matrix element values as numbers (default is False).
+    #     show_colorbar : bool, optional
+    #         Whether to show a colorbar (default is True).
+    #     show3d : bool, optional
+    #         Whether to show a 3D plot (default is True).
 
-        Returns
-        -------
-        Union[Tuple[plt.Figure, Tuple[plt.Axes, plt.Axes]], Tuple[plt.Figure, plt.Axes]]
-            The figure and axes of the plot.
-        """
-        # Obtener la tabla de elementos de la matriz utilizando el método matrixelement_table
-        matrix_elements = self.matrixelement_table(operator, evecs, evals_count)
+    #     Returns
+    #     -------
+    #     Union[Tuple[plt.Figure, Tuple[plt.Axes, plt.Axes]], Tuple[plt.Figure, plt.Axes]]
+    #         The figure and axes of the plot.
+    #     """
+    #     # Obtener la tabla de elementos de la matriz utilizando el método matrixelement_table
+    #     matrix_elements = self.matrixelement_table(operator, evecs, evals_count)
         
-        modefunction = {
-            "abs": np.abs,
-            "real": np.real,
-            "imag": np.imag
-        }.get(mode, None)
+    #     modefunction = {
+    #         "abs": np.abs,
+    #         "real": np.real,
+    #         "imag": np.imag
+    #     }.get(mode, None)
         
-        if modefunction is None:
-            raise ValueError(f"Unsupported mode: {mode}")
+    #     if modefunction is None:
+    #         raise ValueError(f"Unsupported mode: {mode}")
 
-        matrix_elements = modefunction(matrix_elements)
+    #     matrix_elements = modefunction(matrix_elements)
 
-        if show3d:
-            return plot.matrix(
-                matrix_elements,
-                mode=mode,
-                show_numbers=show_numbers,
-                **kwargs,
-            )
+    #     if show3d:
+    #         return plot.matrix(
+    #             matrix_elements,
+    #             mode=mode,
+    #             show_numbers=show_numbers,
+    #             **kwargs,
+    #         )
 
-        return plot.matrix2d(
-            matrix_elements,
-            mode=mode,
-            show_numbers=show_numbers,
-            show_colorbar=show_colorbar,
-            **kwargs,
-        )
+    #     return plot.matrix2d(
+    #         matrix_elements,
+    #         mode=mode,
+    #         show_numbers=show_numbers,
+    #         show_colorbar=show_colorbar,
+    #         **kwargs,
+    #     )
         
     def t1_capacitive(
         self,
