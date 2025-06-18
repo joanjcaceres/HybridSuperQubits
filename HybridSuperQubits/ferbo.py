@@ -11,6 +11,7 @@ class Ferbo(QubitBase):
     PARAM_LABELS = {
         'Ec': r'$E_C$',
         'El': r'$E_L$',
+        'Ej': r'$E_J$',
         'Gamma': r'$\Gamma$',
         'delta_Gamma': r'$\delta \Gamma$',
         'er': r'$\epsilon_r$',
@@ -27,7 +28,19 @@ class Ferbo(QubitBase):
     'd_hamiltonian_d_er': r'\partial \hat{H} / \partial \epsilon_r',
     }
     
-    def __init__(self, Ec, El, Gamma, delta_Gamma, er, phase, dimension, flux_grouping: str = 'ABS', Delta = 40):
+    def __init__(
+        self, 
+        Ec, 
+        El, 
+        Ej,
+        Gamma,
+        delta_Gamma,
+        er,
+        phase,
+        dimension, 
+        flux_grouping: str = 'ABS',
+        Delta = 40
+        ):
         """
         Initializes the Ferbo class with the given parameters.
 
@@ -37,6 +50,8 @@ class Ferbo(QubitBase):
             Charging energy.
         El : float
             Inductive energy.
+        Ej : float
+            Josephson energy.
         Gamma : float
             Coupling strength.
         delta_Gamma : float
@@ -57,6 +72,7 @@ class Ferbo(QubitBase):
         
         self.Ec = Ec
         self.El = El
+        self.Ej = Ej
         self.Gamma = Gamma
         self.delta_Gamma = delta_Gamma
         self.er = er
@@ -185,12 +201,14 @@ class Ferbo(QubitBase):
         
         if self.flux_grouping == 'ABS':
             inductive_term = 0.5 * self.El * phase_op @ phase_op
+            josephson_term = -self.Ej * cosm(phase_op)
         else:
             phase_op += self.phase * np.eye(self.dimension)
             inductive_term = 0.5 * self.El * phase_op @ phase_op
+            josephson_term = -self.Ej * cosm(phase_op)
             
         potential = self.jrl_potential()
-        return charge_term + inductive_term + potential
+        return charge_term + inductive_term + josephson_term + potential
     
     def d_hamiltonian_d_EL(self) -> np.ndarray:
         
@@ -468,12 +486,14 @@ class Ferbo(QubitBase):
         for i, phi_val in enumerate(phi_array):
             if self.flux_grouping == 'ABS':
                 inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
+                josephson_term = -self.Ej * np.cos(phi_val + self.phase) * np.eye(2)
                 andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() + self.er * sigma_x()
             elif self.flux_grouping == 'EL':
                 inductive_term = 0.5 * self.El * (phi_val + self.phase)**2 * np.eye(2)
                 andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_z() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() + self.er * sigma_x()
+                josephson_term = -self.Ej * np.cos(phi_val) * np.eye(2)
             
-            potential_operator = inductive_term + andreev_term
+            potential_operator = inductive_term + josephson_term + andreev_term
             evals_array[i] = eigh(
                 potential_operator,
                 eigvals_only=True,
