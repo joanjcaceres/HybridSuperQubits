@@ -5,21 +5,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name        = "HybridSuperQubits"
 version = "0.8.3"
-[build-system]
-requires = ["poetry-core>=1.8"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
-name        = "HybridSuperQubits"
-version = "0.8.2"
 description = "Package to simulate hybrid superconducting qubits"
-authors     = ["Joan Cáceres <contact@joancaceres.com>"]
-license     = "MIT"
-readme      = "README.md"
-packages    = [ {include = "HybridSuperQubits"} ]
-homepage    = "https://github.com/joanjcaceres/HybridSuperQubits"
-repository  = "https://github.com/joanjcaceres/HybridSuperQubits"
-documentation = "https://hybridsuperqubits.readthedocs.io"
 authors     = ["Joan Cáceres <contact@joancaceres.com>"]
 license     = "MIT"
 readme      = "README.md"
@@ -31,15 +17,8 @@ documentation = "https://hybridsuperqubits.readthedocs.io"
 [tool.poetry.dependencies]
 python      = ">=3.9,<3.13"
 numpy       = ">=1.26"
-scipy       = ">=1.15"
+scipy       = ">=1.5,<=1.13.1"
 matplotlib  = ">=3.8"
 tqdm        = ">=4.66"
-qutip       = ">=5.1"
-scqubits    = ">=4.3"
-python      = ">=3.9,<3.13"
-numpy       = ">=1.26"
-scipy       = ">=1.15"
-matplotlib  = ">=3.8"
-tqdm        = ">=4.66"
-qutip       = ">=5.1"
+qutip       = "*"
 scqubits    = ">=4.3"
