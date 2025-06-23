@@ -543,7 +543,7 @@ class Ferbo(QubitBase):
         rotate : bool, optional
             Whether to rotate the basis (default is False).
         mode: str, optional
-            Mode of the wavefunction ('abs', 'real', or 'imag') (default is 'abs').
+            Mode of the wavefunction ('abs', 'abs2', 'real', or 'imag') (default is 'abs').
         **kwargs
             Additional arguments for plotting. Can include:
             - fig_ax: Tuple[plt.Figure, plt.Axes], optional
@@ -581,6 +581,9 @@ class Ferbo(QubitBase):
             if mode == 'abs':
                 y_values = np.abs(wavefunc_amplitudes[0])
                 y_values_down = np.abs(wavefunc_amplitudes[1])
+            elif mode == 'abs2':
+                y_values = np.abs(wavefunc_amplitudes[0])**2
+                y_values_down = np.abs(wavefunc_amplitudes[1])**2
             elif mode == 'real':
                 y_values = wavefunc_amplitudes[0].real
                 y_values_down = wavefunc_amplitudes[1].real
