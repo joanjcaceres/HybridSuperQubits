@@ -486,8 +486,8 @@ class Ferbo(QubitBase):
         for i, phi_val in enumerate(phi_array):
             if self.flux_grouping == 'ABS':
                 inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
-                josephson_term = -self.Ej * np.cos(phi_val + self.phase) * np.eye(2)
-                andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() + self.er * sigma_x()
+                josephson_term = -self.Ej * np.cos(phi_val - self.phase) * np.eye(2)
+                andreev_term = -self.Gamma * np.cos((phi_val - self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val - self.phase) / 2) * sigma_y() + self.er * sigma_x()
             elif self.flux_grouping == 'EL':
                 inductive_term = 0.5 * self.El * (phi_val + self.phase)**2 * np.eye(2)
                 andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_z() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() + self.er * sigma_x()
