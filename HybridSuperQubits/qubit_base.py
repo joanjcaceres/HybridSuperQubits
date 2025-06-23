@@ -371,11 +371,13 @@ class QubitBase(ABC):
         ) -> float:
         
         if Q_cap is None:
-            Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7 # Assuming that Ec is in GHz
+            def Q_cap_fun(omega):
+                return 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7  # Assuming that Ec is in GHz
         elif callable(Q_cap):
             Q_cap_fun = Q_cap
         else:
-            Q_cap_fun = lambda omega: Q_cap
+            def Q_cap_fun(omega):
+                return Q_cap
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
@@ -415,17 +417,19 @@ class QubitBase(ABC):
         ) -> float:
         
         if Q_ind is None:
-            Q_ind_fun = lambda omega: 500e6 * (
-                k0(h * 0.5e9 / (2 * k * T)) * np.sinh(h * 0.5e9 / (2 * k * T))
-                / (
-                    k0(hbar * np.abs(omega) / (2 * k * T))
-                    * np.sinh(hbar * np.abs(omega) / (2 * k * T))
+            def Q_ind_fun(omega):
+                return 500e6 * (
+                    k0(h * 0.5e9 / (2 * k * T)) * np.sinh(h * 0.5e9 / (2 * k * T))
+                    / (
+                        k0(hbar * np.abs(omega) / (2 * k * T))
+                        * np.sinh(hbar * np.abs(omega) / (2 * k * T))
+                    )
                 )
-            )
         elif callable(Q_ind):
             Q_ind_fun = Q_ind
         else:
-            Q_ind_fun = lambda omega: Q_ind
+            def Q_ind_fun(omega):
+                return Q_ind
         
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
@@ -695,11 +699,13 @@ class QubitBase(ABC):
             evals_count = self.dimension
             
         if Q_cap is None:
-            Q_cap_fun = lambda omega: 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7 # Assuming that Ec is in GHz
+            def Q_cap_fun(omega):
+                return 1e6 * (2 * np.pi * 6e9 / np.abs(omega))**0.7  # Assuming that Ec is in GHz
         elif callable(Q_cap):
             Q_cap_fun = Q_cap
         else:
-            Q_cap_fun = lambda omega: Q_cap
+            def Q_cap_fun(omega):
+                return Q_cap
 
         def spectral_density(omega, T):
             # Assuming that Ec is in GHz
@@ -763,11 +769,13 @@ class QubitBase(ABC):
                 q_ind_inv  = (k0(x) * np.sinh(x))
                 return 1 / q_ind_inv
 
-            Q_ind_fun = lambda omega: Q_ind_ref * q_ind(omega) / q_ind(omega_ref)
+            def Q_ind_fun(omega):
+                return Q_ind_ref * q_ind(omega) / q_ind(omega_ref)
         elif callable(Q_ind):
             Q_ind_fun = Q_ind
         else:
-            Q_ind_fun = lambda omega: Q_ind
+            def Q_ind_fun(omega):
+                return Q_ind
         def spectral_density(omega, T):            
             x = hbar * omega / (k * T)
             return 2 * self.El / Q_ind_fun(omega) * 1 / np.tanh(np.abs(x) / 2) / (1 + np.exp(-x))
@@ -1692,7 +1700,7 @@ class QubitBase(ABC):
                 rate_effective += 1 / t1_times
                 ax.plot(param_vals, t1_times, label=f"{channel} ({i},{j})")
 
-        ax.plot(param_vals, 1/rate_effective, label=f"T1 effective", color='black', linestyle='--')
+        ax.plot(param_vals, 1/rate_effective, label="T1 effective", color='black', linestyle='--')
 
         xlabel = self.PARAM_LABELS.get(param_name, param_name)
         
