@@ -201,14 +201,15 @@ class Ferbo(QubitBase):
         
         if self.flux_grouping == 'ABS':
             inductive_term = 0.5 * self.El * phase_op @ phase_op
+            phase_op -= self.phase * np.eye(self.dimension)
             josephson_term = -self.Ej * cosm(phase_op)
         else:
+            josephson_term = -self.Ej * cosm(phase_op)
             phase_op += self.phase * np.eye(self.dimension)
             inductive_term = 0.5 * self.El * phase_op @ phase_op
-            josephson_term = -self.Ej * cosm(phase_op)
             
         potential = self.jrl_potential()
-        return charge_term + inductive_term + josephson_term + potential
+        return charge_term + inductive_term + potential + josephson_term
     
     def d_hamiltonian_d_EL(self) -> np.ndarray:
         
