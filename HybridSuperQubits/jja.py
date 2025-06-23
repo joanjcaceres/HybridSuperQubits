@@ -1,7 +1,6 @@
 import numpy as np
-from scipy.linalg import eigh
 from scipy.constants import hbar, h, e
-from typing import Optional, List, Dict, Tuple, Any, Callable
+from typing import Optional, List, Dict, Tuple, Any
 from scipy.optimize import curve_fit
 from .utilities import calculate_error_metrics
 
