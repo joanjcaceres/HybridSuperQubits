@@ -4,7 +4,6 @@ from .gatemon import Gatemon
 from .gatemonium import Gatemonium
 from .fluxonium import Fluxonium
 from .resonator import Resonator
-from .circuit import Circuit
 
 from .operators import *
 from .storage import *
@@ -17,7 +16,6 @@ __all__ = [
     "Gatemonium",
     "Fluxonium",
     "Resonator",
-    "Circuit",
     "operators",
     "storage",
     "utilities",
