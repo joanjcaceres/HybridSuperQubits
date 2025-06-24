@@ -1,3 +1,12 @@
+## [v0.8.8] - 2025-06-25
+### Main changes
+- Added Resonator class to simulate microwave resonators
+- Improved JJA class with enhanced error handling and parameter validation
+- Enhanced Ferbo class with optimized calculations and additional utilities
+- Added scqubits as a dependency for enhanced compatibility
+- Fixed several bugs and improved code quality
+- Updated documentation
+
 ## [v0.8.4] - 2025-06-04
 ### Main changes
 - Add version retrieval in the `__init__.py`.
