@@ -27,7 +27,7 @@ class Gatemonium(QubitBase):
     'd_hamiltonian_d_Ej': r'\partial \hat{H} / \partial E_J',
     }
     
-    def __init__(self, Ec, El, Ej, Delta, T, phase, dimension, flux_grouping):
+    def __init__(self, Ec, El, Ej, T, phase, dimension, flux_grouping, Delta=44):
         """
         Initializes the Gatemonium class with the given parameters.
 
@@ -39,16 +39,16 @@ class Gatemonium(QubitBase):
             Inductive energy.
         Ej : float
             Josephson energy.
-        Delta : float
-            Superconducting gap.
-        T : float
-            Transmission coefficient.
+        T : Union[float, List[float], np.ndarray]
+            Transmission coefficient(s). Can be a single value or a list/array for multiple channels.
         phase : float
             External phase.
         dimension : int
             Hilbert space dimension.
         flux_grouping : str
             Grouping of the external flux, either 'L' or 'ABS'.
+        Delta : float, optional
+            Superconducting gap. Default is 44 (for Aluminum).
         """
         
         if flux_grouping not in ['L', 'ABS']:
@@ -58,7 +58,11 @@ class Gatemonium(QubitBase):
         self.El = El
         self.Ej = Ej
         self.Delta = Delta
-        self.T = T
+        
+        # Convert T to numpy array for consistent handling of single or multiple channels
+        self.T = np.atleast_1d(T)
+        self.num_channels = len(self.T)
+        
         self.phase = phase
         self.dimension = dimension
         self.flux_grouping = flux_grouping
@@ -133,7 +137,7 @@ class Gatemonium(QubitBase):
         if self.flux_grouping == 'ABS':
             phase_op -= self.phase * np.eye(self.dimension)
         
-        # Calculate ABS junction term using Fourier expansion
+        # Calculate ABS junction term using Fourier expansion for each channel
         def f(phi, T, Delta):
             return - Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
         
@@ -141,11 +145,20 @@ class Gatemonium(QubitBase):
             integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
             return 2 * integral / np.pi
         
-        A_coeffs = [A_k(k, self.T, self.Delta) for k in range(self.num_coef + 1)]
+        # Initialize the ABS junction term
+        abs_junction_term = np.zeros((self.dimension, self.dimension), dtype=complex)
         
-        abs_junction_term = A_coeffs[0] / 2 * np.eye(self.dimension)
-        for k in range(1, self.num_coef + 1):
-            abs_junction_term += A_coeffs[k] * cosm(k * phase_op)
+        # Sum contributions from all channels
+        for channel_idx, T_channel in enumerate(self.T):
+            # Calculate Fourier coefficients for this channel
+            A_coeffs = [A_k(k, T_channel, self.Delta) for k in range(self.num_coef + 1)]
+            
+            # Add constant term
+            abs_junction_term += A_coeffs[0] / 2 * np.eye(self.dimension)
+            
+            # Add cosine terms
+            for k in range(1, self.num_coef + 1):
+                abs_junction_term += A_coeffs[k] * cosm(k * phase_op)
         
         # Calculate standard Josephson term
         josephson_term = 0
@@ -185,6 +198,14 @@ class Gatemonium(QubitBase):
         return kinetic_term + inductive_term + junction_term
     
     def d_hamiltonian_d_phase(self) -> np.ndarray:
+        """
+        Calculate the derivative of the Hamiltonian with respect to the external phase.
+        
+        Returns
+        -------
+        np.ndarray
+            Derivative of the Hamiltonian with respect to the external phase.
+        """
         phase_op = self.phase_operator()
         ext_phase = self.phase * np.eye(self.dimension)
         
@@ -192,11 +213,6 @@ class Gatemonium(QubitBase):
             return self.El * (phase_op + ext_phase)
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator() - self.phase * np.eye(self.dimension)
-            # numerator = -self.T * self.Delta * sinm(phase_op - ext_phase)
-            # sin_op = sinm((phase_op - ext_phase) / 2)
-            # denominator = 4 * sqrtm(np.eye(self.dimension) - self.T * sin_op.conj().T @ sin_op)
-            
-            # return solve(numerator , denominator)
             
             def f(phi, T, Delta):
                 return -Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
@@ -205,11 +221,21 @@ class Gatemonium(QubitBase):
                 integral, error = quad(lambda x: f(x, T, Delta) * np.cos(k*x), 0, np.pi)
                 return 2 * integral / np.pi
             
-            A_coeffs = [A_k(k, self.T, self.Delta) for k in range(0, self.num_coef + 1)]
-                    
-            dH_dPhi = 0
-            for k in range(self.num_coef):
-                dH_dPhi += A_coeffs[k] * k * sinm(k * phase_op)
+            # Initialize the derivative
+            dH_dPhi = np.zeros((self.dimension, self.dimension), dtype=complex)
+            
+            # Calculate derivative for each channel
+            for channel_idx, T_channel in enumerate(self.T):
+                # Calculate Fourier coefficients for this channel
+                A_coeffs = [A_k(k, T_channel, self.Delta) for k in range(0, self.num_coef + 1)]
+                
+                # Sum sine terms for this channel
+                for k in range(1, self.num_coef + 1):
+                    dH_dPhi += A_coeffs[k] * k * sinm(k * phase_op)
+            
+            # Add derivative of Josephson term
+            if self.Ej > 0:
+                dH_dPhi += self.Ej * sinm(phase_op)
                 
             return dH_dPhi
             
@@ -247,16 +273,27 @@ class Gatemonium(QubitBase):
         """
         phi_array = np.atleast_1d(phi)
         
+        # Calculate inductive term
         if self.flux_grouping == 'L':
             inductive_term = 0.5 * self.El * (phi_array + self.phase)**2
-            junction_term = -self.Delta * np.sqrt(1 - self.T * np.sin(phi_array/2)**2)
+        elif self.flux_grouping == 'ABS':
+            inductive_term = 0.5 * self.El * phi_array**2
+            
+        # Calculate Josephson term
+        if self.flux_grouping == 'L':
             # Josephson term with external flux in inductance
             josephson_term = -self.Ej * np.cos(phi_array)
         elif self.flux_grouping == 'ABS':
-            inductive_term = 0.5 * self.El * phi_array**2
-            junction_term = -self.Delta * np.sqrt(1 - self.T * np.sin((phi_array - self.phase)/2)**2)
             # Josephson term with external flux in junction
             josephson_term = -self.Ej * np.cos(phi_array - self.phase)
+            
+        # Calculate ABS junction term for all channels
+        junction_term = np.zeros_like(phi_array, dtype=float)
+        for channel_idx, T_channel in enumerate(self.T):
+            if self.flux_grouping == 'L':
+                junction_term += -self.Delta * np.sqrt(1 - T_channel * np.sin(phi_array/2)**2)
+            elif self.flux_grouping == 'ABS':
+                junction_term += -self.Delta * np.sqrt(1 - T_channel * np.sin((phi_array - self.phase)/2)**2)
             
         return inductive_term + junction_term + josephson_term
         
