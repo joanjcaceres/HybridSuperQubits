@@ -1,4 +1,4 @@
-## [v0.8.8] - 2025-06-25
+## [v0.8.9] - 2025-06-25
 ### Main changes
 - Added Resonator class to simulate microwave resonators
 - Improved JJA class with enhanced error handling and parameter validation

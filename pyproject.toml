@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name        = "HybridSuperQubits"
-version = "0.8.8"
+version = "0.8.9"
 description = "Package to simulate hybrid superconducting qubits"
 authors     = ["Joan Cáceres <contact@joancaceres.com>"]
 license     = "MIT"
