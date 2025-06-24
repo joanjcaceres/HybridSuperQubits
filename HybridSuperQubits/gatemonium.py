@@ -13,6 +13,7 @@ class Gatemonium(QubitBase):
     PARAM_LABELS = {
         'Ec': r'$E_C$',
         'El': r'$E_L$',
+        'Ej': r'$E_J$',
         'Delta': r'$\Delta$',
         'T': r'$T$',
         'phase': r'$\Phi_{ext} / \Phi_0$'
@@ -23,15 +24,39 @@ class Gatemonium(QubitBase):
     'phase_operator': r'\hat{\phi}',
     'd_hamiltonian_d_ng': r'\partial \hat{H} / \partial n_g',
     'd_hamiltonian_d_phase': r'\partial \hat{H} / \partial \phi_{{ext}}',
+    'd_hamiltonian_d_Ej': r'\partial \hat{H} / \partial E_J',
     }
     
-    def __init__(self, Ec, El, Delta, T, phase, dimension, flux_grouping):
+    def __init__(self, Ec, El, Ej, Delta, T, phase, dimension, flux_grouping):
+        """
+        Initializes the Gatemonium class with the given parameters.
+
+        Parameters
+        ----------
+        Ec : float
+            Charging energy.
+        El : float
+            Inductive energy.
+        Ej : float
+            Josephson energy.
+        Delta : float
+            Superconducting gap.
+        T : float
+            Transmission coefficient.
+        phase : float
+            External phase.
+        dimension : int
+            Hilbert space dimension.
+        flux_grouping : str
+            Grouping of the external flux, either 'L' or 'ABS'.
+        """
         
         if flux_grouping not in ['L', 'ABS']:
             raise ValueError("Invalid flux grouping; must be 'L' or 'ABS'.")
         
         self.Ec = Ec
         self.El = El
+        self.Ej = Ej
         self.Delta = Delta
         self.T = T
         self.phase = phase
@@ -88,12 +113,27 @@ class Gatemonium(QubitBase):
         return (2*self.Ec/self.El)**0.25 * (creation(dimension) + destroy(dimension))
     
     def junction_potential(self):
+        """
+        Calculate the total junction potential operator, including both the ABS potential 
+        and the standard Josephson potential.
+        
+        This method returns the operator form (matrix representation) of the junction potential
+        for use in the Hamiltonian. For the scalar energy function, see the potential() method.
+        
+        The ABS potential is calculated using Fourier coefficients from the ABS energy.
+        The Josephson potential is the standard -Ej*cos(phi) term.
+        
+        Returns
+        -------
+        np.ndarray
+            Combined junction potential matrix in the phase basis.
+        """
         phase_op = self.phase_operator()
         
         if self.flux_grouping == 'ABS':
             phase_op -= self.phase * np.eye(self.dimension)
         
-        junction_term = 0
+        # Calculate ABS junction term using Fourier expansion
         def f(phi, T, Delta):
             return - Delta * np.sqrt(1 - T * np.sin(phi/2)**2)
         
@@ -103,12 +143,33 @@ class Gatemonium(QubitBase):
         
         A_coeffs = [A_k(k, self.T, self.Delta) for k in range(self.num_coef + 1)]
         
-        junction_term = A_coeffs[0] / 2  * np.eye(self.dimension)
+        abs_junction_term = A_coeffs[0] / 2 * np.eye(self.dimension)
         for k in range(1, self.num_coef + 1):
-            junction_term += A_coeffs[k] * cosm(k * phase_op)            
-        return junction_term
+            abs_junction_term += A_coeffs[k] * cosm(k * phase_op)
+        
+        # Calculate standard Josephson term
+        josephson_term = 0
+        if self.Ej > 0:
+            # Standard Josephson potential term: -Ej*cos(phi)
+            josephson_term = -self.Ej * cosm(phase_op)
+            
+        # Combine both junction contributions
+        return abs_junction_term + josephson_term
     
     def hamiltonian(self):
+        """
+        Calculate the Hamiltonian of the gatemonium qubit.
+        
+        The Hamiltonian includes:
+        - Kinetic term (4*Ec*n²)
+        - Inductive term (0.5*El*φ²)
+        - Junction potential term (including both ABS and Josephson contributions)
+        
+        Returns
+        -------
+        np.ndarray
+            The Hamiltonian matrix.
+        """
         n_op = self.n_operator()
         phase_op = self.phase_operator()
 
@@ -117,6 +178,8 @@ class Gatemonium(QubitBase):
         
         kinetic_term = 4 * self.Ec * (n_op @ n_op)
         inductive_term = 0.5 * self.El * (phase_op @ phase_op)
+        
+        # Get combined junction potential (ABS + Josephson)
         junction_term = self.junction_potential()
 
         return kinetic_term + inductive_term + junction_term
@@ -152,18 +215,50 @@ class Gatemonium(QubitBase):
             
             
         
-    def potential(self, phi: Union[float, np.ndarray]):
+    def d_hamiltonian_d_Ej(self) -> np.ndarray:
+        """
+        Calculate the derivative of the Hamiltonian with respect to Ej.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative matrix.
+        """
+        phase_op = self.phase_operator()
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension)
         
+        # Derivative of -Ej*cos(phi) with respect to Ej is -cos(phi)
+        return -cosm(phase_op)
+    
+    def potential(self, phi: Union[float, np.ndarray]):
+        """
+        Calculate the potential energy as a function of phase.
+        
+        Parameters
+        ----------
+        phi : Union[float, np.ndarray]
+            Phase value(s) at which to evaluate the potential.
+            
+        Returns
+        -------
+        Union[float, np.ndarray]
+            Potential energy value(s).
+        """
         phi_array = np.atleast_1d(phi)
         
         if self.flux_grouping == 'L':
             inductive_term = 0.5 * self.El * (phi_array + self.phase)**2
             junction_term = -self.Delta * np.sqrt(1 - self.T * np.sin(phi_array/2)**2)
+            # Josephson term with external flux in inductance
+            josephson_term = -self.Ej * np.cos(phi_array)
         elif self.flux_grouping == 'ABS':
             inductive_term = 0.5 * self.El * phi_array**2
             junction_term = -self.Delta * np.sqrt(1 - self.T * np.sin((phi_array - self.phase)/2)**2)
+            # Josephson term with external flux in junction
+            josephson_term = -self.Ej * np.cos(phi_array - self.phase)
             
-        return inductive_term + junction_term
+        return inductive_term + junction_term + josephson_term
         
     def wavefunction(
         self,
@@ -272,6 +367,5 @@ class Gatemonium(QubitBase):
         ax.grid(True)
 
         return fig, ax
-        
 
-        
+
