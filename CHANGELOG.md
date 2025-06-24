@@ -1,3 +1,10 @@
+## [v0.9.0] - 2025-06-25
+### Main changes
+- Enhanced Gatemonium class to support multiple transmission channels
+- Changed Delta parameter to have a default value of 44 (for Aluminum)
+- Reorganized Gatemonium potential calculation to handle multiple channels
+- Updated derivatives with respect to external phase to support multiple channels
+
 ## [v0.8.9] - 2025-06-25
 ### Main changes
 - Added Resonator class to simulate microwave resonators
