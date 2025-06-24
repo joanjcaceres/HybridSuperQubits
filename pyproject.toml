@@ -15,7 +15,7 @@ repository  = "https://github.com/joanjcaceres/HybridSuperQubits"
 documentation = "https://hybridsuperqubits.readthedocs.io"
 
 [tool.poetry.dependencies]
-python      = ">=3.9,<3.13"
+python      = ">=3.9,<3.14"
 numpy       = ">=1.26"
 scipy       = ">=1.5,<=1.13.1"
 matplotlib  = ">=3.8"
