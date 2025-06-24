@@ -117,7 +117,14 @@ class QubitBase(ABC):
         )
         return np.sort(evals)
     
-    def get_spectrum_vs_paramvals(self, param_name: str, param_vals: List[float], evals_count: int = None, subtract_ground: bool = False)  -> SpectrumData:
+    def get_spectrum_vs_paramvals(
+        self, 
+        param_name: str, 
+        param_vals: List[float], 
+        evals_count: int = None,
+        subtract_ground: bool = False,
+        show_progress: bool = True
+        )  -> SpectrumData:
         """
         Calculates the eigenenergies and eigenstates for a range of parameter values.
 
@@ -145,7 +152,7 @@ class QubitBase(ABC):
         
         initial_value = getattr(self, param_name)
         
-        for val in tqdm(param_vals, leave=False):
+        for val in tqdm(param_vals, leave=False, disable=not show_progress):
             self.set_param(param_name, val)
             eigenenergies, eigenstates = self.eigensys(evals_count)
             eigenenergies_array.append(eigenenergies)
