@@ -11,6 +11,7 @@ class Ferbo(QubitBase):
     PARAM_LABELS = {
         'Ec': r'$E_C$',
         'El': r'$E_L$',
+        'Ej': r'$E_J$',
         'Gamma': r'$\Gamma$',
         'delta_Gamma': r'$\delta \Gamma$',
         'er': r'$\epsilon_r$',
@@ -27,7 +28,19 @@ class Ferbo(QubitBase):
     'd_hamiltonian_d_er': r'\partial \hat{H} / \partial \epsilon_r',
     }
     
-    def __init__(self, Ec, El, Gamma, delta_Gamma, er, phase, dimension, flux_grouping: str = 'ABS', Delta = 40):
+    def __init__(
+        self, 
+        Ec, 
+        El, 
+        Ej,
+        Gamma,
+        delta_Gamma,
+        er,
+        phase,
+        dimension, 
+        flux_grouping: str = 'ABS',
+        Delta = 40
+        ):
         """
         Initializes the Ferbo class with the given parameters.
 
@@ -37,6 +50,8 @@ class Ferbo(QubitBase):
             Charging energy.
         El : float
             Inductive energy.
+        Ej : float
+            Josephson energy.
         Gamma : float
             Coupling strength.
         delta_Gamma : float
@@ -57,6 +72,7 @@ class Ferbo(QubitBase):
         
         self.Ec = Ec
         self.El = El
+        self.Ej = Ej
         self.Gamma = Gamma
         self.delta_Gamma = delta_Gamma
         self.er = er
@@ -89,6 +105,18 @@ class Ferbo(QubitBase):
             Zero-point fluctuation of the charge number.
         """
         return 1/2 * (self.El / 2 / self.Ec) ** 0.25
+    
+    @property
+    def lc_energy(self) -> float:
+        """
+        Returns the plasma energy.
+
+        Returns
+        -------
+        float
+            Plasma energy.
+        """
+        return np.sqrt(8 * self.Ec * self.El)
     
     @property
     def transparency(self) -> float:
@@ -173,21 +201,101 @@ class Ferbo(QubitBase):
         
         if self.flux_grouping == 'ABS':
             inductive_term = 0.5 * self.El * phase_op @ phase_op
+            phase_op -= self.phase * np.eye(self.dimension)
+            josephson_term = -self.Ej * cosm(phase_op)
         else:
+            josephson_term = -self.Ej * cosm(phase_op)
             phase_op += self.phase * np.eye(self.dimension)
             inductive_term = 0.5 * self.El * phase_op @ phase_op
             
         potential = self.jrl_potential()
-        return charge_term + inductive_term + potential
+        return charge_term + inductive_term + potential + josephson_term
+    
+    def d_hamiltonian_d_EC(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the charging energy.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the charging energy.
+        """
+        n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
+        n_op = self.n_operator() + n_x * np.kron(sigma_x(), np.eye(self.dimension//2))
+        
+        return 8 * n_op @ n_op
     
     def d_hamiltonian_d_EL(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the inductive energy.
         
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the inductive energy.
+        """
         if self.flux_grouping == 'EL':
             phase_op = self.phase_operator()
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator() - self.phase * np.eye(self.dimension)
 
         return 1/2 * np.dot(phase_op, phase_op)
+    
+    def d_hamiltonian_d_EJ(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the Josephson energy.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the Josephson energy.
+        """
+        phase_op = self.phase_operator()
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension)
+        
+        return - cosm(phase_op)
+    
+    def d_hamiltonian_d_Gamma(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to Gamma.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to Gamma.
+        """
+        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+        
+        return - np.kron(sigma_z(), sinm(phase_op/2))
+                
+    def d_hamiltonian_d_er(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the energy relaxation rate.
+        """
+        return + np.kron(sigma_x(), np.eye(self.dimension // 2))
+    
+    def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the coupling strength difference.
+        """
+        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+            
+        return - np.kron(sigma_y(), sinm(phase_op/2))
     
     def d_hamiltonian_d_ng(self) -> np.ndarray:
         """
@@ -243,47 +351,6 @@ class Ferbo(QubitBase):
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
             return self.Gamma/4 * np.kron(sigma_z(), cosm(phase_op/2)) + self.delta_Gamma/4 * np.kron(sigma_y(), sinm(phase_op/2))
-        
-    def d_hamiltonian_d_Gamma(self) -> np.ndarray:
-        """
-        Returns the derivative of the Hamiltonian with respect to Gamma.
-
-        Returns
-        -------
-        np.ndarray
-            The derivative of the Hamiltonian with respect to Gamma.
-        """
-        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
-        if self.flux_grouping == 'ABS':
-            phase_op -= self.phase * np.eye(self.dimension // 2)
-        
-        return - np.kron(sigma_z(), sinm(phase_op/2))
-                
-    def d_hamiltonian_d_er(self) -> np.ndarray:
-        """
-        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the energy relaxation rate.
-        """
-        return + np.kron(sigma_x(), np.eye(self.dimension // 2))
-    
-    def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
-        """
-        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the coupling strength difference.
-        """
-        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
-        if self.flux_grouping == 'ABS':
-            phase_op -= self.phase * np.eye(self.dimension // 2)
-            
-        return - np.kron(sigma_y(), sinm(phase_op/2))
     
     def wigner(
         self,
@@ -456,12 +523,14 @@ class Ferbo(QubitBase):
         for i, phi_val in enumerate(phi_array):
             if self.flux_grouping == 'ABS':
                 inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
-                andreev_term = -self.Gamma * np.cos((phi_val + self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val + self.phase) / 2) * sigma_y() + self.er * sigma_x()
+                josephson_term = -self.Ej * np.cos(phi_val - self.phase) * np.eye(2)
+                andreev_term = -self.Gamma * np.cos((phi_val - self.phase) / 2) * sigma_z() - self.delta_Gamma * np.sin((phi_val - self.phase) / 2) * sigma_y() + self.er * sigma_x()
             elif self.flux_grouping == 'EL':
                 inductive_term = 0.5 * self.El * (phi_val + self.phase)**2 * np.eye(2)
                 andreev_term = -self.Gamma * np.cos(phi_val / 2) * sigma_z() - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y() + self.er * sigma_x()
+                josephson_term = -self.Ej * np.cos(phi_val) * np.eye(2)
             
-            potential_operator = inductive_term + andreev_term
+            potential_operator = inductive_term + josephson_term + andreev_term
             evals_array[i] = eigh(
                 potential_operator,
                 eigvals_only=True,
@@ -511,7 +580,7 @@ class Ferbo(QubitBase):
         rotate : bool, optional
             Whether to rotate the basis (default is False).
         mode: str, optional
-            Mode of the wavefunction ('abs', 'real', or 'imag') (default is 'abs').
+            Mode of the wavefunction ('abs', 'abs2', 'real', or 'imag') (default is 'abs').
         **kwargs
             Additional arguments for plotting. Can include:
             - fig_ax: Tuple[plt.Figure, plt.Axes], optional
@@ -549,6 +618,9 @@ class Ferbo(QubitBase):
             if mode == 'abs':
                 y_values = np.abs(wavefunc_amplitudes[0])
                 y_values_down = np.abs(wavefunc_amplitudes[1])
+            elif mode == 'abs2':
+                y_values = np.abs(wavefunc_amplitudes[0])**2
+                y_values_down = np.abs(wavefunc_amplitudes[1])**2
             elif mode == 'real':
                 y_values = wavefunc_amplitudes[0].real
                 y_values_down = wavefunc_amplitudes[1].real
@@ -616,6 +688,9 @@ class Ferbo(QubitBase):
                 Colormap to use for the Wigner function (default is 'seismic').
             - bloch_view: Tuple[float, float], optional
                 Tuple with (elevation, azimuth) for Bloch sphere view (default is (-30, 60)).
+            - bloch_position: Tuple[float, float, float, float], optional
+                Position of the Bloch sphere inset in figure coordinates (left, bottom, width, height).
+                If not provided, a default position is calculated.
             
         Returns
         -------
@@ -658,13 +733,19 @@ class Ferbo(QubitBase):
         if plot_bloch:
             
             bloch_view = kwargs.get("bloch_view", (30, -60))
-            
+            bloch_position = kwargs.get("bloch_position")  # Custom position for Bloch sphere
+
             bbox = ax.get_position()  # posición del Axes principal en coordenadas de figura
-            inset_width = 0.3 * bbox.width
-            inset_height = 0.3 * bbox.height
-            inset_left = bbox.x0 + bbox.width -inset_width*1.01
-            inset_bottom = bbox.y0 + bbox.height - inset_height*1.01
-            inset_ax = fig.add_axes([inset_left, inset_bottom, inset_width, inset_height], projection='3d')
+            if bloch_position is None:
+                inset_width = 0.3 * bbox.width
+                inset_height = 0.3 * bbox.height
+                inset_left = bbox.width -inset_width*1.01
+                inset_bottom = bbox.height - inset_height*1.01
+                bloch_position = [inset_left, inset_bottom, inset_width, inset_height]
+
+            bloch_position[0] += bbox.x0
+            bloch_position[1] += bbox.y0
+            inset_ax = fig.add_axes(bloch_position, projection='3d')
             inset_ax.view_init(elev = bloch_view[0], azim = bloch_view[1])
             rho_reduced = self.reduced_density_matrix(which=which, esys=esys, subsys=1)
             rho_reduced_qobj = Qobj(rho_reduced)

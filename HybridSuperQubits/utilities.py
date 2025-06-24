@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Dict, Any
+import scipy.constants as const
 
 def calculate_error_metrics(
     fitted_values: np.ndarray, 
@@ -112,3 +113,15 @@ def cos_kphi_operator(k:int, dimension: int, phase: float = 0) -> np.ndarray:
     cos_kphi[indices[mask_down], indices[mask_down] - k] = 0.5 * np.exp(1j * phase)
     
     return cos_kphi
+
+def L_to_El(L):
+    return (const.hbar/2/const.e)**2/(L)/const.h
+
+def C_to_Ec(C):
+    return const.e**2/2/C/const.h
+
+def El_to_L(El):
+    return (const.hbar/2/const.e)**2 /(El * const.h)
+
+def Ec_to_C(Ec):
+    return const.e**2 / (2 * Ec * const.h)

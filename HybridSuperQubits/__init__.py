@@ -7,6 +7,7 @@ from .ferbo import Ferbo
 from .gatemon import Gatemon
 from .gatemonium import Gatemonium
 from .fluxonium import Fluxonium
+from .resonator import Resonator
 
 from .operators import *
 from .storage import *
@@ -18,6 +19,7 @@ __all__ = [
     "Gatemon",
     "Gatemonium",
     "Fluxonium",
+    "Resonator",
     "operators",
     "storage",
     "utilities",
