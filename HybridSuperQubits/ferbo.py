@@ -211,14 +211,91 @@ class Ferbo(QubitBase):
         potential = self.jrl_potential()
         return charge_term + inductive_term + potential + josephson_term
     
-    def d_hamiltonian_d_EL(self) -> np.ndarray:
+    def d_hamiltonian_d_EC(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the charging energy.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the charging energy.
+        """
+        n_x = self.delta_Gamma/4/(self.Gamma+self.Delta)
+        n_op = self.n_operator() + n_x * np.kron(sigma_x(), np.eye(self.dimension//2))
         
+        return 8 * n_op @ n_op
+    
+    def d_hamiltonian_d_EL(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the inductive energy.
+        
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the inductive energy.
+        """
         if self.flux_grouping == 'EL':
             phase_op = self.phase_operator()
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator() - self.phase * np.eye(self.dimension)
 
         return 1/2 * np.dot(phase_op, phase_op)
+    
+    def d_hamiltonian_d_EJ(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the Josephson energy.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to the Josephson energy.
+        """
+        phase_op = self.phase_operator()
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension)
+        
+        return - cosm(phase_op)
+    
+    def d_hamiltonian_d_Gamma(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to Gamma.
+
+        Returns
+        -------
+        np.ndarray
+            The derivative of the Hamiltonian with respect to Gamma.
+        """
+        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+        
+        return - np.kron(sigma_z(), sinm(phase_op/2))
+                
+    def d_hamiltonian_d_er(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the energy relaxation rate.
+        """
+        return + np.kron(sigma_x(), np.eye(self.dimension // 2))
+    
+    def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
+        """
+        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
+
+        Returns
+        -------
+        Qobj
+            The derivative of the Hamiltonian with respect to the coupling strength difference.
+        """
+        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
+        if self.flux_grouping == 'ABS':
+            phase_op -= self.phase * np.eye(self.dimension // 2)
+            
+        return - np.kron(sigma_y(), sinm(phase_op/2))
     
     def d_hamiltonian_d_ng(self) -> np.ndarray:
         """
@@ -274,47 +351,6 @@ class Ferbo(QubitBase):
         elif self.flux_grouping == 'ABS':
             phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2] - self.phase * np.eye(self.dimension // 2)
             return self.Gamma/4 * np.kron(sigma_z(), cosm(phase_op/2)) + self.delta_Gamma/4 * np.kron(sigma_y(), sinm(phase_op/2))
-        
-    def d_hamiltonian_d_Gamma(self) -> np.ndarray:
-        """
-        Returns the derivative of the Hamiltonian with respect to Gamma.
-
-        Returns
-        -------
-        np.ndarray
-            The derivative of the Hamiltonian with respect to Gamma.
-        """
-        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
-        if self.flux_grouping == 'ABS':
-            phase_op -= self.phase * np.eye(self.dimension // 2)
-        
-        return - np.kron(sigma_z(), sinm(phase_op/2))
-                
-    def d_hamiltonian_d_er(self) -> np.ndarray:
-        """
-        Returns the derivative of the Hamiltonian with respect to the energy relaxation rate.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the energy relaxation rate.
-        """
-        return + np.kron(sigma_x(), np.eye(self.dimension // 2))
-    
-    def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
-        """
-        Returns the derivative of the Hamiltonian with respect to the coupling strength difference.
-
-        Returns
-        -------
-        Qobj
-            The derivative of the Hamiltonian with respect to the coupling strength difference.
-        """
-        phase_op = self.phase_operator()[:self.dimension//2,:self.dimension//2]
-        if self.flux_grouping == 'ABS':
-            phase_op -= self.phase * np.eye(self.dimension // 2)
-            
-        return - np.kron(sigma_y(), sinm(phase_op/2))
     
     def wigner(
         self,
