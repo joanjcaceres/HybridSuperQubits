@@ -1,3 +1,7 @@
+## [v0.9.2] - 2025-06-25
+### Main changes
+- Added show_progress parameter to get_d2E_d_param_vs_paramvals method
+
 ## [v0.9.1] - 2025-06-25
 ### Main changes
 - Add show progress in get_matelements_vs_paramvals.
