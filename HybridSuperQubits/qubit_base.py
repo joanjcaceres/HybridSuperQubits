@@ -1409,6 +1409,7 @@ class QubitBase(ABC):
         param_vals: np.ndarray = None, 
         evals_count: int = None,
         spectrum_data: SpectrumData = None,
+        show_progress: bool = True,
         **kwargs
     ) -> SpectrumData:
         """
@@ -1428,6 +1429,8 @@ class QubitBase(ABC):
             The number of eigenvalues and eigenstates to calculate (default is None, which uses self.dimension).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
+        show_progress : bool, optional
+            Whether to show a progress bar during the calculation (default is True).
 
         Returns
         -------
@@ -1455,10 +1458,10 @@ class QubitBase(ABC):
             spectrum_data = None
 
         if spectrum_data is None:
-            spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count)
+            spectrum_data = self.get_matelements_vs_paramvals(operators, param_name, param_vals, evals_count=evals_count, show_progress=show_progress)
         elif not all(op in spectrum_data.matrixelem_table for op in operators):
             missing_operators = [op for op in operators if op not in spectrum_data.matrixelem_table]
-            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count)
+            new_spec = self.get_matelements_vs_paramvals(missing_operators, param_name, param_vals, evals_count=evals_count, show_progress=show_progress)
             spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
 
         param_vals = spectrum_data.param_vals
