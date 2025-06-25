@@ -207,7 +207,8 @@ class QubitBase(ABC):
         operators: Union[str, List[str]], 
         param_name: str, 
         param_vals: np.ndarray, 
-        evals_count: int = None
+        evals_count: int = None,
+        show_progress: bool = True
         ) -> SpectrumData:
         #TODO: #9 Add spectrum_data as optional parameter in case it was already computed the esys.
         """
@@ -223,6 +224,8 @@ class QubitBase(ABC):
             The values of the parameter to vary.
         evals_count : int, optional
             The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
+        show_progress : bool, optional
+            Whether to display a progress bar during calculation (default is True).
 
         Returns
         -------
@@ -242,7 +245,7 @@ class QubitBase(ABC):
         
         initial_value = getattr(self, param_name)
             
-        for idx, val in enumerate(tqdm(param_vals, leave=False)):
+        for idx, val in enumerate(tqdm(param_vals, leave=False, disable=not show_progress)):
             self.set_param(param_name, val)
             eigenenergies, eigenstates = self.eigensys(evals_count)
             eigenenergies_array[idx] = eigenenergies
