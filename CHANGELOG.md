@@ -1,3 +1,7 @@
+## [v0.9.1] - 2025-06-25
+### Main changes
+- Add show progress in get_matelements_vs_paramvals.
+
 ## [v0.9.0] - 2025-06-25
 ### Main changes
 - Enhanced Gatemonium class to support multiple transmission channels
