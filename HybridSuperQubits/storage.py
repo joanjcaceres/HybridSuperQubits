@@ -74,8 +74,9 @@ class SpectrumData:
                 for key, value in self.t1_table.items():
                     f.create_dataset(f"t1_table/{key}", data=value)
             if self.tphi_table:
-                for key, value in self.tphi_table.items():
-                    f.create_dataset(f"tphi_table/{key}", data=value)
+                for tphi_key, value in self.tphi_table.items():
+                    key_str: str = ",".join(map(str, tphi_key))
+                    f.create_dataset(f"tphi_table/{key_str}", data=value)
 
     @staticmethod
     def read(filename: str) -> "SpectrumData":
