@@ -268,8 +268,8 @@ class Resonator(QubitBase):
     def wavefunction(
         self,
         which: int = 0,
-        x_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        x_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
     ) -> dict[str, Any]:
         """
         Calculate the wavefunction in position representation.
@@ -314,8 +314,8 @@ class Resonator(QubitBase):
     def plot_wavefunction(
         self,
         which: Union[int, Iterable[int]] = 0,
-        x_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        x_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         scaling: Optional[float] = 1,
         mode: str = "abs",
         **kwargs,

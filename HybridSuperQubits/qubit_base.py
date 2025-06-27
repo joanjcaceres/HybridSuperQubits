@@ -13,8 +13,8 @@ from .storage import SpectrumData
 
 
 class QubitBase(ABC):
-    PARAM_LABELS = {}
-    OPERATOR_LABELS = {}
+    PARAM_LABELS: dict[str, str] = {}
+    OPERATOR_LABELS: dict[str, str] = {}
 
     def __init__(self, dimension: int):
         self.dimension = dimension
@@ -67,7 +67,7 @@ class QubitBase(ABC):
         """
         pass
 
-    def eigensys(self, evals_count: int = None) -> tuple[np.ndarray, np.ndarray]:
+    def eigensys(self, evals_count: Optional[int] = None) -> tuple[np.ndarray, np.ndarray]:
         """
         Calculates eigenvalues and corresponding eigenvectors using scipy.linalg.eigh.
 
@@ -91,9 +91,9 @@ class QubitBase(ABC):
             subset_by_index=(0, evals_count - 1),
             # check_finite=False,
         )
-        return evals, evecs
+        return evals.astype(float), evecs.astype(complex)
 
-    def eigenvals(self, evals_count: int = None) -> np.ndarray:
+    def eigenvals(self, evals_count: Optional[int] = None) -> np.ndarray:
         """
         Calculates eigenvalues using scipy.linalg.eigh.
 
@@ -117,13 +117,13 @@ class QubitBase(ABC):
             subset_by_index=(0, evals_count - 1),
             check_finite=False,
         )
-        return np.sort(evals)
+        return np.sort(evals).astype(float)
 
     def get_spectrum_vs_paramvals(
         self,
         param_name: str,
-        param_vals: list[float],
-        evals_count: int = None,
+        param_vals: Union[list[float], np.ndarray],
+        evals_count: Optional[int] = None,
         subtract_ground: bool = False,
         show_progress: bool = True,
     ) -> SpectrumData:
@@ -176,7 +176,7 @@ class QubitBase(ABC):
         return spectrum_data
 
     def matrixelement_table(
-        self, operator: str, evecs: np.ndarray = None, evals_count: int = None
+        self, operator: str, evecs: Optional[np.ndarray] = None, evals_count: Optional[int] = None
     ) -> np.ndarray:
         """
         Returns a table of matrix elements for a given operator with respect to the eigenstates.
@@ -210,7 +210,7 @@ class QubitBase(ABC):
         operators: Union[str, list[str]],
         param_name: str,
         param_vals: np.ndarray,
-        evals_count: int = None,
+        evals_count: Optional[int] = None,
         show_progress: bool = True,
     ) -> SpectrumData:
         # TODO: #9 Add spectrum_data as optional parameter in case it was already computed the esys.
@@ -320,7 +320,7 @@ class QubitBase(ABC):
     # def plot_matrixelements(
     #     self,
     #     operator: str,
-    #     evecs: np.ndarray = None,
+    #     evecs: Optional[np.ndarray] = None,
     #     evals_count: int = 6,
     #     mode: str = "abs",
     #     show_numbers: bool = False,
@@ -387,11 +387,11 @@ class QubitBase(ABC):
         self,
         i: int = 1,
         j: int = 0,
-        Q_cap: Union[float, Callable] = None,
+        Q_cap: Optional[Union[float, Callable]] = None,
         T: float = 0.015,
         total: bool = True,
-        esys: tuple[np.ndarray, np.ndarray] = None,
-        matrix_elements: np.ndarray = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
+        matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
         noise_op: Optional[np.ndarray] = None,
     ) -> float:
@@ -413,7 +413,7 @@ class QubitBase(ABC):
             x = hbar * omega / (k * T)
             return (
                 8
-                * self.Ec
+                * getattr(self, 'Ec', 1.0)  # Default value for base class
                 / Q_cap_fun(omega)
                 * 1
                 / np.tanh(np.abs(x) / 2)
@@ -450,11 +450,11 @@ class QubitBase(ABC):
         self,
         i: int = 1,
         j: int = 0,
-        Q_ind: float = None,
+        Q_ind: Optional[float] = None,
         T: float = 0.015,
         total: bool = True,
-        esys: tuple[np.ndarray, np.ndarray] = None,
-        matrix_elements: np.ndarray = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
+        matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
     ) -> float:
         if Q_ind is None:
@@ -479,7 +479,7 @@ class QubitBase(ABC):
             x = hbar * omega / (k * T)
             return (
                 2
-                * self.El
+                * getattr(self, 'El', 1.0)  # Default value for base class
                 / Q_ind_fun(omega)
                 * 1
                 / np.tanh(np.abs(x) / 2)
@@ -516,8 +516,8 @@ class QubitBase(ABC):
         Z: float = 50,
         T: float = 0.015,
         total: bool = True,
-        esys: tuple[np.ndarray, np.ndarray] = None,
-        matrix_elements: np.ndarray = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
+        matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
     ) -> float:
         def spectral_density(omega, T):
@@ -560,7 +560,7 @@ class QubitBase(ABC):
         self,
         A_noise: float,
         noise_op: Union[str, list[str]],
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         get_rate: bool = False,
         **kwargs,
     ) -> np.ndarray:
@@ -640,7 +640,7 @@ class QubitBase(ABC):
         self,
         fp: float = 17e9,
         z: float = 0.05,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         get_rate: bool = False,
     ) -> np.ndarray:
         """
@@ -680,7 +680,7 @@ class QubitBase(ABC):
             displacement_operator_diagonal[:, np.newaxis]
             - displacement_operator_diagonal[np.newaxis, :]
         )
-        N_junctions = fp / 2 / np.pi / (self.El * 1e9) / z
+        N_junctions = fp / 2 / np.pi / (getattr(self, 'El', 1.0) * 1e9) / z
 
         rate = (
             np.pi
@@ -695,10 +695,10 @@ class QubitBase(ABC):
     def get_t1_vs_paramvals(
         self,
         noise_channels: Union[str, list[str]],
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
         """
@@ -768,15 +768,18 @@ class QubitBase(ABC):
                 param_name, param_vals, evals_count, spectrum_data, **kwargs
             )
 
+        if spectrum_data is None:
+            raise ValueError("No valid noise channels provided or spectrum_data could not be computed.")
+
         return spectrum_data
 
     def get_t1_capacitive_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
-        Q_cap: Union[float, Callable] = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
+        Q_cap: Optional[Union[float, Callable]] = None,
         T: float = 0.015,
         total: bool = True,
         **kwargs,
@@ -809,6 +812,26 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
 
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
+
         if Q_cap is None:
 
             def Q_cap_fun(omega):
@@ -827,7 +850,7 @@ class QubitBase(ABC):
             x = hbar * omega / (k * T)
             return (
                 8
-                * self.Ec
+                * getattr(self, 'Ec', 1.0)  # Default value for base class
                 / Q_cap_fun(omega)
                 * 1
                 / np.tanh(np.abs(x) / 2)
@@ -852,11 +875,11 @@ class QubitBase(ABC):
 
     def get_t1_inductive_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
-        Q_ind: float = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
+        Q_ind: Optional[float] = None,
         T: float = 0.015,
         total: bool = True,
         **kwargs,
@@ -891,6 +914,26 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
 
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
+
         if Q_ind is None:
             Q_ind_ref = 500e6
             omega_ref = 2 * np.pi * 0.5e9
@@ -913,7 +956,7 @@ class QubitBase(ABC):
             x = hbar * omega / (k * T)
             return (
                 2
-                * self.El
+                * getattr(self, 'El', 1.0)  # Default value for base class
                 / Q_ind_fun(omega)
                 * 1
                 / np.tanh(np.abs(x) / 2)
@@ -938,10 +981,10 @@ class QubitBase(ABC):
 
     def get_t1_charge_impedance_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         Z: float = 50,
         T: float = 0.015,
         total: bool = True,
@@ -976,6 +1019,26 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
 
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
+
         def spectral_density(omega, T):
             Rk = h / ((2 * e) ** 2)
             x = hbar * omega / (k * T)
@@ -1006,10 +1069,10 @@ class QubitBase(ABC):
 
     def get_t1_flux_bias_line_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015,
@@ -1048,6 +1111,26 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
 
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
+
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
             return (
@@ -1080,10 +1163,10 @@ class QubitBase(ABC):
 
     def get_t1_1_over_f_flux_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         A_noise: float = 1e-6,
         **kwargs,
     ) -> SpectrumData:
@@ -1113,6 +1196,26 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
 
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
+
         def spectral_density(omega, T):
             return 2 * np.pi * A_noise**2 / np.abs(omega)
 
@@ -1134,10 +1237,10 @@ class QubitBase(ABC):
 
     def get_t1_critical_current_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         A_noise: float = 1e-7,
         N: int = 100,
         **kwargs,
@@ -1168,8 +1271,28 @@ class QubitBase(ABC):
         if evals_count is None:
             evals_count = self.dimension
 
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
+
         def spectral_density(omega, T):
-            return 2 * np.pi * (A_noise * self.El / np.sqrt(N)) ** 2 / omega * 1e9
+            return 2 * np.pi * (A_noise * getattr(self, 'El', 1.0) / np.sqrt(N)) ** 2 / omega * 1e9
 
         noise_operator = "d_hamiltonian_d_EL"
         noise_channel = "critical_current"
@@ -1189,10 +1312,10 @@ class QubitBase(ABC):
 
     def get_t1_er_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         A_noise: float = 0.04,
         total: bool = True,
         **kwargs,
@@ -1221,6 +1344,26 @@ class QubitBase(ABC):
         """
         if evals_count is None:
             evals_count = self.dimension
+
+        # Validate required parameters
+        if spectrum_data is not None:
+            param_name = spectrum_data.param_name
+            param_vals = spectrum_data.param_vals
+            evals_count = spectrum_data.energy_table.shape[1]
+        elif param_name is None or param_vals is None:
+            raise ValueError(
+                "If spectrum_data is None, param_name and param_vals must be provided."
+            )
+
+        # After validation, these should not be None
+        assert param_name is not None
+        assert param_vals is not None
+
+        # Create spectrum_data if not provided
+        if spectrum_data is None:
+            spectrum_data = self.get_spectrum_vs_paramvals(
+                param_name, param_vals, evals_count=evals_count
+            )
 
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
@@ -1347,8 +1490,8 @@ class QubitBase(ABC):
         A_noise: float,
         noise_channel: str,
         noise_operators: Union[str, list[str]],
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
         """
@@ -1466,8 +1609,8 @@ class QubitBase(ABC):
         param_name: str,
         param_vals: np.ndarray,
         A_noise: float = 1e-6,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
         """
@@ -1506,11 +1649,11 @@ class QubitBase(ABC):
 
     def get_tphi_charge_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
         A_noise: float = 1e-4,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
         """
@@ -1549,12 +1692,12 @@ class QubitBase(ABC):
 
     def get_tphi_CQPS_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
         fp: float = 17e9,
         z: float = 0.05,
         evals_count: int = 6,
-        spectrum_data: SpectrumData = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
         """
@@ -1614,7 +1757,7 @@ class QubitBase(ABC):
         if param_name == "El":
             N_junctions = fp / 2 / np.pi / (param_vals * 1e9) / z
         else:
-            N_junctions = fp / 2 / np.pi / (self.El * 1e9) / z
+            N_junctions = fp / 2 / np.pi / (getattr(self, 'El', 1.0) * 1e9) / z
 
         rate = (
             np.pi
@@ -1634,10 +1777,10 @@ class QubitBase(ABC):
     def get_tphi_vs_paramvals(
         self,
         noise_channels: Union[str, list[str]],
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
         if spectrum_data is not None:
@@ -1676,10 +1819,10 @@ class QubitBase(ABC):
     def get_d2E_d_param_vs_paramvals(
         self,
         operators: list[str],
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        evals_count: int = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        evals_count: Optional[int] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         show_progress: bool = True,
         **kwargs,
     ) -> SpectrumData:
@@ -1789,11 +1932,11 @@ class QubitBase(ABC):
 
     def plot_evals_vs_paramvals(
         self,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
         evals_count: int = 6,
         subtract_ground: bool = False,
-        spectrum_data: SpectrumData = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -1863,11 +2006,11 @@ class QubitBase(ABC):
     def plot_matelem_vs_paramvals(
         self,
         operator: str,
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        select_elems: Union[int, list[tuple[int, int]]] = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        select_elems: Optional[Union[int, list[tuple[int, int]]]] = None,
         mode: str = "abs",
-        spectrum_data: SpectrumData = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -1926,6 +2069,19 @@ class QubitBase(ABC):
             select_elems = [
                 (i, j) for i in range(select_elems) for j in range(i, select_elems)
             ]
+        fig_ax = kwargs.get("fig_ax")
+        if fig_ax is None:
+            fig, ax = plt.subplots()
+            fig.suptitle(self._generate_suptitle(param_name))
+        else:
+            fig, ax = fig_ax
+
+        matrixelem_table = spectrum_data.matrixelem_table[operator]
+
+        if isinstance(select_elems, int):
+            select_elems = [
+                (i, j) for i in range(select_elems) for j in range(i, select_elems)
+            ]
 
         operator_label = self.OPERATOR_LABELS.get(operator, operator)
 
@@ -1962,10 +2118,10 @@ class QubitBase(ABC):
     def plot_t1_vs_paramvals(
         self,
         noise_channels: list[str],
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        select_elems: Union[int, list[tuple[int, int]]] = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        select_elems: Optional[Union[int, list[tuple[int, int]]]] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -2060,10 +2216,10 @@ class QubitBase(ABC):
     def plot_tphi_vs_paramvals(
         self,
         noise_channels: list[str],
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        select_elems: Union[int, list[tuple[int, int]]] = None,
-        spectrum_data: SpectrumData = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        select_elems: Optional[Union[int, list[tuple[int, int]]]] = None,
+        spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -2076,19 +2232,6 @@ class QubitBase(ABC):
         param_vals : np.ndarray
             Values of the parameter to vary.
         select_elems : Union[int, List[Tuple[int, int]]] optional
-            Number of elements to select or list of specific elements to plot (default is 4).
-        noise_channels : List[str], optional
-            List of noise channels to consider (default is ['capacitive']).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        **kwargs
-            Additional arguments for plotting. Can include:
-            - fig_ax: Tuple[plt.Figure, plt.Axes], optional
-                Figure and axes to use for plotting. If not provided, a new figure and axes are created.
-
-        Returns
-        -------
-        Tuple[plt.Figure, plt.Axes]
             The figure and axes of the plot.
         """
         if select_elems is None:
@@ -2170,7 +2313,7 @@ class QubitBase(ABC):
             )
         setattr(self, param_name, val)
 
-    def _generate_suptitle(self, exclude_params: Union[str, list[str]] = None) -> str:
+    def _generate_suptitle(self, exclude_params: Optional[Union[str, list[str]]] = None) -> str:
         """
         Generate the suptitle for the plot, excluding the specified parameters.
 

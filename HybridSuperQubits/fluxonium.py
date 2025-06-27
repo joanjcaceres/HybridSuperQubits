@@ -220,7 +220,7 @@ class Fluxonium(QubitBase):
     def wavefunction(
         self,
         which: int = 0,
-        phi_grid: np.ndarray = None,
+        phi_grid: Optional[np.ndarray] = None,
         esys: tuple[np.ndarray, np.ndarray] = None,
         basis: str = "phase",
     ) -> dict[str, Any]:
@@ -321,7 +321,7 @@ class Fluxonium(QubitBase):
     def plot_wavefunction(
         self,
         which: Union[int, Iterable[int]] = 0,
-        phi_grid: np.ndarray = None,
+        phi_grid: Optional[np.ndarray] = None,
         esys: tuple[np.ndarray, np.ndarray] = None,
         scaling: Optional[float] = 1,
         plot_potential: bool = False,

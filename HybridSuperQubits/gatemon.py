@@ -73,16 +73,16 @@ class Gatemon(QubitBase):
     def wavefunction(
         self,
         which: int = 0,
-        phi_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        phi_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
     ) -> dict[str, Any]:
         raise NotImplementedError("Wavefunction method not implemented for this class.")
 
     def plot_wavefunction(
         self,
         which: Union[int, Iterable[int]] = 0,
-        phi_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        phi_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         scaling: Optional[float] = None,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
