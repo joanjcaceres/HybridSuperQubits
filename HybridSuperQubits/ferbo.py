@@ -367,6 +367,8 @@ class Ferbo(QubitBase):
             return -self.Gamma / 2 * np.kron(
                 sigma_z(), sinm(phase_op / 2)
             ) + self.delta_Gamma / 2 * np.kron(sigma_y(), cosm(phase_op / 2))
+        else:
+            raise ValueError(f"Unknown flux_grouping: {self.flux_grouping}")
 
     def d2_hamiltonian_d_phase2(self) -> np.ndarray:
         """
@@ -386,13 +388,15 @@ class Ferbo(QubitBase):
             return self.Gamma / 4 * np.kron(
                 sigma_z(), cosm(phase_op / 2)
             ) + self.delta_Gamma / 4 * np.kron(sigma_y(), sinm(phase_op / 2))
+        else:
+            raise ValueError(f"Unknown flux_grouping: {self.flux_grouping}")
 
     def wigner(
         self,
         which: int = 0,
-        phi_grid: np.ndarray = None,
-        n_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        phi_grid: Optional[np.ndarray] = None,
+        n_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
     ):
         """
         Computes the Wigner function for a given wavefunction.
@@ -464,10 +468,10 @@ class Ferbo(QubitBase):
     def wavefunction(
         self,
         which: int = 0,
-        phi_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        phi_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         basis: str = "phase",
-        rotate: str = False,
+        rotate: bool = False,
     ) -> dict[str, Any]:
         """
         Returns a wave function in the phi basis.

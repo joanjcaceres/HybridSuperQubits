@@ -1,5 +1,5 @@
 import os
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 import h5py
 import numpy as np
@@ -11,13 +11,13 @@ class SpectrumData:
         self,
         energy_table: np.ndarray,
         system_params: dict[str, Any],
-        param_name: str = None,
-        param_vals: np.ndarray = None,
-        state_table: Union[list[Qobj], np.ndarray] = None,
-        matrixelem_table: dict[str, np.ndarray] = None,
-        t1_table: dict[str, np.ndarray] = None,
-        tphi_table: dict[tuple[int, int, str], np.ndarray] = None,
-        d2E_table: dict[str, np.ndarray] = None,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        state_table: Optional[Union[list[Qobj], np.ndarray]] = None,
+        matrixelem_table: Optional[dict[str, np.ndarray]] = None,
+        t1_table: Optional[dict[str, np.ndarray]] = None,
+        tphi_table: Optional[dict[tuple[int, int, str], np.ndarray]] = None,
+        d2E_table: Optional[dict[str, np.ndarray]] = None,
         **kwargs,
     ) -> None:
         self.system_params = system_params
@@ -93,7 +93,7 @@ class SpectrumData:
             )
             t1_table = (
                 {
-                    tuple(key.split(",")): f[f"t1_table/{key}"][:]
+                    key: f[f"t1_table/{key}"][:]
                     for key in f["t1_table"]
                 }
                 if "t1_table" in f

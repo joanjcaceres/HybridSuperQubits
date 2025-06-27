@@ -148,7 +148,7 @@ class Andreev(QubitBase):
         np.ndarray
             The derivative of the Hamiltonian with respect to the external magnetic phase.
         """
-        return NotImplementedError("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
 
     def d_hamiltonian_d_er(self) -> np.ndarray:
         """
@@ -160,7 +160,7 @@ class Andreev(QubitBase):
             The derivative of the Hamiltonian with respect to the energy relaxation rate.
         """
         # return - np.kron(np.eye(self.dimension // 2),sigma_z())
-        return NotImplementedError("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
 
     def d_hamiltonian_d_deltaGamma(self) -> np.ndarray:
         """
@@ -171,7 +171,7 @@ class Andreev(QubitBase):
         Qobj
             The derivative of the Hamiltonian with respect to the coupling strength difference.
         """
-        return NotImplementedError("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
         # if self.flux_grouping == 'L':
         #     phase_op = self.phase_operator()[::2,::2]
         # else:
@@ -179,7 +179,7 @@ class Andreev(QubitBase):
         # return - np.kron(sinm(phase_op/2),sigma_y())
 
     def numberbasis_wavefunction(
-        self, which: int = 0, esys: tuple[np.ndarray, np.ndarray] = None
+        self, which: int = 0, esys: Optional[tuple[np.ndarray, np.ndarray]] = None
     ) -> dict[str, Any]:
         """
         Returns a wave function in the number basis.
@@ -240,7 +240,7 @@ class Andreev(QubitBase):
         Dict[str, Any]
             Wave function data containing basis labels, amplitudes, and energy.
         """
-        return NotImplementedError("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
 
     def potential(self, phi: Union[float, np.ndarray]) -> np.ndarray:
         """
@@ -256,13 +256,13 @@ class Andreev(QubitBase):
         np.ndarray
             The potential energy values.
         """
-        return NotImplementedError("Not implemented yet")
+        raise NotImplementedError("Not implemented yet")
 
     def plot_wavefunction(
         self,
         which: Union[int, Iterable[int]] = 0,
-        phi_grid: np.ndarray = None,
-        esys: tuple[np.ndarray, np.ndarray] = None,
+        phi_grid: Optional[np.ndarray] = None,
+        esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         scaling: Optional[float] = None,
         basis: str = "default",
         **kwargs,
