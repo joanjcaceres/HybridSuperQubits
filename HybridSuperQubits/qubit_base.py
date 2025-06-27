@@ -294,10 +294,13 @@ class QubitBase(ABC):
     
     
     def resonance_shift(self,  
-                        spectrum_data: SpectrumData,
                         i: int,
-                        lambda_: float,
-                        f_r: float
+                        lambd: float,
+                        f_r: float,
+                        param_name: str = None, 
+                        param_vals: np.ndarray = None, 
+                        evals_count: int = 6, 
+                        spectrum_data: SpectrumData = None
                         ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Calculates the shift of the resonance frequency when qubit is in state i. 
@@ -314,7 +317,7 @@ class QubitBase(ABC):
             with respect to the parameter.
         i : int
             The index of the state.
-        lambda_ : float
+        lambd : float
             The coupling strength. 
             \lambda = (C_m/C_r) * sqrt(Rq / 4\pi * Z_r)  capacitive coupling
             \lambda = (L_m/L_r) * sqrt(\pi * Z_r / R_q)  inductive coupling
@@ -327,25 +330,34 @@ class QubitBase(ABC):
             The resonance shift for the range of parameter values and 
             contributions of every state in evals_count to the total shift.
         """
-        param_name = spectrum_data.param_name  # maybe calculate the spectrum data alrady here?
-        param_vals = spectrum_data.param_vals
-        evals_count = spectrum_data.energy_table.shape[1]
-        operator = 'd_hamiltonian_d_' + param_name  # rethink this
+        if spectrum_data is None and (param_name is None or param_vals is None):
+            raise AttributeError(f"Please provide either a Spectrum Data or a set of param_name and param_vals")
+        
+        if param_name is None:
+            param_name = spectrum_data.param_name 
+
+        operator = 'd_hamiltonian_d_' + param_name 
         print(f'using operator {operator} for the matrix elements')
         
         # Verificar si el operador existe en la clase
         if not hasattr(self, operator):
             raise AttributeError(f"Operator '{operator}' is not implemented in the class.")
         
-        state_contribution = np.empty((len(param_vals), evals_count))
-        curv = lambda_**2 * second_deriv(spectrum_data.energy_table[:,i], param_vals)
+        if spectrum_data is None:
+            spectrum_data = self.get_matelements_vs_paramvals(operator, param_name, param_vals, evals_count=evals_count)
 
-        for j in range(evals_count):
-            if j != i:
-                g2 = (np.abs(spectrum_data.matrixelem_table[operator][:,i,j]) * lambda_)**2
-                f_ij = spectrum_data.energy_table[:,j] - spectrum_data.energy_table[:,i]
-                freq_factor = 2/f_ij - 1/(f_ij - f_r) - 1/(f_ij + f_r)
-                state_contribution[:,j] = 0.5 * g2 * freq_factor
+        param_vals = spectrum_data.param_vals
+        evals_count = spectrum_data.energy_table.shape[1]
+        
+        state_contribution = np.empty((len(param_vals), evals_count))
+        curv = lambd**2 * second_deriv(spectrum_data.energy_table[:,i], param_vals)
+
+        f_ij = spectrum_data.energy_table[:, np.newaxis, :] - spectrum_data.energy_table[:, :, np.newaxis]
+        # f_ij = np.where(f_ij == 0, np.nan, f_ij)
+        freq_factor = 2/f_ij - 1/(f_ij - f_r) - 1/(f_ij + f_r)
+        g2 = (np.abs(spectrum_data.matrixelem_table[operator][:, i, :]) * lambd)**2
+        state_contribution = 0.5 * g2 * freq_factor[:, i, :]
+        state_contribution = np.where(state_contribution == np.inf, 0, state_contribution)
         shift = curv + state_contribution.sum(axis=1)
 
         return shift, state_contribution
