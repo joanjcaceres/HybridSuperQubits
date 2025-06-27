@@ -17,9 +17,9 @@ class TestFluxoniumRegression:
         """Test Fluxonium with EL flux grouping against reference eigenvalues."""
         # Standard test parameters (realistic values)
         params = {
-            "Ec": 2.0,      # 2 GHz - realistic
-            "El": 0.15,     # 0.15 GHz - realistic
-            "Ej": 5.0,      # 5 GHz - realistic
+            "Ec": 2.0,  # 2 GHz - realistic
+            "El": 0.15,  # 0.15 GHz - realistic
+            "Ej": 5.0,  # 5 GHz - realistic
             "phase": 0.25,
             "dimension": 100,
             "flux_grouping": "EL",

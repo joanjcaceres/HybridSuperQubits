@@ -28,9 +28,9 @@ def generate_regression_values():
     # 1. Fluxonium EL standard params (realistic values)
     print("\n1. Fluxonium EL standard params:")
     flux_el_params = {
-        "Ec": 2.0,      # 2 GHz - realistic
-        "El": 0.15,     # 0.15 GHz - realistic
-        "Ej": 5.0,      # 5 GHz - realistic
+        "Ec": 2.0,  # 2 GHz - realistic
+        "El": 0.15,  # 0.15 GHz - realistic
+        "Ej": 5.0,  # 5 GHz - realistic
         "phase": 0.25,  # π/2 phase bias
         "dimension": 100,
         "flux_grouping": "EL",
@@ -62,10 +62,10 @@ def generate_regression_values():
     # 3. Fluxonium zero phase (symmetric point)
     print("\n3. Fluxonium zero phase:")
     flux_zero_params = {
-        "Ec": 3.0,      # Higher Ec
-        "El": 0.2,      # Slightly higher El
-        "Ej": 8.0,      # Higher Ej
-        "phase": 0.0,   # Zero phase - symmetric
+        "Ec": 3.0,  # Higher Ec
+        "El": 0.2,  # Slightly higher El
+        "Ej": 8.0,  # Higher Ej
+        "phase": 0.0,  # Zero phase - symmetric
         "dimension": 100,
         "flux_grouping": "EL",
     }
@@ -109,13 +109,13 @@ def generate_regression_values():
     # 5. Ferbo ABS standard params (realistic values)
     print("\n5. Ferbo ABS standard params:")
     ferbo_abs_params = {
-        "Ec": 3.0,      # 3 GHz - realistic for Ferbo
-        "El": 0.15,     # 0.15 GHz - realistic
-        "Ej": 6.0,      # 6 GHz - realistic
-        "Gamma": 1.8,   # Andreev level coupling
+        "Ec": 3.0,  # 3 GHz - realistic for Ferbo
+        "El": 0.15,  # 0.15 GHz - realistic
+        "Ej": 6.0,  # 6 GHz - realistic
+        "Gamma": 1.8,  # Andreev level coupling
         "delta_Gamma": 0.2,  # Asymmetry
-        "er": 0.4,      # Environmental resistance
-        "phase": 0.3,   # Phase bias
+        "er": 0.4,  # Environmental resistance
+        "phase": 0.3,  # Phase bias
         "dimension": 200,
         "flux_grouping": "ABS",
     }
@@ -155,7 +155,7 @@ def generate_regression_values():
         "Gamma": 2.2,
         "delta_Gamma": 0.15,
         "er": 0.35,
-        "phase": 0.0,   # Zero phase for transparency calc
+        "phase": 0.0,  # Zero phase for transparency calc
         "dimension": 200,
         "flux_grouping": "ABS",
     }
@@ -211,8 +211,12 @@ def generate_regression_values():
     expected = 1j * np.eye(flux_comm.dimension)
 
     print(f"   Parameters: {flux_comm_params}")
-    print(f"   Commutator vs expected (max diff): {np.max(np.abs(commutator - expected))}")
-    print(f"   Should be close to zero: {np.allclose(commutator, expected, atol=1e-10)}")
+    print(
+        f"   Commutator vs expected (max diff): {np.max(np.abs(commutator - expected))}"
+    )
+    print(
+        f"   Should be close to zero: {np.allclose(commutator, expected, atol=1e-10)}"
+    )
 
     # 10. Potential values test
     print("\n10. Potential values test:")
@@ -260,6 +264,7 @@ def generate_regression_values():
     print("\n" + "=" * 60)
     print("All regression values generated with realistic parameters!")
     print("Use these values to update the test_regression.py file.")
+
 
 if __name__ == "__main__":
     generate_regression_values()
