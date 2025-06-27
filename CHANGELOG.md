@@ -1,4 +1,34 @@
-## [v0.9.2] - 2025-06-28
+## [v0.9.3] - 2025-06-28
+### Improvements
+- Modernized CI/CD with updated GitHub Actions workflows
+- Migrated from `flake8` + `black` to `ruff` for linting and formatting
+- Updated all type hints to use modern Python built-in types (dict, list, tuple)
+- Enhanced regression tests with physically realistic parameters
+- Fixed 136+ linting errors automatically
+- Improved `pyproject.toml` configuration with comprehensive tool settings
+
+### Breaking Changes
+- **Minimum Python version updated to 3.10** (due to QuTiP dependency requirements)
+
+### Testing
+- Updated all regression test reference values with realistic physical parameters
+- Increased Ferbo test dimension to 200 for better accuracy
+- All 102 tests passing with new configuration
+- Added robust parameter validation and error handling
+
+### Documentation
+- Updated project guidelines for English-only requirements
+- Improved code documentation and type hints
+- Cleaned up development dependencies
+
+### Technical Details
+- Ferbo tests now use realistic parameters: El~0.1-0.2 GHz, Ec~1-5 GHz, Ej~1-10 GHz
+- Fluxonium tests use dimension=100 with physically consistent parameters
+- Simplified build process without manual SciPy pre-installation
+- Enhanced mypy configuration for gradual typing support
+- Updated Poetry lock file for dependency compatibility
+
+## [v0.9.2] - 2025-06-25
 ### Improvements
 - Modernized CI/CD with updated GitHub Actions workflows
 - Migrated from `flake8` + `black` to `ruff` for linting and formatting

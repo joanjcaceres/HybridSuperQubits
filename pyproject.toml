@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name        = "HybridSuperQubits"
-version = "0.9.2"
+version = "0.9.3"
 description = "Package to simulate hybrid superconducting qubits"
 authors     = ["Joan Cáceres <contact@joancaceres.com>"]
 license     = "MIT"
@@ -15,7 +15,7 @@ repository  = "https://github.com/joanjcaceres/HybridSuperQubits"
 documentation = "https://hybridsuperqubits.readthedocs.io"
 
 [tool.poetry.dependencies]
-python      = ">=3.9,<3.14"
+python      = ">=3.10,<3.14"
 matplotlib  = ">=3.8"
 tqdm        = ">=4.66"
 # Scientific computing dependencies (install via conda-forge for best performance on Apple Silicon)
