@@ -1,0 +1,20 @@
+name: hybridsuperqubits
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.9,<3.14
+  - numpy>=1.26
+  - scipy>=1.5
+  - matplotlib>=3.8
+  - tqdm>=4.66
+  - qutip>=5.1
+  - scqubits>=4.3
+  # Development and testing dependencies
+  - pytest>=8.0.0
+  - pytest-cov>=5.0.0
+  - pytest-benchmark>=4.0.0
+  - pytest-mock>=3.14.0
+  - ruff>=0.1.0
+  - mypy>=1.8.0
+  - pip

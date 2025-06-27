@@ -1,7 +1,8 @@
-from qutip import Qobj
-import scipy.sparse as sp
-from scipy.linalg import sqrtm
 import numpy as np
+import scipy.sparse as sp
+from qutip import Qobj
+from scipy.linalg import sqrtm
+
 
 def state_to_density_matrix(state_vector: np.ndarray) -> np.ndarray:
     """
@@ -19,23 +20,24 @@ def state_to_density_matrix(state_vector: np.ndarray) -> np.ndarray:
     """
     return np.outer(state_vector, state_vector.conj())
 
+
 def ptrace(rho: np.ndarray, dims: tuple, subsys: int) -> np.ndarray:
     """
     Compute the partial trace of a density matrix over a specified subsystem.
 
-    The partial trace is a method used in quantum mechanics to obtain the reduced 
-    density matrix of a subsystem by tracing out the degrees of freedom of the 
+    The partial trace is a method used in quantum mechanics to obtain the reduced
+    density matrix of a subsystem by tracing out the degrees of freedom of the
     other subsystem.
 
     Parameters
     ----------
     rho : numpy.ndarray
-        The density matrix to be traced. It should be a square matrix of shape 
+        The density matrix to be traced. It should be a square matrix of shape
         (dimA * dimB, dimA * dimB).
     dims : tuple
         A tuple (dimA, dimB) specifying the dimensions of the subsystems A and B.
     subsys : int
-        The subsystem to trace out. Use 0 to trace out subsystem A and 1 to trace 
+        The subsystem to trace out. Use 0 to trace out subsystem A and 1 to trace
         out subsystem B.
 
     Returns
@@ -57,6 +59,7 @@ def ptrace(rho: np.ndarray, dims: tuple, subsys: int) -> np.ndarray:
     else:
         raise ValueError("subsys must be 0 (to trace out A) or 1 (to trace out B).")
 
+
 def purity(density_matrix: np.ndarray) -> float:
     """
     Calculate the purity of a quantum state.
@@ -76,8 +79,9 @@ def purity(density_matrix: np.ndarray) -> float:
     """
     return np.abs(np.trace(density_matrix @ density_matrix))
 
+
 def trace_distance(rho1: np.ndarray, rho2: np.ndarray) -> float:
-    """
+    r"""
     Calculate the trace distance between two density matrices.
 
     The trace distance between two density matrices rho1 and rho2 is defined as:
@@ -96,6 +100,7 @@ def trace_distance(rho1: np.ndarray, rho2: np.ndarray) -> float:
         The trace distance between the two density matrices.
     """
     return 0.5 * np.linalg.norm(rho1 - rho2, ord=1)
+
 
 def fidelity(rho1: np.ndarray, rho2: np.ndarray) -> float:
     """
@@ -117,8 +122,9 @@ def fidelity(rho1: np.ndarray, rho2: np.ndarray) -> float:
         The fidelity between the two density matrices.
     """
     sqrt_rho1 = sqrtm(rho1)
-    fidelity = np.abs(np.trace(sqrtm(sqrt_rho1 @ rho2 @ sqrt_rho1)))**2
+    fidelity = np.abs(np.trace(sqrtm(sqrt_rho1 @ rho2 @ sqrt_rho1))) ** 2
     return fidelity
+
 
 def destroy(dimension: int) -> np.ndarray:
     """
@@ -138,6 +144,7 @@ def destroy(dimension: int) -> np.ndarray:
     data = np.sqrt(indices)
     return np.diag(data, k=1)
 
+
 def creation(dimension: int) -> np.ndarray:
     """
     Returns the creation (raising) operator for a given dimension.
@@ -154,6 +161,7 @@ def creation(dimension: int) -> np.ndarray:
     """
     return destroy(dimension).T.conj()
 
+
 def sigma_x() -> np.ndarray:
     """
     Returns the Pauli-X (sigma_x) operator.
@@ -164,6 +172,7 @@ def sigma_x() -> np.ndarray:
         The Pauli-X operator.
     """
     return np.array([[0, 1], [1, 0]], dtype=complex)
+
 
 def sigma_y() -> np.ndarray:
     """
@@ -176,6 +185,7 @@ def sigma_y() -> np.ndarray:
     """
     return np.array([[0, -1j], [1j, 0]], dtype=complex)
 
+
 def sigma_z() -> np.ndarray:
     """
     Returns the Pauli-Z (sigma_z) operator.
@@ -187,13 +197,15 @@ def sigma_z() -> np.ndarray:
     """
     return np.array([[1, 0], [0, -1]], dtype=complex)
 
+
 ###########
 
-def cos_phi(N, phi_ext, m = 1):
+
+def cos_phi(N, phi_ext, m=1):
     """
     Compute the cosine phi operator matrix in a complex sparse representation.
 
-    The operator is calculated based on the given system size N and external phase factor phi_ext. 
+    The operator is calculated based on the given system size N and external phase factor phi_ext.
 
     Parameters
     ----------
@@ -209,11 +221,15 @@ def cos_phi(N, phi_ext, m = 1):
     Qobj
         The cosine phi operator represented as a QuTiP Qobj with the CSR sparse matrix format.
     """
-    diags = [np.exp(1j*phi_ext/2)*np.ones(N-m,dtype=int),np.exp(-1j*phi_ext/2)*np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
-    return Qobj(T, isherm=True)/2
+    diags = [
+        np.exp(1j * phi_ext / 2) * np.ones(N - m, dtype=int),
+        np.exp(-1j * phi_ext / 2) * np.ones(N - m, dtype=int),
+    ]
+    T = sp.diags(diags, [m, -m], format="csr", dtype=complex)
+    return Qobj(T, isherm=True) / 2
 
-def sin_phi(N, phi_ext, m = 1):
+
+def sin_phi(N, phi_ext, m=1):
     """
     Compute the sine phi operator matrix in a complex sparse representation.
 
@@ -233,6 +249,9 @@ def sin_phi(N, phi_ext, m = 1):
     Qobj
         The sine phi operator represented as a QuTiP Qobj with the CSR sparse matrix format.
     """
-    diags = [np.exp(1j*phi_ext/2)*np.ones(N-m,dtype=int),-np.exp(-1j*phi_ext/2)*np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
-    return Qobj(T, isherm=True) /2/1j 
+    diags = [
+        np.exp(1j * phi_ext / 2) * np.ones(N - m, dtype=int),
+        -np.exp(-1j * phi_ext / 2) * np.ones(N - m, dtype=int),
+    ]
+    T = sp.diags(diags, [m, -m], format="csr", dtype=complex)
+    return Qobj(T, isherm=True) / 2 / 1j

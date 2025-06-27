@@ -27,70 +27,46 @@ A Python framework for simulating hybrid semiconductor-superconductor quantum ci
 
 ## 🚀 Installation
 
-HybridSuperQubits is available on [PyPI](https://pypi.org/project/HybridSuperQubits/).  
-**SciPy** is kept as an **optional** dependency to let users install it optimally (especially on Apple Silicon).
+### Recommended Installation (Apple Silicon M1/M2/M3)
 
-### 1. Quick Installation (includes SciPy)
+For **optimal performance** on Apple Silicon Macs, install scientific dependencies via conda-forge:
 
-If you do **not** need to manage SciPy installation yourself, simply:
+```bash
+# Option 1: Use the provided environment file
+conda env create -f environment.yml
+conda activate hybridsuperqubits
 
-    pip install "HybridSuperQubits[scipy]"
+# Option 2: Manual conda installation
+conda create -n hybridsuperqubits python>=3.9
+conda activate hybridsuperqubits
+conda install -c conda-forge numpy scipy matplotlib qutip scqubits
+pip install -e . --no-deps
+```
 
-> **Apple Silicon (M1/M2/M3)**: If SciPy compiles from source or runs slowly, check the notes below.
+📖 **Detailed Apple Silicon guide**: [INSTALL_APPLE_SILICON.md](INSTALL_APPLE_SILICON.md)
 
-### 2. Manual / Optimized SciPy Installation
+### Quick Installation (All Platforms)
 
-If you prefer to install SciPy independently (for example, via conda or building from source):
+```bash
+pip install HybridSuperQubits[full]
+```
 
-1. **(Optional) Create or activate a Python environment**:
+⚠️ **Note**: On Apple Silicon, this may install unoptimized versions of scientific libraries.
 
-- **Conda example**:
-    
-        conda create -n hsq_env python=3.10
-        conda activate hsq_env
+### Minimal Installation
 
-- **venv example**:
-    
-        python3 -m venv hsq_env
-        source hsq_env/bin/activate     # macOS/Linux
-        hsq_env\Scripts\activate        # Windows
+```bash
+pip install HybridSuperQubits
+# Then manually install: numpy, scipy, matplotlib, qutip, scqubits
+```
 
-2. **Install SciPy** by your preferred approach:
+### Development Installation
 
-- **Conda**:
-     
-         conda install scipy
-
-- **pip + Homebrew** (if compiling from source):
-     
-         brew install openblas gcc
-         pip install --upgrade pip setuptools wheel
-         pip install scipy
-
-3. **Install HybridSuperQubits** (without `[scipy]`):
-
-        pip install HybridSuperQubits
-
-### Apple Silicon Notes (M1/M2/M3)
-
-- Use a **native** Python build (not under Rosetta).
-- If SciPy or HybridSuperQubits tries to **compile from source** and you do not get a precompiled wheel, you may need OpenBLAS and environment variables:
-  
-      conda install -c conda-forge openblas
-      export LDFLAGS="-L/opt/homebrew/opt/openblas/lib"
-      export CFLAGS="-I/opt/homebrew/opt/openblas/include"
-      export BLAS=~/opt/homebrew/opt/openblas/lib
-      pip install HybridSuperQubits
-  
-- Installing SciPy via **conda-forge** or **mambaforge** typically provides optimized builds automatically.
-
-### Upgrading
-
-To upgrade HybridSuperQubits:
-
-    pip install --upgrade "HybridSuperQubits[scipy]"
-
-(Or just `HybridSuperQubits` if handling SciPy separately.)
+```bash
+git clone https://github.com/joanjcaceres/HybridSuperQubits.git
+cd HybridSuperQubits
+pip install -e .[full]
+```
 
 ---
 
