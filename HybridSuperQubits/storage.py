@@ -1,5 +1,5 @@
 import os
-from typing import Any, Union, Optional
+from typing import Any, Optional, Union
 
 import h5py
 import numpy as np
@@ -92,10 +92,7 @@ class SpectrumData:
                 else {}
             )
             t1_table = (
-                {
-                    key: f[f"t1_table/{key}"][:]
-                    for key in f["t1_table"]
-                }
+                {key: f[f"t1_table/{key}"][:] for key in f["t1_table"]}
                 if "t1_table" in f
                 else {}
             )
