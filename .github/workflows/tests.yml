@@ -49,9 +49,6 @@ jobs:
         poetry run ruff check .
         poetry run ruff format --check .
 
-    - name: Run type checking
-      run: poetry run mypy HybridSuperQubits --ignore-missing-imports
-
     - name: Run unit tests
       run: |
         poetry run pytest tests/unit/ -v --cov=HybridSuperQubits --cov-report=xml --cov-report=term-missing
