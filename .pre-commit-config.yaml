@@ -18,6 +18,18 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
+  - repo: local
+    hooks:
+      - id: poetry-lock
+        name: poetry-lock
+        entry: poetry lock --check
+        language: system
+        pass_filenames: false
+        files: ^pyproject.toml$
+        types: [file]
+        # This hook should run after any other hooks that might modify pyproject.toml
+        # For example, if you had a hook that auto-sorted dependencies in pyproject.toml
+
   # Optional: Uncomment to run pytest before every commit
   # - repo: local
   #   hooks:

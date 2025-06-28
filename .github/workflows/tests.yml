@@ -26,14 +26,33 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Set up Conda environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        environment-file: environment.yml
+        activate-environment: hybridsuperqubits
+        auto-activate-base: false
+        miniconda-version: "latest"
+
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
         version: latest
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+
+    - name: Add Poetry to PATH (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $poetryPath = "${env:USERPROFILE}\.poetry\bin"
+        echo "$poetryPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Configure Poetry to use system environment
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: poetry config virtualenvs.create false
 
     - name: Load cached venv
+      if: false  # Disable venv cache since we use the conda env
       id: cached-poetry-dependencies
       uses: actions/cache@v4
       with:
@@ -41,19 +60,26 @@ jobs:
         key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --with dev
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: poetry install --with dev --extras full
 
     - name: Run linting with Ruff
+      if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         poetry run ruff check .
         poetry run ruff format --check .
 
     - name: Run unit tests
+      if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         poetry run pytest tests/unit/ -v --cov=HybridSuperQubits --cov-report=xml --cov-report=term-missing
 
     - name: Run integration tests
+      if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         poetry run pytest tests/integration/ -v
 
@@ -69,6 +95,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
 
     steps:
     - uses: actions/checkout@v4

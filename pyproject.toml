@@ -23,6 +23,7 @@ numpy       = {version = ">=1.26", optional = true}
 scipy       = {version = ">=1.5", optional = true}
 qutip       = {version = ">=5.1", optional = true}
 scqubits    = {version = ">=4.3", optional = true}
+h5py        = "*"
 
 [tool.poetry.extras]
 # Full installation (use with pip if conda is not available)

@@ -10,6 +10,7 @@ dependencies:
   - tqdm>=4.66
   - qutip>=5.1
   - scqubits>=4.3
+  - h5py
   # Development and testing dependencies
   - pytest>=8.0.0
   - pytest-cov>=5.0.0
