@@ -1,6 +1,6 @@
 # HybridSuperQubits 🌀⚡
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15315785.svg)](https://doi.org/10.5281/zenodo.15315785)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15773124.svg)](https://doi.org/10.5281/zenodo.15773124)
 [![PyPI Version](https://img.shields.io/pypi/v/HybridSuperQubits)](https://pypi.org/project/HybridSuperQubits/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/hybridsuperqubits/badge/?version=latest)](https://hybridsuperqubits.readthedocs.io/en/latest/?badge=latest)
