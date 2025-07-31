@@ -1,6 +1,6 @@
 # import scqubits.utils.plotting as plot
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -175,6 +175,8 @@ class QubitBase(ABC):
         if subtract_ground:
             spectrum_data.subtract_ground()
 
+        if spectrum_data is None:
+            raise ValueError("No valid noise channels provided")
         return spectrum_data
 
     def matrixelement_table(
@@ -1414,7 +1416,7 @@ class QubitBase(ABC):
         param_name: str,
         param_vals: np.ndarray,
         evals_count: int,
-        spectrum_data: SpectrumData,
+        spectrum_data: Optional[SpectrumData],
         spectral_density: Callable,
         noise_operator: str,
         noise_channel: str,
@@ -1452,11 +1454,6 @@ class QubitBase(ABC):
             The T1 times for the specified noise channel over the range of parameter values.
         """
         if spectrum_data is None:
-            # Validate parameters before calling get_matelements_vs_paramvals
-
-            if param_name is None or param_vals is None:
-                raise ValueError("param_name and param_vals cannot be None")
-
             spectrum_data = self.get_matelements_vs_paramvals(
                 noise_operator, param_name, param_vals, evals_count=evals_count
             )
@@ -1515,8 +1512,8 @@ class QubitBase(ABC):
 
     def _get_tphi_1_over_f_vs_paramvals(
         self,
-        param_name: str,
-        param_vals: np.ndarray,
+        param_name: Optional[str],
+        param_vals: Optional[np.ndarray],
         A_noise: float,
         noise_channel: str,
         noise_operators: Union[str, list[str]],
@@ -1568,11 +1565,10 @@ class QubitBase(ABC):
             raise ValueError("The operator must be of the form 'd_hamiltonian_d_X'")
 
         if spectrum_data is None:
-            # Validate parameters before calling get_matelements_vs_paramvals
-
             if param_name is None or param_vals is None:
                 raise ValueError("param_name and param_vals cannot be None")
-
+            assert param_name is not None
+            assert param_vals is not None
             spectrum_data = self.get_matelements_vs_paramvals(
                 noise_operators, param_name, param_vals, evals_count=evals_count
             )
@@ -1581,6 +1577,8 @@ class QubitBase(ABC):
             missing_operators = [
                 op for op in noise_operators if op not in spectrum_data.matrixelem_table
             ]
+            assert param_name is not None
+            assert param_vals is not None
             new_spec = self.get_matelements_vs_paramvals(
                 missing_operators, param_name, param_vals, evals_count=evals_count
             )
@@ -1591,6 +1589,8 @@ class QubitBase(ABC):
             != spectrum_data.matrixelem_table[op].shape[2]
             for op in noise_operators
         ):
+            assert param_name is not None
+            assert param_vals is not None
             new_spec = self.get_matelements_vs_paramvals(
                 noise_operators, param_name, param_vals, evals_count=evals_count
             )
@@ -1598,6 +1598,7 @@ class QubitBase(ABC):
                 spectrum_data.matrixelem_table[op] = new_spec.matrixelem_table[op]
 
         param_vals = spectrum_data.param_vals
+        assert param_vals is not None
 
         dE_d_lambda = np.diagonal(
             spectrum_data.matrixelem_table[noise_operators[0]], axis1=1, axis2=2
@@ -1635,7 +1636,8 @@ class QubitBase(ABC):
         for idx in range(tphi_table.shape[0]):
             np.fill_diagonal(tphi_table[idx], np.nan)
 
-        spectrum_data.tphi_table[noise_channel] = tphi_table
+        tphi_dict = cast(dict[str, np.ndarray], spectrum_data.tphi_table)
+        tphi_dict[noise_channel] = tphi_table
 
         return spectrum_data
 
@@ -1802,6 +1804,8 @@ class QubitBase(ABC):
         )
 
         if param_name == "El":
+            if param_vals is None:
+                raise ValueError("param_vals cannot be None when param_name is 'El'")
             N_junctions = fp / 2 / np.pi / (param_vals * 1e9) / z
         else:
             N_junctions = fp / 2 / np.pi / (getattr(self, "El", 1.0) * 1e9) / z
@@ -1817,7 +1821,8 @@ class QubitBase(ABC):
 
         noise_channel = "CQPS"
 
-        spectrum_data.tphi_table[noise_channel] = tphi_table
+        tphi_dict = cast(dict[str, np.ndarray], spectrum_data.tphi_table)
+        tphi_dict[noise_channel] = tphi_table
 
         return spectrum_data
 
@@ -1862,18 +1867,16 @@ class QubitBase(ABC):
         if "CQPS" in noise_channels:
             fp = kwargs.pop("fp", 17e9)
             z = kwargs.pop("z", 0.05)
-            # Validate parameters before calling get_tphi_CQPS_vs_paramvals
-
             if param_name is None or param_vals is None:
                 raise ValueError("param_name and param_vals cannot be None")
-
             if evals_count is None:
                 raise ValueError("evals_count cannot be None")
-
             spectrum_data = self.get_tphi_CQPS_vs_paramvals(
                 param_name, param_vals, fp, z, evals_count, spectrum_data, **kwargs
             )
 
+        if spectrum_data is None:
+            raise ValueError("No valid noise channels provided")
         return spectrum_data
 
     def get_d2E_d_param_vs_paramvals(
@@ -1957,6 +1960,8 @@ class QubitBase(ABC):
             missing_operators = [
                 op for op in operators if op not in spectrum_data.matrixelem_table
             ]
+            assert param_name is not None
+            assert param_vals is not None
             new_spec = self.get_matelements_vs_paramvals(
                 missing_operators,
                 param_name,
@@ -2040,6 +2045,8 @@ class QubitBase(ABC):
         else:
             param_name = spectrum_data.param_name
             param_vals = spectrum_data.param_vals
+            assert param_name is not None
+            assert param_vals is not None
 
         evals = spectrum_data.energy_table.copy()
         if subtract_ground:
@@ -2054,13 +2061,14 @@ class QubitBase(ABC):
             fig, ax = fig_ax
 
         if param_name == "phase":
+            assert param_vals is not None
             param_vals = param_vals / 2 / np.pi
 
         color = kwargs.get("color", None)
         linestyle = kwargs.get("linestyle", None)
         ax.plot(param_vals, evals[:, :evals_count], color=color, linestyle=linestyle)
 
-        xlabel = self.PARAM_LABELS.get(param_name, param_name)
+        xlabel = self.PARAM_LABELS.get(param_name or "unknown", param_name or "unknown")
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Energy [GHz]")
@@ -2137,6 +2145,7 @@ class QubitBase(ABC):
         operator_label = self.OPERATOR_LABELS.get(operator, operator)
 
         if param_name == "phase":
+            assert param_vals is not None
             param_vals = param_vals / 2 / np.pi
 
         for i, j in select_elems:
@@ -2157,7 +2166,7 @@ class QubitBase(ABC):
 
             ax.plot(param_vals, values, label=f"({i},{j})")
 
-        xlabel = self.PARAM_LABELS.get(param_name, param_name)
+        xlabel = self.PARAM_LABELS.get(param_name or "unknown", param_name or "unknown")
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -2168,7 +2177,7 @@ class QubitBase(ABC):
 
     def plot_t1_vs_paramvals(
         self,
-        noise_channels: list[str],
+        noise_channels: Union[str, list[str]],
         param_name: Optional[str] = None,
         param_vals: Optional[np.ndarray] = None,
         select_elems: Optional[Union[int, list[tuple[int, int]]]] = None,
@@ -2223,6 +2232,7 @@ class QubitBase(ABC):
 
         param_name = spectrum_data.param_name
         param_vals = spectrum_data.param_vals
+        assert param_vals is not None
 
         if isinstance(select_elems, int):
             select_elems = [
@@ -2239,6 +2249,7 @@ class QubitBase(ABC):
         rate_effective = np.zeros_like(param_vals)
 
         if param_name == "phase":
+            assert param_vals is not None
             param_vals = param_vals / 2 / np.pi
 
         for i, j in select_elems:
@@ -2255,7 +2266,7 @@ class QubitBase(ABC):
             linestyle="--",
         )
 
-        xlabel = self.PARAM_LABELS.get(param_name, param_name)
+        xlabel = self.PARAM_LABELS.get(param_name or "unknown", param_name or "unknown")
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(r"$T_1$ [s]")
@@ -2266,7 +2277,7 @@ class QubitBase(ABC):
 
     def plot_tphi_vs_paramvals(
         self,
-        noise_channels: list[str],
+        noise_channels: Union[str, list[str]],
         param_name: Optional[str] = None,
         param_vals: Optional[np.ndarray] = None,
         select_elems: Optional[Union[int, list[tuple[int, int]]]] = None,
@@ -2301,6 +2312,8 @@ class QubitBase(ABC):
                     operators.add("d2_hamiltonian_d_ng2")
                 else:
                     raise ValueError(f"Unsupported Tphi noise channel: {channel}")
+            assert param_name is not None
+            assert param_vals is not None
             spectrum_data = self.get_matelements_vs_paramvals(
                 list(operators), param_name, param_vals
             )
@@ -2313,13 +2326,16 @@ class QubitBase(ABC):
                 (i, j) for i in range(select_elems) for j in range(i) if i > j
             ]
 
+        tphi_dict = cast(dict[str, np.ndarray], spectrum_data.tphi_table)
         for channel in noise_channels:
-            if channel not in spectrum_data.tphi_table:
+            if channel not in tphi_dict:
                 spectrum_data = self.get_tphi_vs_paramvals(
                     [channel], param_name, param_vals, spectrum_data=spectrum_data
                 )
+                tphi_dict = cast(dict[str, np.ndarray], spectrum_data.tphi_table)
 
         if param_name == "phase":
+            assert param_vals is not None
             param_vals = param_vals / 2 / np.pi
 
         fig_ax = kwargs.get("fig_ax")
@@ -2331,10 +2347,10 @@ class QubitBase(ABC):
 
         for i, j in select_elems:
             for channel in noise_channels:
-                tphi_times = spectrum_data.tphi_table[channel][:, i, j]
+                tphi_times = tphi_dict[channel][:, i, j]
                 ax.plot(param_vals, tphi_times, label=f"Tphi {channel} ({i}->{j})")
 
-        xlabel = self.PARAM_LABELS.get(param_name, param_name)
+        xlabel = self.PARAM_LABELS.get(param_name or "unknown", param_name or "unknown")
 
         ax.set_xlabel(xlabel)
         ax.set_ylabel(r"$T_\varphi$ [s]")
