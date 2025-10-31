@@ -1,3 +1,7 @@
+## [v0.9.4] - 2025-10-31
+### Improvements
+- Version bump for patch release
+
 ## [v0.9.3] - 2025-06-28
 ### Improvements
 - Modernized CI/CD with updated GitHub Actions workflows
