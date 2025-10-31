@@ -52,19 +52,22 @@ class SpectrumData:
                 f"The file '{filename}' already exists and overwrite is set to False."
             )
 
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        directory = os.path.dirname(filename)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
         with h5py.File(filename, "w") as f:
             f.create_dataset("energy_table", data=self.energy_table)
             f.create_dataset("param_vals", data=self.param_vals)
             f.create_dataset("param_name", data=np.bytes_(self.param_name))
             f.create_dataset("system_params", data=np.bytes_(str(self.system_params)))
 
-            if isinstance(self.state_table, list) and isinstance(
-                self.state_table[0], Qobj
-            ):
-                state_data = np.array([state.full() for state in self.state_table])
-                f.create_dataset("state_table", data=state_data)
-            else:
+            if isinstance(self.state_table, list):
+                if self.state_table and isinstance(self.state_table[0], Qobj):
+                    state_data = np.array([state.full() for state in self.state_table])
+                    f.create_dataset("state_table", data=state_data)
+                else:
+                    f.create_dataset("state_table", data=np.array(self.state_table))
+            elif self.state_table is not None:
                 f.create_dataset("state_table", data=self.state_table)
 
             if self.matrixelem_table:
