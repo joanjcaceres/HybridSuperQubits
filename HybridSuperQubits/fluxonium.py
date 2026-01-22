@@ -373,7 +373,7 @@ class Fluxonium(QubitBase):
 
         if plot_potential:
             potential = self.potential(phi=phi_grid)
-            ax.plot(phi_grid, potential, color="black", label="Potential")
+            ax.plot(phi_grid / 2 / np.pi, potential, color="black", label="Potential")
 
         for idx in which:
             wavefunc_data = self.wavefunction(
@@ -393,13 +393,13 @@ class Fluxonium(QubitBase):
                 raise ValueError("Invalid mode; must be 'abs', 'real', or 'imag'.")
 
             ax.plot(
-                phi_basis_labels,
+                phi_basis_labels / 2 / np.pi,
                 wavefunc_energy + scaling * y_values,
                 label=rf"$\Psi_{idx}$",
             )
 
         if basis == "phase":
-            ax.set_xlabel(r"$2 \pi \Phi / \Phi_0$")
+            ax.set_xlabel(r"$\Phi / \Phi_0$")
             ax.set_ylabel(r"$\psi(\varphi)$, Energy [GHz]")
         elif basis == "charge":
             ax.set_xlabel(r"$n$")

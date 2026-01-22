@@ -716,8 +716,10 @@ class Ferbo(QubitBase):
 
         if plot_potential:
             potential = self.potential(phi=phi_grid)
-            ax.plot(phi_grid, potential[:, 0], color="black", label="Potential")
-            ax.plot(phi_grid, potential[:, 1], color="black")
+            ax.plot(
+                phi_grid / 2 / np.pi, potential[:, 0], color="black", label="Potential"
+            )
+            ax.plot(phi_grid / 2 / np.pi, potential[:, 1], color="black")
 
         for idx in which:
             wavefunc_data = self.wavefunction(
@@ -743,18 +745,18 @@ class Ferbo(QubitBase):
                 raise ValueError("Invalid mode; must be 'abs', 'real', or 'imag'.")
 
             ax.plot(
-                phi_basis_labels,
+                phi_basis_labels / 2 / np.pi,
                 wavefunc_energy + scaling * y_values,
                 label=rf"$\Psi_{idx} \uparrow $",
             )
             ax.plot(
-                phi_basis_labels,
+                phi_basis_labels / 2 / np.pi,
                 wavefunc_energy + scaling * y_values_down,
                 label=rf"$\Psi_{idx} \downarrow $",
             )
 
         if basis == "phase":
-            ax.set_xlabel(r"$\varphi$")
+            ax.set_xlabel(r"$\Phi / \Phi_0$")
             ax.set_ylabel(r"$\psi(\varphi)$, Energy [GHz]")
         elif basis == "charge":
             ax.set_xlabel(r"$n$")
