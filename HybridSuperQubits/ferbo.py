@@ -485,7 +485,8 @@ class Ferbo(QubitBase):
         basis : str, optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
         rotate : bool, optional
-            Whether to rotate the basis (default is False).
+            Whether to rotate to the local Andreev eigenbasis at each phi point (default is False).
+            When True, uses phi-dependent rotation based on the Andreev part diagonalization.
         Returns
         -------
         Dict[str, Any]
@@ -498,15 +499,6 @@ class Ferbo(QubitBase):
             evals, evecs = esys
 
         dim = self.dimension // 2
-
-        if rotate:
-            identity = np.eye(self.dimension // 2)
-            change_of_basis_operator = (1 / np.sqrt(2)) * np.block(
-                [[identity, identity], [identity, -identity]]
-            )
-
-            evecs = change_of_basis_operator @ evecs
-
         evecs = evecs.T
 
         if basis == "phase":
@@ -521,6 +513,7 @@ class Ferbo(QubitBase):
         wavefunc_osc_basis_amplitudes = evecs[which, :]
         phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex128)
 
+        # Compute wavefunction in original basis
         for n in range(dim):
             phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[
                 n
@@ -528,6 +521,24 @@ class Ferbo(QubitBase):
             phi_wavefunc_amplitudes[1] += wavefunc_osc_basis_amplitudes[
                 self.dimension // 2 + n
             ] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
+
+        # Apply phi-dependent rotation if requested
+        if rotate:
+            # Get rotation matrices for each phi point
+            _, rotation_matrices = self.potential(phi_grid, return_evecs=True)
+
+            # Rotate wavefunction at each phi point
+            rotated_amplitudes = np.zeros_like(phi_wavefunc_amplitudes)
+            for i in range(len(phi_grid)):
+                # rotation_matrices[i] transforms from computational to Andreev eigenbasis
+                # We need to apply the adjoint to transform the wavefunction
+                state_vector = np.array(
+                    [phi_wavefunc_amplitudes[0, i], phi_wavefunc_amplitudes[1, i]]
+                )
+                rotated_state = rotation_matrices[i].conj().T @ state_vector
+                rotated_amplitudes[0, i] = rotated_state[0]
+                rotated_amplitudes[1, i] = rotated_state[1]
+            phi_wavefunc_amplitudes = rotated_amplitudes
 
         if basis == "charge":
             phi_wavefunc_amplitudes[0] /= np.sqrt(self.n_zpf)
@@ -542,7 +553,9 @@ class Ferbo(QubitBase):
             "energy": evals[which],
         }
 
-    def potential(self, phi: Union[float, np.ndarray]) -> np.ndarray:
+    def potential(
+        self, phi: Union[float, np.ndarray], return_evecs: bool = False
+    ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Calculates the potential energy for given values of phi.
 
@@ -550,40 +563,67 @@ class Ferbo(QubitBase):
         ----------
         phi : Union[float, np.ndarray]
             The phase values at which to calculate the potential.
+        return_evecs : bool, optional
+            If True, returns both eigenvalues and eigenvectors (default is False).
 
         Returns
         -------
-        np.ndarray
-            The potential energy values.
+        Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
+            If return_evecs is False: The potential energy values (eigenvalues).
+            If return_evecs is True: A tuple of (eigenvalues, eigenvectors).
+            Eigenvalues shape: (len(phi), 2)
+            Eigenvectors shape: (len(phi), 2, 2) where each [i, :, :] is the rotation matrix at phi[i]
         """
         phi_array = np.atleast_1d(phi)
         evals_array = np.zeros((len(phi_array), 2))
+        if return_evecs:
+            evecs_array = np.zeros((len(phi_array), 2, 2), dtype=complex)
 
         for i, phi_val in enumerate(phi_array):
+            # Construct only the Andreev part
             if self.flux_grouping == "ABS":
-                inductive_term = 0.5 * self.El * phi_val**2 * np.eye(2)
-                josephson_term = -self.Ej * np.cos(phi_val - self.phase) * np.eye(2)
                 andreev_term = (
                     -self.Gamma * np.cos((phi_val - self.phase) / 2) * sigma_z()
                     - self.delta_Gamma * np.sin((phi_val - self.phase) / 2) * sigma_y()
                     + self.er * sigma_x()
                 )
+                # Inductive and Josephson contributions (diagonal, add to eigenvalues)
+                inductive_contribution = 0.5 * self.El * phi_val**2
+                josephson_contribution = -self.Ej * np.cos(phi_val - self.phase)
             elif self.flux_grouping == "EL":
-                inductive_term = 0.5 * self.El * (phi_val + self.phase) ** 2 * np.eye(2)
                 andreev_term = (
                     -self.Gamma * np.cos(phi_val / 2) * sigma_z()
                     - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y()
                     + self.er * sigma_x()
                 )
-                josephson_term = -self.Ej * np.cos(phi_val) * np.eye(2)
+                # Inductive and Josephson contributions (diagonal, add to eigenvalues)
+                inductive_contribution = 0.5 * self.El * (phi_val + self.phase) ** 2
+                josephson_contribution = -self.Ej * np.cos(phi_val)
 
-            potential_operator = inductive_term + josephson_term + andreev_term
-            evals_array[i] = eigh(
-                potential_operator,
-                eigvals_only=True,
-                check_finite=False,
-            )
+            # Diagonalize only the Andreev part
+            if return_evecs:
+                andreev_evals, andreev_evecs = eigh(
+                    andreev_term,
+                    check_finite=False,
+                )
+                # Add diagonal contributions to eigenvalues
+                evals_array[i] = (
+                    andreev_evals + inductive_contribution + josephson_contribution
+                )
+                evecs_array[i] = andreev_evecs
+            else:
+                andreev_evals = eigh(
+                    andreev_term,
+                    eigvals_only=True,
+                    check_finite=False,
+                )
+                # Add diagonal contributions to eigenvalues
+                evals_array[i] = (
+                    andreev_evals + inductive_contribution + josephson_contribution
+                )
 
+        if return_evecs:
+            return evals_array, evecs_array
         return evals_array
 
     def tphi_1_over_f_flux(
@@ -595,7 +635,7 @@ class Ferbo(QubitBase):
     ) -> float:
         return self.tphi_1_over_f(
             A_noise,
-            ["d_hamiltonian_d_phase", "d2_hamiltonian_d_phase"],
+            ["d_hamiltonian_d_phase", "d2_hamiltonian_d_phase2"],
             esys=esys,
             get_rate=get_rate,
             **kwargs,
