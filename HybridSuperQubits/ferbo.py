@@ -610,6 +610,16 @@ class Ferbo(QubitBase):
                 evals_array[i] = (
                     andreev_evals + inductive_contribution + josephson_contribution
                 )
+
+                # Gauge fixing: ensure phase continuity with previous point
+                if i > 0:
+                    for j in range(2):  # For each eigenstate
+                        # Compute overlap with previous eigenstate
+                        overlap = np.vdot(evecs_array[i - 1, :, j], andreev_evecs[:, j])
+                        # If overlap is negative or has large imaginary part, fix phase
+                        if np.real(overlap) < 0:
+                            andreev_evecs[:, j] *= -1
+
                 evecs_array[i] = andreev_evecs
             else:
                 andreev_evals = eigh(
