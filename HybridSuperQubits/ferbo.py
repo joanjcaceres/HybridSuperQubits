@@ -547,6 +547,13 @@ class Ferbo(QubitBase):
             phi_wavefunc_amplitudes[0] /= np.sqrt(self.phase_zpf)
             phi_wavefunc_amplitudes[1] /= np.sqrt(self.phase_zpf)
 
+        # Fix global phase: ensure the wavefunction is mostly positive
+        # For each Andreev component, choose phase so that the sum of real parts is positive
+        for j in range(2):
+            real_sum = np.sum(np.real(phi_wavefunc_amplitudes[j]))
+            if real_sum < 0:
+                phi_wavefunc_amplitudes[j] *= -1
+
         return {
             "basis_labels": phi_basis_labels,
             "amplitudes": phi_wavefunc_amplitudes,
