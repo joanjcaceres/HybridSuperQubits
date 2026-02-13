@@ -295,7 +295,7 @@ class Ferbo(QubitBase):
 
         Returns
         -------
-        Qobj
+        np.ndarray
             The derivative of the Hamiltonian with respect to the energy relaxation rate.
         """
         return +np.kron(sigma_x(), np.eye(self.dimension // 2))
@@ -306,7 +306,7 @@ class Ferbo(QubitBase):
 
         Returns
         -------
-        Qobj
+        np.ndarray
             The derivative of the Hamiltonian with respect to the coupling strength difference.
         """
         phase_op = self.phase_operator()[: self.dimension // 2, : self.dimension // 2]

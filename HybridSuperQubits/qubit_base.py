@@ -11,6 +11,8 @@ from tqdm.notebook import tqdm
 
 from .storage import SpectrumData
 
+R_Q = h / (2 * e) ** 2  # Superconducting resistance quantum
+
 
 class QubitBase(ABC):
     PARAM_LABELS: dict[str, str] = {}
@@ -856,7 +858,7 @@ class QubitBase(ABC):
             # Assuming that Ec is in GHz
             x = hbar * omega / (k * T)
             return (
-                8
+                16
                 * getattr(self, "Ec", 1.0)  # Default value for base class
                 / Q_cap_fun(omega)
                 * 1
@@ -1013,7 +1015,7 @@ class QubitBase(ABC):
         Z : float, optional
             The impedance (default is 50).
         T : float, optional
-            The temperature (default is 0.015).
+            The temperature (default is 0.050).
         total : bool, optional
             Whether to calculate the total noise (default is True).
         **kwargs
@@ -1100,7 +1102,7 @@ class QubitBase(ABC):
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         M : float, optional
-            The mutual inductance in units of Phi_0 = h/(2e) (default is 26000).
+            The mutual inductance in units of Phi_0/A (default is 2500 Phi_0/A = 5.2 pH).
         Z : float, optional
             The impedance (default is 50).
         T : float, optional
@@ -1140,17 +1142,7 @@ class QubitBase(ABC):
 
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
-            return (
-                4
-                * np.pi**2
-                * M**2
-                * np.abs(omega)
-                * 1e9
-                * h
-                / Z
-                * (1 + 1 / np.tanh(np.abs(x) / 2))
-                / (1 + np.exp(-x))
-            )
+            return 4 * np.pi**2 * M**2 * omega * 1e9 * h / Z * (1 + 1 / np.tanh(x / 2))
 
         noise_operator = "d_hamiltonian_d_phase"
         noise_channel = "flux_bias_line"
@@ -1329,7 +1321,8 @@ class QubitBase(ABC):
         param_vals: Optional[np.ndarray] = None,
         evals_count: Optional[int] = None,
         spectrum_data: Optional[SpectrumData] = None,
-        A_noise: float = 0.04,
+        R: float = 50,
+        T: float = 0.015,
         total: bool = True,
         **kwargs,
     ) -> SpectrumData:
@@ -1346,8 +1339,14 @@ class QubitBase(ABC):
             The number of eigenvalues and eigenstates to calculate (default is 6).
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
-        A_noise : float, optional
-            The amplitude of the noise (default is 0.04 GHz).
+        R : float, optional
+            The resistance (default is 50 Ohms).
+        T : float, optional
+            The temperature (default is 0.015).
+        total : bool, optional
+            Whether to calculate the total noise (default is True).
+        **kwargs
+            Additional arguments to pass to the T1 calculation method.
 
 
         Returns
@@ -1378,24 +1377,15 @@ class QubitBase(ABC):
                 param_name, param_vals, evals_count=evals_count
             )
 
+        R_Q = h / (2 * e) ** 2
+
         def spectral_density(omega, T):
             x = hbar * omega / (k * T)
-            return (
-                2
-                * np.pi
-                * 1e9
-                * A_noise**2
-                * np.abs(
-                    1 / (omega * 1e-9)
-                    + 0.01 * omega * 1e-9 * 1 / np.tanh(np.abs(x) / 2)
-                )
-                / (1 + np.exp(-x))
-            )
+            return R * omega / 1e9 / 4 / R_Q * (1 + 1 / np.tanh(x / 2))
 
         noise_operator = "d_hamiltonian_d_er"
         noise_channel = "Andreev"
 
-        T = 0.015
         return self._get_t1_vs_paramvals(
             param_name,
             param_vals,
@@ -1494,11 +1484,7 @@ class QubitBase(ABC):
         )
 
         omega = 2 * np.pi * transition_table * 1e9
-        s = (
-            spectral_density(omega, T) + spectral_density(-omega, T)
-            if total
-            else spectral_density(omega, T)
-        )
+        s = spectral_density(omega, T)
 
         matrix_element = spectrum_data.matrixelem_table[noise_operator]
         rate = 2 * np.pi * np.abs(matrix_element) ** 2 * s
@@ -1515,11 +1501,11 @@ class QubitBase(ABC):
 
     def _get_tphi_1_over_f_vs_paramvals(
         self,
-        param_name: str,
-        param_vals: np.ndarray,
-        A_noise: float,
-        noise_channel: str,
-        noise_operators: Union[str, list[str]],
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        A_noise: float = 2 * np.pi * 1e-6,
+        noise_channel: str = "",
+        noise_operators: Union[str, list[str]] = "",
         evals_count: Optional[int] = None,
         spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
@@ -1529,10 +1515,10 @@ class QubitBase(ABC):
 
         Parameters
         ----------
-        param_name : str
-            The name of the parameter to vary.
-        param_vals : np.ndarray
-            The values of the parameter to vary.
+        param_name : str, optional
+            The name of the parameter to vary. If not provided, extracted from spectrum_data.
+        param_vals : np.ndarray, optional
+            The values of the parameter to vary. If not provided, extracted from spectrum_data.
         A_noise : float
             The amplitude of the noise.
         noise_channel : str
@@ -1567,12 +1553,21 @@ class QubitBase(ABC):
         else:
             raise ValueError("The operator must be of the form 'd_hamiltonian_d_X'")
 
+        # Extract param_name and param_vals from spectrum_data if not provided
+        if spectrum_data is not None:
+            if param_name is None:
+                param_name = spectrum_data.param_name
+            if param_vals is None:
+                param_vals = spectrum_data.param_vals
+
+        # Validate that we have param_name and param_vals from either source
+        if param_name is None or param_vals is None:
+            raise ValueError(
+                "param_name and param_vals must be provided either as arguments "
+                "or through spectrum_data"
+            )
+
         if spectrum_data is None:
-            # Validate parameters before calling get_matelements_vs_paramvals
-
-            if param_name is None or param_vals is None:
-                raise ValueError("param_name and param_vals cannot be None")
-
             spectrum_data = self.get_matelements_vs_paramvals(
                 noise_operators, param_name, param_vals, evals_count=evals_count
             )
@@ -1641,9 +1636,9 @@ class QubitBase(ABC):
 
     def get_tphi_flux_vs_paramvals(
         self,
-        param_name: str,
-        param_vals: np.ndarray,
-        A_noise: float = 1e-6,
+        param_name: Optional[str] = None,
+        param_vals: Optional[np.ndarray] = None,
+        A_noise: float = 2 * np.pi * 1e-6,
         evals_count: Optional[int] = None,
         spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
@@ -1653,10 +1648,10 @@ class QubitBase(ABC):
 
         Parameters
         ----------
-        param_name : str
-            The name of the parameter to vary.
-        param_vals : np.ndarray
-            The values of the parameter to vary.
+        param_name : str, optional
+            The name of the parameter to vary. If not provided, extracted from spectrum_data.
+        param_vals : np.ndarray, optional
+            The values of the parameter to vary. If not provided, extracted from spectrum_data.
         A_noise : float
             The amplitude of the noise.
         evals_count : int, optional
@@ -1686,7 +1681,7 @@ class QubitBase(ABC):
         self,
         param_name: Optional[str] = None,
         param_vals: Optional[np.ndarray] = None,
-        A_noise: float = 1e-4,
+        A_noise: float = 1e-4 * 1e-9 / 4 / R_Q,
         evals_count: Optional[int] = None,
         spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
@@ -1719,7 +1714,7 @@ class QubitBase(ABC):
             param_vals=param_vals,
             A_noise=A_noise,
             noise_channel="charge_noise",
-            noise_operators=["d_hamiltonian_d_ng", "d2_hamiltonian_d_ng2"],
+            noise_operators=["d_hamiltonian_d_er"],
             evals_count=evals_count,
             spectrum_data=spectrum_data,
             **kwargs,
@@ -2092,7 +2087,7 @@ class QubitBase(ABC):
         select_elems : Union[int, List[Tuple[int, int]]], optional
             Number of elements to select or list of specific elements to plot (default is [(1, 0)]).
         mode : str, optional
-            Mode for plotting the matrix elements ('abs', 'real', 'imag') (default is 'abs').
+            Mode for plotting the matrix elements ('abs', 'real', 'imag', 'abs_squared') (default is 'abs').
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
         **kwargs
@@ -2128,10 +2123,10 @@ class QubitBase(ABC):
         fig_ax = kwargs.get("fig_ax")
         if fig_ax is None:
             fig, ax = plt.subplots()
-            fig.suptitle(self._generate_suptitle(param_name))
         else:
             fig, ax = fig_ax
 
+        fig.suptitle(self._generate_suptitle(param_name))
         matrixelem_table = spectrum_data.matrixelem_table[operator]
 
         operator_label = self.OPERATOR_LABELS.get(operator, operator)
