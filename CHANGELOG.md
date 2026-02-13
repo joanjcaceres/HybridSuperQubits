@@ -1,3 +1,7 @@
+## [v0.10.0] - 2026-02-13
+### Improvements
+- Fixing factors in the spectrum density value and refactoring
+
 ## [v0.9.4] - 2025-10-31
 ### Improvements
 - Version bump for patch release
