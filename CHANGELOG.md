@@ -1,3 +1,7 @@
+## [v0.10.1] - 2026-02-13
+### Added
+- Added second derivative methods for Ferbo class: `d2_hamiltonian_d_Gamma2`, `d2_hamiltonian_d_deltaGamma2`, and `d2_hamiltonian_d_er2`
+
 ## [v0.10.0] - 2026-02-13
 ### Improvements
 - Fixing factors in the spectrum density value and refactoring
