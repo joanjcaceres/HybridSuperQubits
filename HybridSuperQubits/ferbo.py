@@ -315,6 +315,39 @@ class Ferbo(QubitBase):
 
         return -np.kron(sigma_y(), sinm(phase_op / 2))
 
+    def d2_hamiltonian_d_Gamma2(self) -> np.ndarray:
+        """
+        Returns the second derivative of the Hamiltonian with respect to Gamma.
+
+        Returns
+        -------
+        np.ndarray
+            The second derivative of the Hamiltonian with respect to Gamma.
+        """
+        return np.zeros((self.dimension, self.dimension))
+
+    def d2_hamiltonian_d_deltaGamma2(self) -> np.ndarray:
+        """
+        Returns the second derivative of the Hamiltonian with respect to the coupling strength difference.
+
+        Returns
+        -------
+        np.ndarray
+            The second derivative of the Hamiltonian with respect to the coupling strength difference.
+        """
+        return np.zeros((self.dimension, self.dimension))
+
+    def d2_hamiltonian_d_er2(self) -> np.ndarray:
+        """
+        Returns the second derivative of the Hamiltonian with respect to the energy relaxation rate.
+
+        Returns
+        -------
+        np.ndarray
+            The second derivative of the Hamiltonian with respect to the energy relaxation rate.
+        """
+        return np.zeros((self.dimension, self.dimension))
+
     def d_hamiltonian_d_ng(self) -> np.ndarray:
         """
         Returns the derivative of the Hamiltonian with respect to the number of charge offset.
