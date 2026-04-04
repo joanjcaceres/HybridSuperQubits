@@ -8,22 +8,25 @@
 
 **HybridSuperQubits** is a Python framework for simulating hybrid semiconductor-superconductor quantum circuits. It provides numerical tools for diagonalizing circuit Hamiltonians, computing energy spectra, analyzing noise susceptibility, and visualizing wavefunctions across several qubit architectures.
 
-This package is the companion software for the paper:
-
-> **FerBo: a noise resilient qubit hybridizing Andreev and fluxonium states**
-> J. J. Caceres, D. Sanz Marco, J. Ortuzar, E. Flurin, C. Urbina, H. Pothier, M. F. Goffman, F. J. Matute-Canadas, A. Levy Yeyati
-> [arXiv:2604.01145](https://arxiv.org/abs/2604.01145) (2026)
-
 ---
 
 ## Overview
 
-Hybrid semiconductor-superconductor circuits combine fermionic degrees of freedom (Andreev bound states in a weak link) with bosonic electromagnetic modes (LC oscillator). The **FerBo** (Fermionic-Bosonic) qubit, introduced in the paper above, exploits this hybridization to achieve simultaneous protection against relaxation and dephasing:
+Superconducting quantum circuits based on semiconductor weak links are a growing family of devices where gate-tunable Andreev bound states replace or complement conventional Josephson tunnel junctions. HybridSuperQubits provides a unified numerical framework for studying these systems -- from simple gate-tunable junctions (gatemon) to circuits that hybridize fermionic and bosonic degrees of freedom (FerBo).
 
-- **Relaxation protection** arises from *disjoint Andreev sector support* -- the ground and first excited states live in different fermionic manifolds, suppressing charge-induced dipole transitions.
-- **Dephasing protection** comes from *wavefunction delocalization in phase space*, analogous to the fluxonium qubit in the heavy regime.
+The package covers a range of hybrid qubit architectures:
 
-HybridSuperQubits implements the full circuit Hamiltonian for the FerBo qubit and related architectures, enabling parameter exploration, noise analysis, and comparison with analytical predictions.
+- **Charge-basis qubits** -- Andreev pair qubit, gatemon -- where the junction potential depends on the transmission of a semiconductor weak link.
+- **Flux-basis qubits** -- fluxonium, gatemonium -- where a large inductance shunts the junction, providing phase delocalization and anharmonicity.
+- **Hybrid-basis qubits** -- FerBo -- where the Hilbert space is a tensor product of a bosonic (LC) mode and a fermionic (Andreev) degree of freedom.
+- **Metamaterial elements** -- Josephson junction arrays, resonators -- for modeling coupling environments and readout cavities.
+
+All qubit classes share a common interface for Hamiltonian diagonalization, parameter sweeps, matrix element computation, noise analysis (T1, T_phi), and wavefunction visualization.
+
+> This package was used in:
+> **FerBo: a noise resilient qubit hybridizing Andreev and fluxonium states**
+> J. J. Caceres, D. Sanz Marco, J. Ortuzar, E. Flurin, C. Urbina, H. Pothier, M. F. Goffman, F. J. Matute-Canadas, A. Levy Yeyati
+> [arXiv:2604.01145](https://arxiv.org/abs/2604.01145) (2026)
 
 ### Supported qubit types
 
@@ -79,20 +82,18 @@ pip install -e .[full]
 
 ## Quick start
 
-### FerBo qubit
+### Fluxonium
 
 ```python
-from HybridSuperQubits import Ferbo
+import numpy as np
+from HybridSuperQubits import Fluxonium
 
-# Create a FerBo qubit
-qubit = Ferbo(
-    Ec=1.2,            # Charging energy [GHz]
-    El=0.8,            # Inductive energy [GHz]
-    Gamma=5.0,         # Andreev coupling strength [GHz]
-    delta_Gamma=0.1,   # Coupling asymmetry [GHz]
-    er=0.05,           # Resonant level detuning [GHz]
-    phase=0.3,         # External flux (2pi Phi/Phi_0)
-    dimension=100      # Hilbert space dimension
+qubit = Fluxonium(
+    Ec=1.0,            # Charging energy [GHz]
+    El=0.5,            # Inductive energy [GHz]
+    Ej=4.0,            # Josephson energy [GHz]
+    phase=np.pi,       # External flux (2pi Phi/Phi_0)
+    dimension=100      # Fock space dimension
 )
 
 # Eigenvalues and eigenstates
@@ -104,9 +105,6 @@ spectrum = qubit.get_spectrum_vs_paramvals(
     param_vals=np.linspace(0, 2 * np.pi, 101),
     evals_count=6
 )
-
-# Wavefunction visualization
-qubit.plot_wavefunction(which=[0, 1], andreev_basis="adiabatic")
 ```
 
 ### Andreev pair qubit
@@ -125,20 +123,6 @@ qubit = Andreev(
 )
 ```
 
-### Fluxonium
-
-```python
-from HybridSuperQubits import Fluxonium
-
-qubit = Fluxonium(
-    Ec=1.0,            # Charging energy [GHz]
-    El=0.5,            # Inductive energy [GHz]
-    Ej=4.0,            # Josephson energy [GHz]
-    phase=np.pi,       # External flux (2pi Phi/Phi_0)
-    dimension=100      # Fock space dimension
-)
-```
-
 ### Gatemonium
 
 ```python
@@ -152,6 +136,25 @@ qubit = Gatemonium(
     phase=0.0,         # External flux
     dimension=100      # Hilbert space dimension
 )
+```
+
+### FerBo (Fermionic-Bosonic) qubit
+
+```python
+from HybridSuperQubits import Ferbo
+
+qubit = Ferbo(
+    Ec=1.2,            # Charging energy [GHz]
+    El=0.8,            # Inductive energy [GHz]
+    Gamma=5.0,         # Andreev coupling strength [GHz]
+    delta_Gamma=0.1,   # Coupling asymmetry [GHz]
+    er=0.05,           # Resonant level detuning [GHz]
+    phase=0.3,         # External flux (2pi Phi/Phi_0)
+    dimension=100      # Hilbert space dimension
+)
+
+# Wavefunction visualization in the adiabatic Andreev basis
+qubit.plot_wavefunction(which=[0, 1], andreev_basis="adiabatic")
 ```
 
 ### Noise analysis
@@ -202,13 +205,13 @@ spectrum.filewrite("spectrum_data.hdf5")
 
 ## Key features
 
-- **Hamiltonian construction and diagonalization** for all supported qubit types using `scipy.linalg.eigh`
-- **Parameter sweeps** over any circuit parameter (flux, charge offset, energies) with `get_spectrum_vs_paramvals`
+- **7 qubit types** with a shared interface: Ferbo, Andreev, Fluxonium, Gatemon, Gatemonium, JJA, Resonator
+- **Hamiltonian construction and diagonalization** using `scipy.linalg.eigh`
+- **Parameter sweeps** over any circuit parameter (flux, charge offset, energies, transmission) with `get_spectrum_vs_paramvals`
 - **Noise analysis**: capacitive and inductive T1, 1/f flux dephasing, flux bias line losses
 - **Matrix element computation** for arbitrary operators across energy levels
-- **Wavefunction visualization** in static and adiabatic Andreev bases
+- **Wavefunction visualization** with support for hybrid (Andreev + Fock) bases
 - **Wigner function** computation via QuTiP integration
-- **Berry phase correction** for adiabatic potentials in the FerBo qubit
 - **First and second Hamiltonian derivatives** with respect to all circuit parameters
 - **HDF5 storage** for spectrum data, matrix elements, and coherence times
 - **Unit conversions** between circuit parameters (inductance/capacitance) and energy scales
@@ -224,9 +227,22 @@ Full API reference and theory background:
 
 ## Citation
 
-If you use HybridSuperQubits in your research, please cite both the paper and the software:
+If you use HybridSuperQubits in your research, please cite the software:
 
-**Paper:**
+**Software:**
+
+```bibtex
+@software{caceres2025hybridsuperqubits,
+  author    = {Joan J. C{\'a}ceres},
+  title     = {HybridSuperQubits},
+  year      = {2025},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.15773124},
+  url       = {https://github.com/joanjcaceres/HybridSuperQubits}
+}
+```
+
+If you use the FerBo qubit specifically, please also cite the paper:
 
 ```bibtex
 @article{caceres2026ferbo,
@@ -239,19 +255,6 @@ If you use HybridSuperQubits in your research, please cite both the paper and th
   archivePrefix = {arXiv},
   primaryClass  = {cond-mat.mes-hall},
   url       = {https://arxiv.org/abs/2604.01145}
-}
-```
-
-**Software:**
-
-```bibtex
-@software{caceres2025hybridsuperqubits,
-  author    = {Joan J. C{\'a}ceres},
-  title     = {HybridSuperQubits},
-  year      = {2025},
-  publisher = {Zenodo},
-  doi       = {10.5281/zenodo.15773124},
-  url       = {https://github.com/joanjcaceres/HybridSuperQubits}
 }
 ```
 
