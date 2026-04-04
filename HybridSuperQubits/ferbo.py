@@ -211,8 +211,10 @@ class Ferbo(QubitBase):
         np.ndarray
             The Hamiltonian of the system.
         """
-        n_x = self.delta_Gamma / 4 / (self.Gamma + self.Delta)
-        n_op = self.n_operator() + n_x * np.kron(sigma_x(), np.eye(self.dimension // 2))
+        # n_x = self.delta_Gamma / 4 / (self.Gamma + self.Delta)
+        n_op = (
+            self.n_operator()
+        )  # + n_x * np.kron(sigma_x(), np.eye(self.dimension // 2))
 
         charge_term = 4 * self.Ec * n_op @ n_op
         phase_op = self.phase_operator()
@@ -504,7 +506,7 @@ class Ferbo(QubitBase):
         phi_grid: Optional[np.ndarray] = None,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         basis: str = "phase",
-        rotate: bool = False,
+        andreev_basis: str = "static",
     ) -> dict[str, Any]:
         """
         Returns a wave function in the phi basis.
@@ -517,14 +519,18 @@ class Ferbo(QubitBase):
             Custom grid for phi; if None, a default grid is used.
         basis : str, optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        rotate : bool, optional
-            Whether to rotate to the local Andreev eigenbasis at each phi point (default is False).
-            When True, uses phi-dependent rotation based on the Andreev part diagonalization.
+        andreev_basis : str, optional
+            Andreev basis used for the two-component wavefunction. Use 'static'
+            for the basis used to define the Hamiltonian matrix, or 'adiabatic'
+            for the local phi-dependent eigenbasis of the Andreev sector.
         Returns
         -------
         Dict[str, Any]
             Wave function data containing basis labels, amplitudes, and energy.
         """
+        if andreev_basis not in {"static", "adiabatic"}:
+            raise ValueError("Invalid andreev_basis; must be 'static' or 'adiabatic'.")
+
         if esys is None:
             evals_count = max(which + 1, 3)
             evals, evecs = self.eigensys(evals_count)
@@ -546,7 +552,7 @@ class Ferbo(QubitBase):
         wavefunc_osc_basis_amplitudes = evecs[which, :]
         phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex128)
 
-        # Compute wavefunction in original basis
+        # Compute the wavefunction in the static Andreev basis used in the Hamiltonian.
         for n in range(dim):
             phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[
                 n
@@ -555,8 +561,9 @@ class Ferbo(QubitBase):
                 self.dimension // 2 + n
             ] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
 
-        # Apply phi-dependent rotation if requested
-        if rotate:
+        # Optionally rotate from the static Andreev basis to the adiabatic
+        # phi-dependent Andreev basis.
+        if andreev_basis == "adiabatic":
             # Get rotation matrices for each phi point
             _, rotation_matrices = self.potential(phi_grid, return_evecs=True)
 
@@ -594,7 +601,10 @@ class Ferbo(QubitBase):
         }
 
     def potential(
-        self, phi: Union[float, np.ndarray], return_evecs: bool = False
+        self,
+        phi: Union[float, np.ndarray],
+        return_evecs: bool = False,
+        include_berry: bool = True,
     ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
         """
         Calculates the potential energy for given values of phi.
@@ -605,6 +615,9 @@ class Ferbo(QubitBase):
             The phase values at which to calculate the potential.
         return_evecs : bool, optional
             If True, returns both eigenvalues and eigenvectors (default is False).
+        include_berry : bool, optional
+            If True, includes the scalar Berry correction in the potential
+            eigenvalues (default is True).
 
         Returns
         -------
@@ -622,23 +635,31 @@ class Ferbo(QubitBase):
         for i, phi_val in enumerate(phi_array):
             # Construct only the Andreev part
             if self.flux_grouping == "ABS":
+                andreev_phase = phi_val - self.phase
                 andreev_term = (
-                    -self.Gamma * np.cos((phi_val - self.phase) / 2) * sigma_z()
-                    - self.delta_Gamma * np.sin((phi_val - self.phase) / 2) * sigma_y()
+                    -self.Gamma * np.cos(andreev_phase / 2) * sigma_z()
+                    - self.delta_Gamma * np.sin(andreev_phase / 2) * sigma_y()
                     + self.er * sigma_x()
                 )
                 # Inductive and Josephson contributions (diagonal, add to eigenvalues)
                 inductive_contribution = 0.5 * self.El * phi_val**2
                 josephson_contribution = -self.Ej * np.cos(phi_val - self.phase)
             elif self.flux_grouping == "EL":
+                andreev_phase = phi_val
                 andreev_term = (
-                    -self.Gamma * np.cos(phi_val / 2) * sigma_z()
-                    - self.delta_Gamma * np.sin(phi_val / 2) * sigma_y()
+                    -self.Gamma * np.cos(andreev_phase / 2) * sigma_z()
+                    - self.delta_Gamma * np.sin(andreev_phase / 2) * sigma_y()
                     + self.er * sigma_x()
                 )
                 # Inductive and Josephson contributions (diagonal, add to eigenvalues)
                 inductive_contribution = 0.5 * self.El * (phi_val + self.phase) ** 2
                 josephson_contribution = -self.Ej * np.cos(phi_val)
+            else:
+                raise ValueError(f"Unknown flux_grouping: {self.flux_grouping}")
+
+            berry_contribution = (
+                self._berry_contribution(andreev_phase) if include_berry else 0.0
+            )
 
             # Diagonalize only the Andreev part
             if return_evecs:
@@ -648,7 +669,10 @@ class Ferbo(QubitBase):
                 )
                 # Add diagonal contributions to eigenvalues
                 evals_array[i] = (
-                    andreev_evals + inductive_contribution + josephson_contribution
+                    andreev_evals
+                    + inductive_contribution
+                    + josephson_contribution
+                    + berry_contribution
                 )
 
                 # Gauge fixing: ensure phase continuity with previous point
@@ -669,12 +693,47 @@ class Ferbo(QubitBase):
                 )
                 # Add diagonal contributions to eigenvalues
                 evals_array[i] = (
-                    andreev_evals + inductive_contribution + josephson_contribution
+                    andreev_evals
+                    + inductive_contribution
+                    + josephson_contribution
+                    + berry_contribution
                 )
 
         if return_evecs:
             return evals_array, evecs_array
         return evals_array
+
+    def _berry_contribution(
+        self, phi: Union[float, np.ndarray]
+    ) -> Union[float, np.ndarray]:
+        """
+        Returns the scalar Berry contribution in the adiabatic Andreev basis.
+
+        The correction is
+        1/4 * [ (d chi / d phi)^2 + (d theta / d phi)^2 ],
+        multiplied by the identity in the Andreev subspace.
+        """
+        phi_array = np.asarray(phi, dtype=float)
+        b_perp_sq = (
+            self.Gamma**2 * np.cos(phi_array / 2) ** 2
+            + self.delta_Gamma**2 * np.sin(phi_array / 2) ** 2
+        )
+        b_sq = b_perp_sq + self.er**2
+        b_perp = np.sqrt(b_perp_sq)
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            dchi_dphi = self.Gamma * self.delta_Gamma / (2 * b_perp_sq)
+            dtheta_dphi = (
+                self.er
+                * (self.delta_Gamma**2 - self.Gamma**2)
+                * np.sin(phi_array)
+                / (4 * b_perp * b_sq)
+            )
+            berry_contribution = 0.25 * (dchi_dphi**2 + dtheta_dphi**2)
+
+        if np.isscalar(phi):
+            return float(berry_contribution)
+        return berry_contribution
 
     def tphi_1_over_f_flux(
         self,
@@ -699,7 +758,7 @@ class Ferbo(QubitBase):
         scaling: Optional[float] = 1,
         plot_potential: bool = False,
         basis: str = "phase",
-        rotate: bool = False,
+        andreev_basis: str = "static",
         mode: str = "abs",
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
@@ -720,8 +779,10 @@ class Ferbo(QubitBase):
             Whether to plot the potential (default is False).
         basis: str, optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        rotate : bool, optional
-            Whether to rotate the basis (default is False).
+        andreev_basis : str, optional
+            Andreev basis used for plotting. Use 'static' for the basis used to
+            define the Hamiltonian matrix, or 'adiabatic' for the local
+            phi-dependent Andreev eigenbasis.
         mode: str, optional
             Mode of the wavefunction ('abs', 'abs2', 'real', or 'imag') (default is 'abs').
         **kwargs
@@ -736,6 +797,9 @@ class Ferbo(QubitBase):
         """
         if isinstance(which, int):
             which = [which]
+
+        if andreev_basis not in {"static", "adiabatic"}:
+            raise ValueError("Invalid andreev_basis; must be 'static' or 'adiabatic'.")
 
         if phi_grid is None:
             phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
@@ -756,7 +820,11 @@ class Ferbo(QubitBase):
 
         for idx in which:
             wavefunc_data = self.wavefunction(
-                which=idx, phi_grid=phi_grid, esys=esys, basis=basis, rotate=rotate
+                which=idx,
+                phi_grid=phi_grid,
+                esys=esys,
+                basis=basis,
+                andreev_basis=andreev_basis,
             )
             phi_basis_labels = wavefunc_data["basis_labels"]
             wavefunc_amplitudes = wavefunc_data["amplitudes"]

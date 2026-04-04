@@ -115,6 +115,117 @@ class TestFerboHamiltonian:
         evals = ferbo.eigenvals(evals_count=8)
         assert np.all(np.diff(evals) >= 0)
 
+    @pytest.mark.parametrize("flux_grouping", ["ABS", "EL"])
+    def test_potential_includes_berry_contribution(
+        self, ferbo_params: dict[str, Any], flux_grouping: str
+    ):
+        """Test that the scalar potential includes the Berry correction."""
+        params = dict(ferbo_params)
+        params["flux_grouping"] = flux_grouping
+        qubit = Ferbo(**params)
+
+        phi_values = np.array([-0.2, 0.7])
+        potential = qubit.potential(phi_values)
+
+        expected = np.zeros_like(potential)
+        for i, phi_val in enumerate(phi_values):
+            if flux_grouping == "ABS":
+                andreev_phase = phi_val - qubit.phase
+                inductive_contribution = 0.5 * qubit.El * phi_val**2
+                josephson_contribution = -qubit.Ej * np.cos(phi_val - qubit.phase)
+            else:
+                andreev_phase = phi_val
+                inductive_contribution = 0.5 * qubit.El * (phi_val + qubit.phase) ** 2
+                josephson_contribution = -qubit.Ej * np.cos(phi_val)
+
+            andreev_term = (
+                -qubit.Gamma * np.cos(andreev_phase / 2) * np.array([[1, 0], [0, -1]])
+                - qubit.delta_Gamma
+                * np.sin(andreev_phase / 2)
+                * np.array([[0, -1j], [1j, 0]])
+                + qubit.er * np.array([[0, 1], [1, 0]])
+            )
+            andreev_evals = np.linalg.eigvalsh(andreev_term)
+
+            b_perp_sq = (
+                qubit.Gamma**2 * np.cos(andreev_phase / 2) ** 2
+                + qubit.delta_Gamma**2 * np.sin(andreev_phase / 2) ** 2
+            )
+            b_sq = b_perp_sq + qubit.er**2
+            berry_contribution = 0.25 * (
+                (qubit.Gamma * qubit.delta_Gamma / (2 * b_perp_sq)) ** 2
+                + (
+                    qubit.er
+                    * (qubit.delta_Gamma**2 - qubit.Gamma**2)
+                    * np.sin(andreev_phase)
+                    / (4 * np.sqrt(b_perp_sq) * b_sq)
+                )
+                ** 2
+            )
+
+            expected[i] = (
+                andreev_evals
+                + inductive_contribution
+                + josephson_contribution
+                + berry_contribution
+            )
+
+        assert np.allclose(potential, expected)
+
+    @pytest.mark.parametrize("flux_grouping", ["ABS", "EL"])
+    def test_potential_can_exclude_berry_contribution(
+        self, ferbo_params: dict[str, Any], flux_grouping: str
+    ):
+        """Test that the Berry correction can be disabled in the potential."""
+        params = dict(ferbo_params)
+        params["flux_grouping"] = flux_grouping
+        qubit = Ferbo(**params)
+
+        phi_values = np.array([-0.2, 0.7])
+        potential = qubit.potential(phi_values, include_berry=False)
+
+        expected = np.zeros_like(potential)
+        for i, phi_val in enumerate(phi_values):
+            if flux_grouping == "ABS":
+                andreev_phase = phi_val - qubit.phase
+                inductive_contribution = 0.5 * qubit.El * phi_val**2
+                josephson_contribution = -qubit.Ej * np.cos(phi_val - qubit.phase)
+            else:
+                andreev_phase = phi_val
+                inductive_contribution = 0.5 * qubit.El * (phi_val + qubit.phase) ** 2
+                josephson_contribution = -qubit.Ej * np.cos(phi_val)
+
+            andreev_term = (
+                -qubit.Gamma * np.cos(andreev_phase / 2) * np.array([[1, 0], [0, -1]])
+                - qubit.delta_Gamma
+                * np.sin(andreev_phase / 2)
+                * np.array([[0, -1j], [1j, 0]])
+                + qubit.er * np.array([[0, 1], [1, 0]])
+            )
+            andreev_evals = np.linalg.eigvalsh(andreev_term)
+
+            expected[i] = (
+                andreev_evals + inductive_contribution + josephson_contribution
+            )
+
+        assert np.allclose(potential, expected)
+
+    @pytest.mark.parametrize("include_berry", [False, True])
+    def test_potential_return_evecs_matches_evals(
+        self, ferbo: Ferbo, include_berry: bool
+    ):
+        """Test that both potential code paths return the same eigenvalues."""
+        phi_values = np.array([-0.1, 0.3, 0.9])
+
+        evals_only = ferbo.potential(phi_values, include_berry=include_berry)
+        evals_with_evecs, _ = ferbo.potential(
+            phi_values,
+            return_evecs=True,
+            include_berry=include_berry,
+        )
+
+        assert np.allclose(evals_only, evals_with_evecs)
+
 
 class TestFerboDerivatives:
     """Test Ferbo derivative methods."""
