@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,7 +49,7 @@ class Ferbo(QubitBase):
         er,
         phase,
         dimension,
-        flux_grouping: str = "ABS",
+        flux_grouping: Literal["EL", "ABS"] = "ABS",
         Delta=40,
     ):
         """
@@ -73,8 +73,8 @@ class Ferbo(QubitBase):
             External magnetic phase.
         dimension : int
             Dimension of the Hilbert space.
-        flux_grouping : str, optional
-            Flux grouping ('EL' or 'ABS') (default is 'EL').
+        flux_grouping : Literal["EL", "ABS"], optional
+            Flux grouping ('EL' or 'ABS') (default is 'ABS').
         Delta : float
             Superconducting gap.
         """
@@ -505,8 +505,8 @@ class Ferbo(QubitBase):
         which: int = 0,
         phi_grid: Optional[np.ndarray] = None,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
-        basis: str = "phase",
-        andreev_basis: str = "static",
+        basis: Literal["phase", "charge"] = "phase",
+        andreev_basis: Literal["static", "adiabatic"] = "static",
     ) -> dict[str, Any]:
         """
         Returns a wave function in the phi basis.
@@ -517,9 +517,9 @@ class Ferbo(QubitBase):
             Index of desired wave function (default is 0).
         phi_grid : np.ndarray, optional
             Custom grid for phi; if None, a default grid is used.
-        basis : str, optional
+        basis : Literal["phase", "charge"], optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        andreev_basis : str, optional
+        andreev_basis : Literal["static", "adiabatic"], optional
             Andreev basis used for the two-component wavefunction. Use 'static'
             for the basis used to define the Hamiltonian matrix, or 'adiabatic'
             for the local phi-dependent eigenbasis of the Andreev sector.
@@ -757,9 +757,9 @@ class Ferbo(QubitBase):
         esys: tuple[np.ndarray, np.ndarray] = None,
         scaling: Optional[float] = 1,
         plot_potential: bool = False,
-        basis: str = "phase",
-        andreev_basis: str = "static",
-        mode: str = "abs",
+        basis: Literal["phase", "charge"] = "phase",
+        andreev_basis: Literal["static", "adiabatic"] = "static",
+        mode: Literal["abs", "abs2", "real", "imag"] = "abs",
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -777,13 +777,13 @@ class Ferbo(QubitBase):
             Scaling factor for the wavefunction (default is 1).
         plot_potential : bool, optional
             Whether to plot the potential (default is False).
-        basis: str, optional
+        basis : Literal["phase", "charge"], optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        andreev_basis : str, optional
+        andreev_basis : Literal["static", "adiabatic"], optional
             Andreev basis used for plotting. Use 'static' for the basis used to
             define the Hamiltonian matrix, or 'adiabatic' for the local
             phi-dependent Andreev eigenbasis.
-        mode: str, optional
+        mode : Literal["abs", "abs2", "real", "imag"], optional
             Mode of the wavefunction ('abs', 'abs2', 'real', or 'imag') (default is 'abs').
         **kwargs
             Additional arguments for plotting. Can include:

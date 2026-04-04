@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,7 +28,7 @@ class Gatemonium(QubitBase):
         "d_hamiltonian_d_Ej": r"\partial \hat{H} / \partial E_J",
     }
 
-    def __init__(self, Ec, El, Ej, T, phase, dimension, flux_grouping, Delta=44):
+    def __init__(self, Ec, El, Ej, T, phase, dimension, flux_grouping: Literal["L", "ABS"] = "L", Delta=44):
         """
         Initializes the Gatemonium class with the given parameters.
 
@@ -46,8 +46,8 @@ class Gatemonium(QubitBase):
             External phase.
         dimension : int
             Hilbert space dimension.
-        flux_grouping : str
-            Grouping of the external flux, either 'L' or 'ABS'.
+        flux_grouping : Literal["L", "ABS"], optional
+            Grouping of the external flux, either 'L' or 'ABS' (default is 'L').
         Delta : float, optional
             Superconducting gap. Default is 44 (for Aluminum).
         """

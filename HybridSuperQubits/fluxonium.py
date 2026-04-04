@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,7 +25,7 @@ class Fluxonium(QubitBase):
         "d_hamiltonian_d_EL": r"\partial \hat{H} / \partial E_L",
     }
 
-    def __init__(self, Ec, El, Ej, phase, dimension, flux_grouping: str = "EL"):
+    def __init__(self, Ec, El, Ej, phase, dimension, flux_grouping: Literal["EL", "EJ"] = "EL"):
         """
         Initializes the Ferbo class with the given parameters.
 
@@ -41,7 +41,7 @@ class Fluxonium(QubitBase):
             External magnetic phase.
         dimension : int
             Dimension of the Hilbert space.
-        flux_grouping : str, optional
+        flux_grouping : Literal["EL", "EJ"], optional
             Flux grouping ('EL' or 'EJ') (default is 'EL').
         """
         if flux_grouping not in ["EL", "EJ"]:
@@ -222,7 +222,7 @@ class Fluxonium(QubitBase):
         which: int = 0,
         phi_grid: Optional[np.ndarray] = None,
         esys: tuple[np.ndarray, np.ndarray] = None,
-        basis: str = "phase",
+        basis: Literal["phase", "charge"] = "phase",
     ) -> dict[str, Any]:
         """
         Returns a wave function in the phi basis.
@@ -233,7 +233,7 @@ class Fluxonium(QubitBase):
             Index of desired wave function (default is 0).
         phi_grid : np.ndarray, optional
             Custom grid for phi; if None, a default grid is used.
-        basis : str, optional
+        basis : Literal["phase", "charge"], optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
         rotate : bool, optional
             Whether to rotate the basis (default is False).
@@ -325,8 +325,8 @@ class Fluxonium(QubitBase):
         esys: tuple[np.ndarray, np.ndarray] = None,
         scaling: Optional[float] = 1,
         plot_potential: bool = False,
-        basis: str = "phase",
-        mode: str = "abs",
+        basis: Literal["phase", "charge"] = "phase",
+        mode: Literal["abs", "real", "imag"] = "abs",
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -344,9 +344,9 @@ class Fluxonium(QubitBase):
             Scaling factor for the wavefunction (default is 1).
         plot_potential : bool, optional
             Whether to plot the potential (default is False).
-        basis: str, optional
+        basis : Literal["phase", "charge"], optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        mode: str, optional
+        mode : Literal["abs", "real", "imag"], optional
             Mode of the wavefunction ('abs', 'real', or 'imag') (default is 'abs').
         **kwargs
             Additional arguments for plotting. Can include:

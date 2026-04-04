@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -221,7 +221,7 @@ class Andreev(QubitBase):
         which: int = 0,
         phi_grid: np.ndarray = None,
         esys: tuple[np.ndarray, np.ndarray] = None,
-        basis: str = "default",
+        basis: Literal["default", "abs"] = "default",
     ) -> dict[str, Any]:
         """
         Returns a wave function in the phi basis.
@@ -232,7 +232,7 @@ class Andreev(QubitBase):
             Index of desired wave function (default is 0).
         phi_grid : np.ndarray, optional
             Custom grid for phi; if None, a default grid is used.
-        basis : str, optional
+        basis : Literal["default", "abs"], optional
             Basis in which to return the wave function ('default' or 'abs') (default is 'default').
 
         Returns
@@ -264,7 +264,7 @@ class Andreev(QubitBase):
         phi_grid: Optional[np.ndarray] = None,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         scaling: Optional[float] = None,
-        basis: str = "default",
+        basis: Literal["default", "abs"] = "default",
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -278,7 +278,7 @@ class Andreev(QubitBase):
             Custom grid for phi; if None, a default grid is used.
         esys : Tuple[np.ndarray, np.ndarray], optional
             Precomputed eigenvalues and eigenvectors.
-        basis: str, optional
+        basis : Literal["default", "abs"], optional
             Basis in which to return the wavefunction ('default' or 'abs') (default is 'default').
         **kwargs
             Additional arguments for plotting. Can include:

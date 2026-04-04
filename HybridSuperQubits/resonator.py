@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -317,7 +317,7 @@ class Resonator(QubitBase):
         x_grid: Optional[np.ndarray] = None,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         scaling: Optional[float] = 1,
-        mode: str = "abs",
+        mode: Literal["abs", "real", "imag"] = "abs",
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
@@ -333,7 +333,7 @@ class Resonator(QubitBase):
             Eigenvalues and eigenvectors.
         scaling : Optional[float], optional
             Scaling factor for wavefunction amplitude display.
-        mode : str, optional
+        mode : Literal["abs", "real", "imag"], optional
             Display mode: 'abs', 'real', or 'imag'.
         **kwargs
             Additional plotting arguments.

@@ -1,6 +1,6 @@
 # import scqubits.utils.plotting as plot
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -2069,7 +2069,7 @@ class QubitBase(ABC):
         param_name: Optional[str] = None,
         param_vals: Optional[np.ndarray] = None,
         select_elems: Optional[Union[int, list[tuple[int, int]]]] = None,
-        mode: str = "abs",
+        mode: Literal["abs", "real", "imag", "abs_squared"] = "abs",
         spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
@@ -2086,7 +2086,7 @@ class QubitBase(ABC):
             Values of the parameter to vary.
         select_elems : Union[int, List[Tuple[int, int]]], optional
             Number of elements to select or list of specific elements to plot (default is [(1, 0)]).
-        mode : str, optional
+        mode : Literal["abs", "real", "imag", "abs_squared"], optional
             Mode for plotting the matrix elements ('abs', 'real', 'imag', 'abs_squared') (default is 'abs').
         spectrum_data : SpectrumData, optional
             Precomputed spectral data to use (default is None).
