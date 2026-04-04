@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [v0.10.4] - 2026-04-04
+### Bug Fixes
+- Fixed missing wavefunction normalization factor in `Gatemonium.wavefunction()`. Added the `1/sqrt(phase_zpf)` divisor to match the correct normalization used in `Ferbo` and `Fluxonium`.
+
 ## [v0.10.3] - 2026-04-04
 ### Improvements
 - Replaced `str` type annotations with `Literal` types for all fixed-option string parameters across `Andreev`, `Ferbo`, `Fluxonium`, `Gatemonium`, `QubitBase`, and `Resonator` classes, improving IDE autocompletion and type safety.

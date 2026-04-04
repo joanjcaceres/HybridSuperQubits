@@ -352,6 +352,8 @@ class Gatemonium(QubitBase):
                 n
             ] * self.harm_osc_wavefunction(n, phi_basis_labels, self.phase_zpf)
 
+        phi_wavefunc_amplitudes /= np.sqrt(self.phase_zpf)
+
         return {
             "basis_labels": phi_basis_labels,
             "amplitudes": phi_wavefunc_amplitudes,
