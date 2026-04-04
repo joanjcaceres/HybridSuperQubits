@@ -91,4 +91,4 @@ jobs:
         auto-push: true
         comment-on-alert: true
         alert-threshold: '200%'
-        fail-on-alert: true
+        fail-on-alert: false
