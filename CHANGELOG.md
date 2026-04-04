@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [v0.10.6] - 2026-04-04
+### Improvements
+- Removed `poetry.lock` from version control; not needed for a library package and was causing CI build failures when dependencies changed.
+
 ## [v0.10.5] - 2026-04-04
 ### Improvements
 - Made `numpy`, `scipy`, and `qutip` required dependencies so `pip install HybridSuperQubits` is self-contained. Removed unused `scqubits` from required deps (kept as optional extra).
