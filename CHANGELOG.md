@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [v0.10.3] - 2026-04-04
+### Improvements
+- Replaced `str` type annotations with `Literal` types for all fixed-option string parameters across `Andreev`, `Ferbo`, `Fluxonium`, `Gatemonium`, `QubitBase`, and `Resonator` classes, improving IDE autocompletion and type safety.
+
 ## [v0.10.2] - 2026-04-03
 ### Breaking Changes
 - Replaced the `rotate` boolean in `Ferbo.wavefunction()` and `Ferbo.plot_wavefunction()` with the `andreev_basis` parameter (`"static"` | `"adiabatic"`).
