@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name        = "HybridSuperQubits"
-version = "0.10.4"
+version = "0.10.5"
 description = "Package to simulate hybrid superconducting qubits"
 authors     = ["Joan Cáceres <contact@joancaceres.com>"]
 license     = "MIT"
@@ -18,20 +18,14 @@ documentation = "https://hybridsuperqubits.readthedocs.io"
 python      = ">=3.10,<3.14"
 matplotlib  = ">=3.8"
 tqdm        = ">=4.66"
-# Scientific computing dependencies (install via conda-forge for best performance on Apple Silicon)
-numpy       = {version = ">=1.26", optional = true}
-scipy       = {version = ">=1.5", optional = true}
-qutip       = {version = ">=5.1", optional = true}
-scqubits    = {version = ">=4.3", optional = true}
+numpy       = ">=1.26"
+scipy       = ">=1.5"
+qutip       = ">=5.1"
 h5py        = "*"
+scqubits    = {version = ">=4.3", optional = true}
 
 [tool.poetry.extras]
-# Full installation (use with pip if conda is not available)
-full = ["numpy", "scipy", "qutip", "scqubits"]
-# Core scientific dependencies
-scientific = ["numpy", "scipy"]
-# QuTiP ecosystem
-qutip = ["qutip", "scqubits"]
+scqubits = ["scqubits"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

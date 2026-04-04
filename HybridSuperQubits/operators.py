@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-from qutip import Qobj
 from scipy.linalg import sqrtm
 
 
@@ -218,15 +217,15 @@ def cos_phi(N, phi_ext, m=1):
 
     Returns
     -------
-    Qobj
-        The cosine phi operator represented as a QuTiP Qobj with the CSR sparse matrix format.
+    sp.csr_matrix
+        The cosine phi operator as a sparse CSR matrix.
     """
     diags = [
         np.exp(1j * phi_ext / 2) * np.ones(N - m, dtype=int),
         np.exp(-1j * phi_ext / 2) * np.ones(N - m, dtype=int),
     ]
     T = sp.diags(diags, [m, -m], format="csr", dtype=complex)
-    return Qobj(T, isherm=True) / 2
+    return T / 2
 
 
 def sin_phi(N, phi_ext, m=1):
@@ -246,12 +245,12 @@ def sin_phi(N, phi_ext, m=1):
 
     Returns
     -------
-    Qobj
-        The sine phi operator represented as a QuTiP Qobj with the CSR sparse matrix format.
+    sp.csr_matrix
+        The sine phi operator as a sparse CSR matrix.
     """
     diags = [
         np.exp(1j * phi_ext / 2) * np.ones(N - m, dtype=int),
         -np.exp(-1j * phi_ext / 2) * np.ones(N - m, dtype=int),
     ]
     T = sp.diags(diags, [m, -m], format="csr", dtype=complex)
-    return Qobj(T, isherm=True) / 2 / 1j
+    return T / (2j)

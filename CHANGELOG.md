@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v0.10.5] - 2026-04-04
+### Improvements
+- Made `numpy`, `scipy`, and `qutip` required dependencies so `pip install HybridSuperQubits` is self-contained. Removed unused `scqubits` from required deps (kept as optional extra).
+- Removed `qutip.Qobj` dependency from `cos_phi`/`sin_phi` in `operators.py`; they now return plain scipy sparse matrices.
+
 ## [v0.10.4] - 2026-04-04
 ### Bug Fixes
 - Fixed missing wavefunction normalization factor in `Gatemonium.wavefunction()`. Added the `1/sqrt(phase_zpf)` divisor to match the correct normalization used in `Ferbo` and `Fluxonium`.
