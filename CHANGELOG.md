@@ -1,3 +1,17 @@
+## [Unreleased]
+
+## [v0.10.2] - 2026-04-03
+### Breaking Changes
+- Replaced the `rotate` boolean in `Ferbo.wavefunction()` and `Ferbo.plot_wavefunction()` with the `andreev_basis` parameter (`"static"` | `"adiabatic"`).
+
+### New Features
+- Added scalar Berry phase correction to the adiabatic potential via `Ferbo._berry_contribution()`.
+- Added `include_berry` flag to `Ferbo.potential()` to toggle the Berry correction.
+
+### Testing
+- Added unit tests for Berry contribution (include/exclude, both `ABS` and `EL` flux groupings).
+- Added test verifying `return_evecs` and evals-only paths return consistent eigenvalues.
+
 ## [v0.10.1] - 2026-02-13
 ### Added
 - Added second derivative methods for Ferbo class: `d2_hamiltonian_d_Gamma2`, `d2_hamiltonian_d_deltaGamma2`, and `d2_hamiltonian_d_er2`
