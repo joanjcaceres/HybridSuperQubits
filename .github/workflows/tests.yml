@@ -76,7 +76,7 @@ jobs:
       uses: snok/install-poetry@v1
 
     - name: Install dependencies
-      run: poetry install --with dev --extras full
+      run: poetry install --with dev
 
     - name: Run benchmarks
       run: |

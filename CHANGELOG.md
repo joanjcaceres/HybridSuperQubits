@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [v0.10.7] - 2026-04-04
+### Bug Fixes
+- Fixed CI benchmark workflow referencing removed `full` extra after dependencies were made required.
+
 ## [v0.10.6] - 2026-04-04
 ### Improvements
 - Removed `poetry.lock` from version control; not needed for a library package and was causing CI build failures when dependencies changed.
