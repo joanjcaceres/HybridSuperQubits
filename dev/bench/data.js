@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1775336914662,
+  "lastUpdate": 1775952786686,
   "repoUrl": "https://github.com/joanjcaceres/HybridSuperQubits",
   "entries": {
     "Benchmark": [
@@ -2670,6 +2670,184 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.1886520672684702",
             "extra": "mean: 687.3625086000004 msec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "joan.caceres@ib.edu.ar",
+            "name": "Joan Caceres",
+            "username": "joanjcaceres"
+          },
+          "committer": {
+            "email": "joan.caceres@ib.edu.ar",
+            "name": "Joan Caceres",
+            "username": "joanjcaceres"
+          },
+          "distinct": true,
+          "id": "ab58e7e6df3380ab9405a0012506256aef11defc",
+          "message": "feat!: rename Ferbo basis from static/adiabatic to ballistic/Andreev\n\nBREAKING CHANGE: `wavefunction()` parameter renamed from `andreev_basis`\nto `representation` with values `\"ballistic\"` | `\"Andreev\"`.\n`plot_wavefunction()` keeps `andreev_basis` but with the new values.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+          "timestamp": "2026-04-11T17:05:51-07:00",
+          "tree_id": "1cdf00f86df902e0447788cb614e9a24db896e2e",
+          "url": "https://github.com/joanjcaceres/HybridSuperQubits/commit/ab58e7e6df3380ab9405a0012506256aef11defc"
+        },
+        "date": 1775952786174,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFluxoniumBenchmarks::test_hamiltonian_calculation_speed",
+            "value": 24.613212602453853,
+            "unit": "iter/sec",
+            "range": "stddev: 0.03930467291306799",
+            "extra": "mean: 40.628584986110404 msec\nrounds: 72"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFluxoniumBenchmarks::test_eigenvalue_calculation_speed",
+            "value": 11.436284824588093,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0660075145539007",
+            "extra": "mean: 87.44098414285669 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFluxoniumBenchmarks::test_eigensystem_calculation_speed",
+            "value": 12.41959113764402,
+            "unit": "iter/sec",
+            "range": "stddev: 0.04416200460822229",
+            "extra": "mean: 80.51794853125082 msec\nrounds: 32"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFluxoniumBenchmarks::test_parameter_sweep_speed",
+            "value": 1.4750164977202673,
+            "unit": "iter/sec",
+            "range": "stddev: 0.14047544814736376",
+            "extra": "mean: 677.9585188000027 msec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFluxoniumBenchmarks::test_matrix_elements_speed",
+            "value": 3.979411147510869,
+            "unit": "iter/sec",
+            "range": "stddev: 0.15660431150593332",
+            "extra": "mean: 251.29346100000305 msec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFerboBenchmarks::test_hamiltonian_calculation_speed",
+            "value": 5.454787776054102,
+            "unit": "iter/sec",
+            "range": "stddev: 0.14217792567006074",
+            "extra": "mean: 183.32518899999855 msec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFerboBenchmarks::test_eigenvalue_calculation_speed",
+            "value": 2.780093832248002,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10721899019459957",
+            "extra": "mean: 359.70008940000184 msec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFerboBenchmarks::test_jrl_potential_speed",
+            "value": 8.009721083744402,
+            "unit": "iter/sec",
+            "range": "stddev: 0.08111869366399826",
+            "extra": "mean: 124.84829241176494 msec\nrounds: 34"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestFerboBenchmarks::test_reduced_density_matrix_speed",
+            "value": 6.4078715866636315,
+            "unit": "iter/sec",
+            "range": "stddev: 0.08691228372581852",
+            "extra": "mean: 156.05805866666364 msec\nrounds: 6"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestOperatorBenchmarks::test_n_operator_speed",
+            "value": 22737.492627611377,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00011347980609416569",
+            "extra": "mean: 43.98022316610432 usec\nrounds: 7062"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestOperatorBenchmarks::test_phase_operator_speed",
+            "value": 40136.37814762364,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000002892407348424955",
+            "extra": "mean: 24.915053279644443 usec\nrounds: 16160"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_fluxonium_scaling_with_dimension[20]",
+            "value": 3340.358551196996,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00010907514404537209",
+            "extra": "mean: 299.3690601392645 usec\nrounds: 2012"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_fluxonium_scaling_with_dimension[30]",
+            "value": 2112.3521164537638,
+            "unit": "iter/sec",
+            "range": "stddev: 0.000023403372858368796",
+            "extra": "mean: 473.4059213947764 usec\nrounds: 1692"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_fluxonium_scaling_with_dimension[40]",
+            "value": 1297.9220228903007,
+            "unit": "iter/sec",
+            "range": "stddev: 0.00015695319411270598",
+            "extra": "mean: 770.4623100339513 usec\nrounds: 887"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_fluxonium_scaling_with_dimension[50]",
+            "value": 38.716423457789794,
+            "unit": "iter/sec",
+            "range": "stddev: 0.017983975944929852",
+            "extra": "mean: 25.828832074074203 msec\nrounds: 27"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_eigenvalue_count_scaling[5]",
+            "value": 13.189235956284422,
+            "unit": "iter/sec",
+            "range": "stddev: 0.03388431446821108",
+            "extra": "mean: 75.81940328571639 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_eigenvalue_count_scaling[10]",
+            "value": 15.43164653245817,
+            "unit": "iter/sec",
+            "range": "stddev: 0.057980197850776384",
+            "extra": "mean: 64.80189899999645 msec\nrounds: 7"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_eigenvalue_count_scaling[15]",
+            "value": 18.174491101713926,
+            "unit": "iter/sec",
+            "range": "stddev: 0.040288346298802825",
+            "extra": "mean: 55.0221733529417 msec\nrounds: 17"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_eigenvalue_count_scaling[20]",
+            "value": 22.283384495391754,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0469083280499171",
+            "extra": "mean: 44.87648634375097 msec\nrounds: 32"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_parameter_sweep_scaling[5]",
+            "value": 3.820536623990732,
+            "unit": "iter/sec",
+            "range": "stddev: 0.09873628046461569",
+            "extra": "mean: 261.7433356666667 msec\nrounds: 9"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_parameter_sweep_scaling[10]",
+            "value": 1.3100850190966022,
+            "unit": "iter/sec",
+            "range": "stddev: 0.23511966040633347",
+            "extra": "mean: 763.3092398000031 msec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_performance.py::TestScalingBenchmarks::test_parameter_sweep_scaling[20]",
+            "value": 0.6053664144156483,
+            "unit": "iter/sec",
+            "range": "stddev: 0.4880318199498132",
+            "extra": "mean: 1.651892103999998 sec\nrounds: 5"
           }
         ]
       }
