@@ -62,11 +62,11 @@ Plot the ground and first excited state wavefunctions:
 
 .. code-block:: python
 
-   # Static Andreev basis
-   qubit.plot_wavefunction(which=[0, 1], andreev_basis="static")
+   # Ballistic Andreev basis
+   qubit.plot_wavefunction(which=[0, 1], andreev_basis="ballistic")
 
-   # Adiabatic (rotated) Andreev basis
-   qubit.plot_wavefunction(which=[0, 1], andreev_basis="adiabatic")
+   # Andreev (rotated) basis
+   qubit.plot_wavefunction(which=[0, 1], andreev_basis="Andreev")
 
 Matrix elements
 ---------------

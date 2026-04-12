@@ -506,7 +506,7 @@ class Ferbo(QubitBase):
         phi_grid: Optional[np.ndarray] = None,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         basis: Literal["phase", "charge"] = "phase",
-        andreev_basis: Literal["static", "adiabatic"] = "static",
+        representation: Literal["ballistic", "Andreev"] = "ballistic",
     ) -> dict[str, Any]:
         """
         Returns a wave function in the phi basis.
@@ -519,17 +519,17 @@ class Ferbo(QubitBase):
             Custom grid for phi; if None, a default grid is used.
         basis : Literal["phase", "charge"], optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        andreev_basis : Literal["static", "adiabatic"], optional
-            Andreev basis used for the two-component wavefunction. Use 'static'
-            for the basis used to define the Hamiltonian matrix, or 'adiabatic'
+        representation : Literal["ballistic", "Andreev"], optional
+            Representation used for the two-component wavefunction. Use 'ballistic'
+            for the basis used to define the Hamiltonian matrix, or 'Andreev'
             for the local phi-dependent eigenbasis of the Andreev sector.
         Returns
         -------
         Dict[str, Any]
             Wave function data containing basis labels, amplitudes, and energy.
         """
-        if andreev_basis not in {"static", "adiabatic"}:
-            raise ValueError("Invalid andreev_basis; must be 'static' or 'adiabatic'.")
+        if representation not in {"ballistic", "Andreev"}:
+            raise ValueError("Invalid representation; must be 'ballistic' or 'Andreev'.")
 
         if esys is None:
             evals_count = max(which + 1, 3)
@@ -552,7 +552,7 @@ class Ferbo(QubitBase):
         wavefunc_osc_basis_amplitudes = evecs[which, :]
         phi_wavefunc_amplitudes = np.zeros((2, len(phi_grid)), dtype=np.complex128)
 
-        # Compute the wavefunction in the static Andreev basis used in the Hamiltonian.
+        # Compute the wavefunction in the ballistic Andreev basis used in the Hamiltonian.
         for n in range(dim):
             phi_wavefunc_amplitudes[0] += wavefunc_osc_basis_amplitudes[
                 n
@@ -561,9 +561,9 @@ class Ferbo(QubitBase):
                 self.dimension // 2 + n
             ] * self.harm_osc_wavefunction(n, phi_basis_labels, l_osc)
 
-        # Optionally rotate from the static Andreev basis to the adiabatic
-        # phi-dependent Andreev basis.
-        if andreev_basis == "adiabatic":
+        # Optionally rotate from the ballistic Andreev basis to the
+        # phi-dependent Andreev eigenbasis.
+        if representation == "Andreev":
             # Get rotation matrices for each phi point
             _, rotation_matrices = self.potential(phi_grid, return_evecs=True)
 
@@ -707,7 +707,7 @@ class Ferbo(QubitBase):
         self, phi: Union[float, np.ndarray]
     ) -> Union[float, np.ndarray]:
         """
-        Returns the scalar Berry contribution in the adiabatic Andreev basis.
+        Returns the scalar Berry contribution in the Andreev basis.
 
         The correction is
         1/4 * [ (d chi / d phi)^2 + (d theta / d phi)^2 ],
@@ -758,7 +758,7 @@ class Ferbo(QubitBase):
         scaling: Optional[float] = 1,
         plot_potential: bool = False,
         basis: Literal["phase", "charge"] = "phase",
-        andreev_basis: Literal["static", "adiabatic"] = "static",
+        andreev_basis: Literal["ballistic", "Andreev"] = "ballistic",
         mode: Literal["abs", "abs2", "real", "imag"] = "abs",
         **kwargs,
     ) -> tuple[plt.Figure, plt.Axes]:
@@ -779,9 +779,9 @@ class Ferbo(QubitBase):
             Whether to plot the potential (default is False).
         basis : Literal["phase", "charge"], optional
             Basis in which to return the wavefunction ('phase' or 'charge') (default is 'phase').
-        andreev_basis : Literal["static", "adiabatic"], optional
-            Andreev basis used for plotting. Use 'static' for the basis used to
-            define the Hamiltonian matrix, or 'adiabatic' for the local
+        andreev_basis : Literal["ballistic", "Andreev"], optional
+            Andreev basis used for plotting. Use 'ballistic' for the basis used to
+            define the Hamiltonian matrix, or 'Andreev' for the local
             phi-dependent Andreev eigenbasis.
         mode : Literal["abs", "abs2", "real", "imag"], optional
             Mode of the wavefunction ('abs', 'abs2', 'real', or 'imag') (default is 'abs').
@@ -798,8 +798,8 @@ class Ferbo(QubitBase):
         if isinstance(which, int):
             which = [which]
 
-        if andreev_basis not in {"static", "adiabatic"}:
-            raise ValueError("Invalid andreev_basis; must be 'static' or 'adiabatic'.")
+        if andreev_basis not in {"ballistic", "Andreev"}:
+            raise ValueError("Invalid andreev_basis; must be 'ballistic' or 'Andreev'.")
 
         if phi_grid is None:
             phi_grid = np.linspace(-5 * np.pi, 5 * np.pi, 151)
@@ -824,7 +824,7 @@ class Ferbo(QubitBase):
                 phi_grid=phi_grid,
                 esys=esys,
                 basis=basis,
-                andreev_basis=andreev_basis,
+                representation=andreev_basis,
             )
             phi_basis_labels = wavefunc_data["basis_labels"]
             wavefunc_amplitudes = wavefunc_data["amplitudes"]

@@ -17,10 +17,10 @@ Available notebooks
 
 **representation.ipynb**
    Wavefunction analysis and state representation for the FerBo qubit, including
-   static and adiabatic Andreev bases.
+   ballistic and Andreev bases.
 
 **solving_rotation_ferbo.ipynb**
-   Basis rotation techniques for the FerBo qubit and the effect of the adiabatic
+   Basis rotation techniques for the FerBo qubit and the effect of the Andreev
    transformation on the Andreev sector.
 
 **circuit.ipynb**

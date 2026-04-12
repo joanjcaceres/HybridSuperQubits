@@ -67,7 +67,7 @@ The protected regime is bounded by :math:`Z/R_Q \gtrsim 2E_C / (\pi \varepsilon_
 Berry phase correction
 ~~~~~~~~~~~~~~~~~~~~~~
 
-In the adiabatic representation (where the Andreev basis rotates with the phase),
+In the Andreev representation (where the Andreev basis rotates with the phase),
 a scalar Berry phase correction arises. This is implemented as
 :py:meth:`~HybridSuperQubits.ferbo.Ferbo._berry_contribution` and can be toggled
 via the ``include_berry`` flag in :py:meth:`~HybridSuperQubits.ferbo.Ferbo.potential`.

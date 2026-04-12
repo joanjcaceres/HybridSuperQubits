@@ -153,8 +153,8 @@ qubit = Ferbo(
     dimension=100      # Hilbert space dimension
 )
 
-# Wavefunction visualization in the adiabatic Andreev basis
-qubit.plot_wavefunction(which=[0, 1], andreev_basis="adiabatic")
+# Wavefunction visualization in the Andreev basis
+qubit.plot_wavefunction(which=[0, 1], andreev_basis="Andreev")
 ```
 
 ### Noise analysis

@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v0.10.8] - 2026-04-11
+### Breaking Changes
+- Renamed Ferbo basis values from `"static"` → `"ballistic"` and `"adiabatic"` → `"Andreev"` across the codebase.
+- Renamed the `andreev_basis` parameter to `representation` in `Ferbo.wavefunction()`. The parameter name remains `andreev_basis` in `Ferbo.plot_wavefunction()`.
+
 ## [v0.10.7] - 2026-04-04
 ### Bug Fixes
 - Fixed CI benchmark workflow referencing removed `full` extra after dependencies were made required.
@@ -23,10 +28,10 @@
 
 ## [v0.10.2] - 2026-04-03
 ### Breaking Changes
-- Replaced the `rotate` boolean in `Ferbo.wavefunction()` and `Ferbo.plot_wavefunction()` with the `andreev_basis` parameter (`"static"` | `"adiabatic"`).
+- Replaced the `rotate` boolean in `Ferbo.wavefunction()` (now `representation` parameter, `"ballistic"` | `"Andreev"`) and `Ferbo.plot_wavefunction()` (now `andreev_basis` parameter, `"ballistic"` | `"Andreev"`).
 
 ### New Features
-- Added scalar Berry phase correction to the adiabatic potential via `Ferbo._berry_contribution()`.
+- Added scalar Berry phase correction to the Andreev potential via `Ferbo._berry_contribution()`.
 - Added `include_berry` flag to `Ferbo.potential()` to toggle the Berry correction.
 
 ### Testing
