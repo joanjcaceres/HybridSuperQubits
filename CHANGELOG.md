@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [v0.10.9] - 2026-04-15
+### Bug Fixes
+- Added missing `4 * Ec` prefactor to the scalar Berry contribution in `Ferbo._berry_contribution()`.
+
 ## [v0.10.8] - 2026-04-11
 ### Breaking Changes
 - Renamed Ferbo basis values from `"static"` → `"ballistic"` and `"adiabatic"` → `"Andreev"` across the codebase.

@@ -710,7 +710,7 @@ class Ferbo(QubitBase):
         Returns the scalar Berry contribution in the Andreev basis.
 
         The correction is
-        1/4 * [ (d chi / d phi)^2 + (d theta / d phi)^2 ],
+        4 * self.Ec * 1/4 * [ (d chi / d phi)^2 + (d theta / d phi)^2 ],
         multiplied by the identity in the Andreev subspace.
         """
         phi_array = np.asarray(phi, dtype=float)
@@ -729,8 +729,9 @@ class Ferbo(QubitBase):
                 * np.sin(phi_array)
                 / (4 * b_perp * b_sq)
             )
-            berry_contribution = 0.25 * (dchi_dphi**2 + dtheta_dphi**2)
+            berry_contribution = 4 * self.Ec * 0.25 * (dchi_dphi**2 + dtheta_dphi**2)
 
+    
         if np.isscalar(phi):
             return float(berry_contribution)
         return berry_contribution
