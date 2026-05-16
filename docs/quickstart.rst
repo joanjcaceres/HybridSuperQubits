@@ -105,6 +105,22 @@ Compute coherence times for the 0-1 transition:
    print(f"T1 (inductive)  = {t1_ind:.2e} s")
    print(f"T_phi (flux)    = {tphi:.2e} s")
 
+The same formulas are also available as standalone functions in
+:py:mod:`HybridSuperQubits.noise`, taking eigenvalues and operator matrix
+elements directly — useful when you already have a diagonalized Hamiltonian
+and don't want to wrap it in a qubit class:
+
+.. code-block:: python
+
+   from HybridSuperQubits import noise
+
+   evals, evecs = qubit.eigensys(evals_count=4)
+   n_matelems = qubit.matrixelement_table("n_operator", evecs=evecs, evals_count=4)
+
+   t1_cap = noise.t1_capacitive(
+       evals=evals, n_op_matelems=n_matelems, Ec=qubit.Ec, T=0.02,
+   )
+
 Saving and loading results
 --------------------------
 

@@ -9,6 +9,7 @@ from scipy.linalg import eigh, expm
 from scipy.special import factorial, k0, pbdv
 from tqdm.notebook import tqdm
 
+from . import noise as _noise
 from .storage import SpectrumData
 
 R_Q = h / (2 * e) ** 2  # Superconducting resistance quantum
@@ -402,56 +403,26 @@ class QubitBase(ABC):
         get_rate: bool = False,
         noise_op: Optional[np.ndarray] = None,
     ) -> float:
-        if Q_cap is None:
-
-            def Q_cap_fun(omega):
-                return (
-                    1e6 * (2 * np.pi * 6e9 / np.abs(omega)) ** 0.7
-                )  # Assuming that Ec is in GHz
-        elif callable(Q_cap):
-            Q_cap_fun = Q_cap
-        else:
-
-            def Q_cap_fun(omega):
-                return Q_cap
-
-        def spectral_density(omega, T):
-            # Assuming that Ec is in GHz
-            x = hbar * omega / (k * T)
-            return (
-                8
-                * getattr(self, "Ec", 1.0)  # Default value for base class
-                / Q_cap_fun(omega)
-                * 1
-                / np.tanh(np.abs(x) / 2)
-                / (1 + np.exp(-x))
-            )
-
-        noise_op = noise_op or self.n_operator()
-
+        del noise_op  # preserved for API compat; previously unused after lookup
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
         else:
             evals, evecs = esys
-
-        omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-
-        s = (
-            spectral_density(omega, T) + spectral_density(-omega, T)
-            if total
-            else spectral_density(omega, T)
-        )
-
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table(
                 "n_operator", evecs=evecs, evals_count=max(i, j) + 1
             )
-        matrix_element = np.abs(matrix_elements[i, j])
-
-        rate = 2 * np.pi * np.abs(matrix_element) ** 2 * s
-        rate *= 1e9
-
-        return float(rate if get_rate else 1 / rate)
+        return _noise.t1_capacitive(
+            evals=evals,
+            n_op_matelems=matrix_elements,
+            Ec=getattr(self, "Ec", 1.0),
+            T=T,
+            Q_cap=Q_cap,
+            i=i,
+            j=j,
+            total=total,
+            get_rate=get_rate,
+        )
 
     def t1_inductive(
         self,
@@ -464,56 +435,25 @@ class QubitBase(ABC):
         matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
     ) -> float:
-        if Q_ind is None:
-
-            def Q_ind_fun(omega):
-                return 500e6 * (
-                    k0(h * 0.5e9 / (2 * k * T))
-                    * np.sinh(h * 0.5e9 / (2 * k * T))
-                    / (
-                        k0(hbar * np.abs(omega) / (2 * k * T))
-                        * np.sinh(hbar * np.abs(omega) / (2 * k * T))
-                    )
-                )
-        elif callable(Q_ind):
-            Q_ind_fun = Q_ind
-        else:
-
-            def Q_ind_fun(omega):
-                return Q_ind
-
-        def spectral_density(omega, T):
-            x = hbar * omega / (k * T)
-            return (
-                2
-                * getattr(self, "El", 1.0)  # Default value for base class
-                / Q_ind_fun(omega)
-                * 1
-                / np.tanh(np.abs(x) / 2)
-                / (1 + np.exp(-x))
-            )
-
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
         else:
             evals, evecs = esys
-
-        omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-        s = (
-            spectral_density(omega, T) + spectral_density(-omega, T)
-            if total
-            else spectral_density(omega, T)
-        )
-
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table(
                 "phase_operator", evecs=evecs, evals_count=max(i, j) + 1
             )
-        matrix_element = np.abs(matrix_elements[i, j])
-
-        rate = 2 * np.pi * matrix_element**2 * s
-        rate *= 1e9  # Convert to GHz
-        return float(rate if get_rate else 1 / rate)
+        return _noise.t1_inductive(
+            evals=evals,
+            phase_op_matelems=matrix_elements,
+            El=getattr(self, "El", 1.0),
+            T=T,
+            Q_ind=Q_ind,
+            i=i,
+            j=j,
+            total=total,
+            get_rate=get_rate,
+        )
 
     def t1_flux_bias_line(
         self,
@@ -527,41 +467,25 @@ class QubitBase(ABC):
         matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
     ) -> float:
-        def spectral_density(omega, T):
-            x = hbar * omega / (k * T)
-            return (
-                4
-                * np.pi**2
-                * M**2
-                * np.abs(omega)
-                * 1e9
-                * h
-                / Z
-                * (1 + 1 / np.tanh(np.abs(x)) / 2)
-                / (1 + np.exp(-x))
-            )
-
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
         else:
             evals, evecs = esys
-
-        omega = 2 * np.pi * (evals[i] - evals[j]) * 1e9  # Convert to rad/s
-        s = (
-            spectral_density(omega, T) + spectral_density(-omega, T)
-            if total
-            else spectral_density(omega, T)
-        )
-
         if matrix_elements is None:
             matrix_elements = self.matrixelement_table(
                 "d_hamiltonian_d_phase", evecs=evecs, evals_count=max(i, j) + 1
             )
-        matrix_element = np.abs(matrix_elements[i, j])
-
-        rate = 2 * np.pi * matrix_element**2 * s
-        rate *= 1e9  # Convert to GHz
-        return float(rate if get_rate else 1 / rate)
+        return _noise.t1_flux_bias_line(
+            evals=evals,
+            dH_dphase_matelems=matrix_elements,
+            M=M,
+            Z=Z,
+            T=T,
+            i=i,
+            j=j,
+            total=total,
+            get_rate=get_rate,
+        )
 
     def tphi_1_over_f(
         self,
@@ -602,46 +526,18 @@ class QubitBase(ABC):
             noise_op = [noise_op]
 
         dH_d_lambda = self.matrixelement_table(noise_op[0], evecs=evecs)
-        dE_d_lambda = np.real(np.diagonal(dH_d_lambda))
-        dEij_d_lambda = dE_d_lambda[:, np.newaxis] - dE_d_lambda[np.newaxis, :]
+        d2H_op = getattr(self, noise_op[1])() if len(noise_op) > 1 else None
 
-        rate_ij_1st_order = (
-            dEij_d_lambda
-            * A_noise
-            * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
+        return _noise.tphi_1_over_f(
+            evals=evals,
+            dH_dlambda_matelems=dH_d_lambda,
+            A_noise=A_noise,
+            d2H_dlambda2_op=d2H_op,
+            omega_ir=p["omega_ir"],
+            omega_uv=p["omega_uv"],
+            t_exp=p["t_exp"],
+            get_rate=get_rate,
         )
-
-        if len(noise_op) > 1:
-            noise_operator_2nd = getattr(self, noise_op[1])()
-            d2H_d_lambda2 = np.diagonal(noise_operator_2nd)
-            E_diff = evals[:, np.newaxis] - evals[np.newaxis, :]
-            E_diff = np.where(E_diff == 0, np.inf, E_diff)
-
-            dH_d_lambda_matelems_square = np.abs(dH_d_lambda) ** 2
-            d2E_d_lambda2_correction = 2 * np.sum(dH_d_lambda_matelems_square / E_diff)
-
-            d2E_d_lambda2 = d2H_d_lambda2 + d2E_d_lambda2_correction
-            d2Eij_d_lambda2 = (
-                d2E_d_lambda2[:, np.newaxis] + d2E_d_lambda2[np.newaxis, :]
-            )
-
-            rate_ij_2nd_order = (
-                np.abs(d2Eij_d_lambda2)
-                * A_noise**2
-                * np.sqrt(
-                    2 * np.log(p["omega_uv"] / p["omega_ir"]) ** 2
-                    + 2 * np.log(p["omega_ir"] * p["t_exp"]) ** 2
-                )
-            )
-        elif len(noise_op) == 1:
-            rate_ij_2nd_order = 0
-
-        rate = np.sqrt(rate_ij_1st_order**2 + rate_ij_2nd_order**2)
-        epsilon = 1e-12
-        rate = np.where(rate == 0, epsilon, rate)
-        rate *= 2 * np.pi * 1e9  # Convert to rad/s
-
-        return np.asarray(rate if get_rate else 1 / rate)
 
     def tphi_CQPS(
         self,
@@ -669,35 +565,23 @@ class QubitBase(ABC):
         np.ndarray
             The CQPS dephasing time (or rate).
         """
-
         if esys is None:
             evals, evecs = self.eigensys()
         else:
             evals, evecs = esys
 
-        phase_slip_frequency = (
-            4 * np.sqrt(2) / np.pi * fp / np.sqrt(z) * np.exp(-4 / np.pi / z)
-        )
         displacement_operator_melem = self.matrixelement_table(
             "displacement_operator", evecs=evecs
         )
-        displacement_operator_diagonal = np.diagonal(displacement_operator_melem)
 
-        structure_factor = (
-            displacement_operator_diagonal[:, np.newaxis]
-            - displacement_operator_diagonal[np.newaxis, :]
+        return _noise.tphi_CQPS(
+            evals=evals,
+            displacement_op_matelems=displacement_operator_melem,
+            El=getattr(self, "El", 1.0),
+            fp=fp,
+            z=z,
+            get_rate=get_rate,
         )
-        N_junctions = fp / 2 / np.pi / (getattr(self, "El", 1.0) * 1e9) / z
-
-        rate = (
-            np.pi
-            * np.sqrt(N_junctions)
-            * phase_slip_frequency
-            * np.abs(structure_factor)
-        )
-        rate = np.where(rate == 0, np.inf, rate)
-
-        return np.asarray(rate if get_rate else 1 / rate)
 
     def get_t1_vs_paramvals(
         self,
@@ -845,7 +729,7 @@ class QubitBase(ABC):
 
             def Q_cap_fun(omega):
                 return (
-                    1e6 * (2 * np.pi * 6e9 / np.abs(omega)) ** 0.7
+                    1/3e-5 * (2 * np.pi * 6e9 / np.abs(omega)) ** 0.7
                 )  # Assuming that Ec is in GHz
         elif callable(Q_cap):
             Q_cap_fun = Q_cap

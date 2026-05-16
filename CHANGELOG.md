@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+## [v0.11.0] - 2026-05-16
+### New Features
+- Added `HybridSuperQubits.noise` module: standalone pure functions for the existing
+  decoherence formulas (`t1_capacitive`, `t1_inductive`, `t1_flux_bias_line`,
+  `tphi_1_over_f`, `tphi_CQPS`, plus the generic `t1_from_spectral_density`
+  builder). Functions take eigenvalues, operator matrix elements, and scalar
+  parameters — no qubit object required — so decoherence can be computed for
+  any user-supplied Hamiltonian. First step of the functional refactor proposed
+  in #17.
+- The corresponding methods on `QubitBase` are now thin wrappers that delegate
+  to `HybridSuperQubits.noise`. Behavior is unchanged; existing user code keeps
+  working without modification (covered by `tests/integration/test_noise_parity.py`).
+
 ## [v0.10.9] - 2026-04-15
 ### Bug Fixes
 - Added missing `4 * Ec` prefactor to the scalar Berry contribution in `Ferbo._berry_contribution()`.
