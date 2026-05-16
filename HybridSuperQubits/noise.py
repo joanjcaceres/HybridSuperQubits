@@ -97,7 +97,11 @@ def _S_flux_bias_line(
 
 
 def _default_Q_cap(omega: np.ndarray) -> np.ndarray:
-    return 1e6 * (2 * np.pi * 6e9 / np.abs(omega)) ** 0.7
+    # 1/3e-5 ~= 3.33e4 is the physically correct prefactor; the previous
+    # single-shot t1_capacitive used 1e6, which underestimated the
+    # capacitive rate by ~30x. The sweep path get_t1_capacitive_vs_paramvals
+    # already used this value.
+    return 1 / 3e-5 * (2 * np.pi * 6e9 / np.abs(omega)) ** 0.7
 
 
 def _default_Q_ind_factory(T: float) -> Callable[[np.ndarray], np.ndarray]:

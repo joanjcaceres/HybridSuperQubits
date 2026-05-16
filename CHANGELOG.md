@@ -10,8 +10,15 @@
   any user-supplied Hamiltonian. First step of the functional refactor proposed
   in #17.
 - The corresponding methods on `QubitBase` are now thin wrappers that delegate
-  to `HybridSuperQubits.noise`. Behavior is unchanged; existing user code keeps
-  working without modification (covered by `tests/integration/test_noise_parity.py`).
+  to `HybridSuperQubits.noise` (covered by `tests/integration/test_noise_parity.py`).
+
+### Bug Fixes
+- Corrected the default capacitive quality factor prefactor in `t1_capacitive`
+  from `1e6` to `1/3e-5` (~3.33e4), the physically correct value already in
+  use by the `get_t1_capacitive_vs_paramvals` sweep. This makes the single-shot
+  and sweep capacitive-T1 paths consistent. **Behavior change:** capacitive T1
+  values returned by `qubit.t1_capacitive()` (when `Q_cap` is not explicitly
+  supplied) are now ~30x shorter than in v0.10.x.
 
 ## [v0.10.9] - 2026-04-15
 ### Bug Fixes
