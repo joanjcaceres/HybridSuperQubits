@@ -1,5 +1,39 @@
 ## [Unreleased]
 
+## [v0.12.0] - 2026-05-16
+### New Features
+- Extended `HybridSuperQubits.noise` with table-level sweep functions:
+  `t1_table_from_spectral_density`, `tphi_1_over_f_table`, `tphi_cqps_table`.
+  Channel-specific spectral densities (`S_capacitive`, `S_inductive`,
+  `S_flux_bias_line`, `S_charge_impedance`, `S_one_over_f_flux`,
+  `S_critical_current`, `S_andreev`) are now public — a single source of truth
+  shared by both the single-shot and sweep code paths.
+- The 7 `get_t1_*_vs_paramvals` methods, 2 `get_tphi_*_vs_paramvals` methods,
+  `get_tphi_CQPS_vs_paramvals`, and the internal `_get_t1_vs_paramvals` /
+  `_get_tphi_1_over_f_vs_paramvals` dispatchers on `QubitBase` are now thin
+  wrappers around these functions. Phase B of the #17 refactor.
+
+### Breaking Changes
+- **Reconciled single-shot vs sweep physics divergences.** The single-shot
+  `t1_capacitive`, `t1_inductive`, and `t1_flux_bias_line` methods (and the
+  corresponding `HybridSuperQubits.noise` functions) now produce the same
+  numerical results as their sweep counterparts. Previously they differed by
+  factors of ~2 (capacitive) and used a different formula entirely
+  (flux-bias-line). The sweep version was the physically correct one and is
+  now the single source of truth.
+- Removed the `total: bool` keyword argument from `t1_capacitive`,
+  `t1_inductive`, `t1_flux_bias_line` (both class methods and standalone
+  functions) and from `get_t1_*_vs_paramvals` sweep methods. The kwarg was
+  the knob that selected the buggy "SD(+ω) + SD(-ω)" summing in single-shot;
+  with the physics reconciled there is no longer a switch to flip. Passing
+  `total=...` will raise `TypeError`.
+
+### Bug Fixes
+- Capacitive single-shot T1 prefactor corrected from 8 to 16 to match the
+  sweep path. Combined with the v0.11.0 `Q_cap` default fix, single-shot
+  capacitive T1 values are now consistent with sweep values for the same
+  parameters.
+
 ## [v0.11.0] - 2026-05-16
 ### New Features
 - Added `HybridSuperQubits.noise` module: standalone pure functions for the existing
