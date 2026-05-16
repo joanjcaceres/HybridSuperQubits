@@ -4,15 +4,14 @@ from typing import Any, Callable, Literal, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.constants import e, h, hbar, k
 from scipy.linalg import eigh, expm
-from scipy.special import factorial, k0, pbdv
+from scipy.special import factorial, pbdv
 from tqdm.notebook import tqdm
 
 from . import noise as _noise
 from .storage import SpectrumData
 
-R_Q = h / (2 * e) ** 2  # Superconducting resistance quantum
+R_Q = _noise.R_Q  # Superconducting resistance quantum
 
 
 class QubitBase(ABC):
@@ -397,13 +396,10 @@ class QubitBase(ABC):
         j: int = 0,
         Q_cap: Optional[Union[float, Callable]] = None,
         T: float = 0.015,
-        total: bool = True,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
-        noise_op: Optional[np.ndarray] = None,
     ) -> float:
-        del noise_op  # preserved for API compat; previously unused after lookup
         if esys is None:
             evals, evecs = self.eigensys(evals_count=max(i, j) + 1)
         else:
@@ -420,7 +416,6 @@ class QubitBase(ABC):
             Q_cap=Q_cap,
             i=i,
             j=j,
-            total=total,
             get_rate=get_rate,
         )
 
@@ -430,7 +425,6 @@ class QubitBase(ABC):
         j: int = 0,
         Q_ind: Optional[float] = None,
         T: float = 0.015,
-        total: bool = True,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
@@ -451,7 +445,6 @@ class QubitBase(ABC):
             Q_ind=Q_ind,
             i=i,
             j=j,
-            total=total,
             get_rate=get_rate,
         )
 
@@ -462,7 +455,6 @@ class QubitBase(ABC):
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015,
-        total: bool = True,
         esys: Optional[tuple[np.ndarray, np.ndarray]] = None,
         matrix_elements: Optional[np.ndarray] = None,
         get_rate: bool = False,
@@ -483,7 +475,6 @@ class QubitBase(ABC):
             T=T,
             i=i,
             j=j,
-            total=total,
             get_rate=get_rate,
         )
 
@@ -674,96 +665,23 @@ class QubitBase(ABC):
         spectrum_data: Optional[SpectrumData] = None,
         Q_cap: Optional[Union[float, Callable]] = None,
         T: float = 0.015,
-        total: bool = True,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for capacitive noise over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter to vary.
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        Q_cap : Union[float, Callable], optional
-            The capacitance quality factor or a function that returns it (default is None).
-        T : float, optional
-            The temperature (default is 0.015).
-        **kwargs
-            Additional arguments to pass to the T1 calculation method.
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for capacitive noise over the range of parameter values.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-
-        # Validate required parameters
-        if spectrum_data is not None:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            evals_count = spectrum_data.energy_table.shape[1]
-        elif param_name is None or param_vals is None:
-            raise ValueError(
-                "If spectrum_data is None, param_name and param_vals must be provided."
+        """T1 times for capacitive noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
             )
-
-        # After validation, these should not be None
-        assert param_name is not None
-        assert param_vals is not None
-
-        # Create spectrum_data if not provided
-        if spectrum_data is None:
-            spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
-            )
-
-        if Q_cap is None:
-
-            def Q_cap_fun(omega):
-                return (
-                    1/3e-5 * (2 * np.pi * 6e9 / np.abs(omega)) ** 0.7
-                )  # Assuming that Ec is in GHz
-        elif callable(Q_cap):
-            Q_cap_fun = Q_cap
-        else:
-
-            def Q_cap_fun(omega):
-                return Q_cap
+        )
+        Q_cap_fun = _noise._resolve_q_factor(Q_cap, _noise.default_Q_cap)
+        Ec = getattr(self, "Ec", 1.0)
 
         def spectral_density(omega, T):
-            # Assuming that Ec is in GHz
-            x = hbar * omega / (k * T)
-            return (
-                16
-                * getattr(self, "Ec", 1.0)  # Default value for base class
-                / Q_cap_fun(omega)
-                * 1
-                / np.tanh(np.abs(x) / 2)
-                / (1 + np.exp(-x))
-            )
-
-        noise_operator = "n_operator"
-        noise_channel = "capacitive"
+            return _noise.S_capacitive(omega, T, Ec, Q_cap_fun)
 
         return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            total,
-            **kwargs,
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "n_operator", "capacitive", T, **kwargs,
         )
 
     def get_t1_inductive_vs_paramvals(
@@ -774,102 +692,25 @@ class QubitBase(ABC):
         spectrum_data: Optional[SpectrumData] = None,
         Q_ind: Optional[float] = None,
         T: float = 0.015,
-        total: bool = True,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for inductive noise over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter to vary.
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        Q_ind : float, optional
-            The inductance quality factor (default is 500e6).
-        T : float, optional
-            The temperature (default is 0.015).
-        total : bool, optional
-            Whether to calculate the total noise (default is True).
-        **kwargs
-            Additional arguments to pass to the T1 calculation method.
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for inductive noise over the range of parameter values.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-
-        # Validate required parameters
-        if spectrum_data is not None:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            evals_count = spectrum_data.energy_table.shape[1]
-        elif param_name is None or param_vals is None:
-            raise ValueError(
-                "If spectrum_data is None, param_name and param_vals must be provided."
+        """T1 times for inductive noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
             )
-
-        # After validation, these should not be None
-        assert param_name is not None
-        assert param_vals is not None
-
-        # Create spectrum_data if not provided
-        if spectrum_data is None:
-            spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
-            )
-
-        if Q_ind is None:
-            Q_ind_ref = 500e6
-            omega_ref = 2 * np.pi * 0.5e9
-
-            def q_ind(omega):
-                x = (hbar * np.abs(omega)) / (2 * k * T)
-                q_ind_inv = k0(x) * np.sinh(x)
-                return 1 / q_ind_inv
-
-            def Q_ind_fun(omega):
-                return Q_ind_ref * q_ind(omega) / q_ind(omega_ref)
-        elif callable(Q_ind):
-            Q_ind_fun = Q_ind
-        else:
-
-            def Q_ind_fun(omega):
-                return Q_ind
+        )
+        Q_ind_fun = _noise._resolve_q_factor(
+            Q_ind, _noise.default_Q_ind_factory(T),
+        )
+        El = getattr(self, "El", 1.0)
 
         def spectral_density(omega, T):
-            x = hbar * omega / (k * T)
-            return (
-                2
-                * getattr(self, "El", 1.0)  # Default value for base class
-                / Q_ind_fun(omega)
-                * 1
-                / np.tanh(np.abs(x) / 2)
-                / (1 + np.exp(-x))
-            )
-
-        noise_operator = "phase_operator"
-        noise_channel = "inductive"
+            return _noise.S_inductive(omega, T, El, Q_ind_fun)
 
         return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            total,
-            **kwargs,
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "phase_operator", "inductive", T, **kwargs,
         )
 
     def get_t1_charge_impedance_vs_paramvals(
@@ -880,84 +721,21 @@ class QubitBase(ABC):
         spectrum_data: Optional[SpectrumData] = None,
         Z: float = 50,
         T: float = 0.015,
-        total: bool = True,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for charge impedance noise over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        Z : float, optional
-            The impedance (default is 50).
-        T : float, optional
-            The temperature (default is 0.050).
-        total : bool, optional
-            Whether to calculate the total noise (default is True).
-        **kwargs
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for charge impedance noise over the range of parameter values.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-
-        # Validate required parameters
-        if spectrum_data is not None:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            evals_count = spectrum_data.energy_table.shape[1]
-        elif param_name is None or param_vals is None:
-            raise ValueError(
-                "If spectrum_data is None, param_name and param_vals must be provided."
+        """T1 times for charge-impedance noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
             )
-
-        # After validation, these should not be None
-        assert param_name is not None
-        assert param_vals is not None
-
-        # Create spectrum_data if not provided
-        if spectrum_data is None:
-            spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
-            )
+        )
 
         def spectral_density(omega, T):
-            Rk = h / ((2 * e) ** 2)
-            x = hbar * omega / (k * T)
-            return (
-                omega
-                / 1e9
-                / Rk
-                * Z
-                * (1 + 1 / np.tanh(np.abs(x) / 2))
-                / (1 + np.exp(-x))
-            )
-
-        noise_operator = "n_operator"
-        noise_channel = "charge_impedance"
+            return _noise.S_charge_impedance(omega, T, Z)
 
         return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            total,
-            **kwargs,
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "n_operator", "charge_impedance", T, **kwargs,
         )
 
     def get_t1_flux_bias_line_vs_paramvals(
@@ -969,79 +747,22 @@ class QubitBase(ABC):
         M: float = 2500,
         Z: float = 50,
         T: float = 0.015,
-        total: bool = True,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for flux bias line noise over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        M : float, optional
-            The mutual inductance in units of Phi_0/A (default is 2500 Phi_0/A = 5.2 pH).
-        Z : float, optional
-            The impedance (default is 50).
-        T : float, optional
-            The temperature (default is 0.015).
-        total : bool, optional
-            Whether to calculate the total noise (default is True).
-        **kwargs
-            Additional arguments to pass to the T1 calculation method.
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for flux bias line noise over the range of parameter values.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-
-        # Validate required parameters
-        if spectrum_data is not None:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            evals_count = spectrum_data.energy_table.shape[1]
-        elif param_name is None or param_vals is None:
-            raise ValueError(
-                "If spectrum_data is None, param_name and param_vals must be provided."
+        """T1 times for flux-bias-line noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
             )
-
-        # After validation, these should not be None
-        assert param_name is not None
-        assert param_vals is not None
-
-        # Create spectrum_data if not provided
-        if spectrum_data is None:
-            spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
-            )
+        )
 
         def spectral_density(omega, T):
-            x = hbar * omega / (k * T)
-            return 4 * np.pi**2 * M**2 * omega * 1e9 * h / Z * (1 + 1 / np.tanh(x / 2))
-
-        noise_operator = "d_hamiltonian_d_phase"
-        noise_channel = "flux_bias_line"
+            return _noise.S_flux_bias_line(omega, T, M, Z)
 
         return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            total,
-            **kwargs,
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "d_hamiltonian_d_phase", "flux_bias_line",
+            T, **kwargs,
         )
 
     def get_t1_1_over_f_flux_vs_paramvals(
@@ -1053,69 +774,20 @@ class QubitBase(ABC):
         A_noise: float = 1e-6,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for 1/f flux noise over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        A_noise : float, optional
-            The amplitude of the noise (default is 1e-6).
-        **kwargs
-            Additional arguments to pass to the T1 calculation method.
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for 1/f flux noise over the range of parameter values.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-
-        # Validate required parameters
-        if spectrum_data is not None:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            evals_count = spectrum_data.energy_table.shape[1]
-        elif param_name is None or param_vals is None:
-            raise ValueError(
-                "If spectrum_data is None, param_name and param_vals must be provided."
+        """T1 times for 1/f flux noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
             )
-
-        # After validation, these should not be None
-        assert param_name is not None
-        assert param_vals is not None
-
-        # Create spectrum_data if not provided
-        if spectrum_data is None:
-            spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
-            )
+        )
 
         def spectral_density(omega, T):
-            return 2 * np.pi * A_noise**2 / np.abs(omega)
+            return _noise.S_one_over_f_flux(omega, T, A_noise)
 
-        noise_operator = "d_hamiltonian_d_phase"
-        noise_channel = "flux_noise"
-
-        T = 0.015
         return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            **kwargs,
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "d_hamiltonian_d_phase", "flux_noise",
+            T=0.015, **kwargs,
         )
 
     def get_t1_critical_current_vs_paramvals(
@@ -1128,75 +800,21 @@ class QubitBase(ABC):
         N: int = 100,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for critical current noise over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter to vary.
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is None, in which case all are calculated).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        A_noise : float, optional
-            The amplitude of the noise (default is 1e-7).
-        N : int, optional
-            The number of junctions (default is 100).
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for critical current noise over the range of parameter values.
-        """
-        if evals_count is None:
-            evals_count = self.dimension
-
-        # Validate required parameters
-        if spectrum_data is not None:
-            param_name = spectrum_data.param_name
-            param_vals = spectrum_data.param_vals
-            evals_count = spectrum_data.energy_table.shape[1]
-        elif param_name is None or param_vals is None:
-            raise ValueError(
-                "If spectrum_data is None, param_name and param_vals must be provided."
+        """T1 times for critical-current noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
             )
-
-        # After validation, these should not be None
-        assert param_name is not None
-        assert param_vals is not None
-
-        # Create spectrum_data if not provided
-        if spectrum_data is None:
-            spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
-            )
+        )
+        El = getattr(self, "El", 1.0)
 
         def spectral_density(omega, T):
-            return (
-                2
-                * np.pi
-                * (A_noise * getattr(self, "El", 1.0) / np.sqrt(N)) ** 2
-                / omega
-                * 1e9
-            )
+            return _noise.S_critical_current(omega, T, A_noise, El, N)
 
-        noise_operator = "d_hamiltonian_d_EL"
-        noise_channel = "critical_current"
-
-        T = 0.015
         return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            **kwargs,
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "d_hamiltonian_d_EL", "critical_current",
+            T=0.015, **kwargs,
         )
 
     def get_t1_er_vs_paramvals(
@@ -1207,41 +825,34 @@ class QubitBase(ABC):
         spectrum_data: Optional[SpectrumData] = None,
         R: float = 50,
         T: float = 0.015,
-        total: bool = True,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the T1 times for the Fermi level noise over a range of parameter values.
+        """T1 times for Fermi-level (Andreev) noise over a parameter sweep."""
+        param_name, param_vals, evals_count, spectrum_data = (
+            self._resolve_sweep_inputs(
+                param_name, param_vals, evals_count, spectrum_data,
+            )
+        )
 
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary.
-        param_vals : np.ndarray, optional
-            The values of the parameter to vary.
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        R : float, optional
-            The resistance (default is 50 Ohms).
-        T : float, optional
-            The temperature (default is 0.015).
-        total : bool, optional
-            Whether to calculate the total noise (default is True).
-        **kwargs
-            Additional arguments to pass to the T1 calculation method.
+        def spectral_density(omega, T):
+            return _noise.S_andreev(omega, T, R)
 
+        return self._get_t1_vs_paramvals(
+            param_name, param_vals, evals_count, spectrum_data,
+            spectral_density, "d_hamiltonian_d_er", "Andreev", T, **kwargs,
+        )
 
-        Returns
-        -------
-        SpectrumData
-            The T1 times for Fermi level noise over the range of parameter values.
-        """
+    def _resolve_sweep_inputs(
+        self,
+        param_name: Optional[str],
+        param_vals: Optional[np.ndarray],
+        evals_count: Optional[int],
+        spectrum_data: Optional[SpectrumData],
+    ) -> tuple[str, np.ndarray, int, SpectrumData]:
+        """Common boilerplate for sweep methods: resolve inputs and ensure
+        ``spectrum_data`` is populated with the eigensystem table."""
         if evals_count is None:
             evals_count = self.dimension
-
-        # Validate required parameters
         if spectrum_data is not None:
             param_name = spectrum_data.param_name
             param_vals = spectrum_data.param_vals
@@ -1250,38 +861,13 @@ class QubitBase(ABC):
             raise ValueError(
                 "If spectrum_data is None, param_name and param_vals must be provided."
             )
-
-        # After validation, these should not be None
         assert param_name is not None
         assert param_vals is not None
-
-        # Create spectrum_data if not provided
         if spectrum_data is None:
             spectrum_data = self.get_spectrum_vs_paramvals(
-                param_name, param_vals, evals_count=evals_count
+                param_name, param_vals, evals_count=evals_count,
             )
-
-        R_Q = h / (2 * e) ** 2
-
-        def spectral_density(omega, T):
-            x = hbar * omega / (k * T)
-            return R * omega / 1e9 / 4 / R_Q * (1 + 1 / np.tanh(x / 2))
-
-        noise_operator = "d_hamiltonian_d_er"
-        noise_channel = "Andreev"
-
-        return self._get_t1_vs_paramvals(
-            param_name,
-            param_vals,
-            evals_count,
-            spectrum_data,
-            spectral_density,
-            noise_operator,
-            noise_channel,
-            T,
-            total,
-            **kwargs,
-        )
+        return param_name, param_vals, evals_count, spectrum_data
 
     def _get_t1_vs_paramvals(
         self,
@@ -1293,55 +879,16 @@ class QubitBase(ABC):
         noise_operator: str,
         noise_channel: str,
         T: float,
-        total: bool = True,
         **kwargs,
     ) -> SpectrumData:
-        """
-        General method to calculate T1 times for a given noise channel over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str
-            The name of the parameter to vary.
-        param_vals : np.ndarray
-            The values of the parameter to vary.
-        evals_count : int
-            The number of eigenvalues and eigenstates to calculate.
-        spectrum_data : SpectrumData
-            Precomputed spectral data to use.
-        spectral_density : Callable
-            Function to calculate the spectral density.
-        noise_operator : str
-            The noise operator to use ('n_operator' or 'phase_operator').
-        noise_channel : str
-            The noise channel to use ('capacitive' or 'inductive').
-        T : float
-            The temperature.
-        **kwargs
-            Additional arguments to pass to the T1 calculation method.
-
-        Returns
-        -------
-        SpectrumData
-            The T1 times for the specified noise channel over the range of parameter values.
-        """
-        if spectrum_data is None:
-            # Validate parameters before calling get_matelements_vs_paramvals
-
-            if param_name is None or param_vals is None:
-                raise ValueError("param_name and param_vals cannot be None")
-
-            spectrum_data = self.get_matelements_vs_paramvals(
-                noise_operator, param_name, param_vals, evals_count=evals_count
-            )
-        if noise_operator not in spectrum_data.matrixelem_table:
-            # Validate spectrum_data parameters
-
-            if spectrum_data.param_name is None or spectrum_data.param_vals is None:
-                raise ValueError(
-                    "spectrum_data.param_name and spectrum_data.param_vals cannot be None"
-                )
-
+        """Thin wrapper: ensure ``noise_operator`` matrix elements are in
+        ``spectrum_data``, then delegate to
+        :func:`HybridSuperQubits.noise.t1_table_from_spectral_density`."""
+        del kwargs  # accepted for caller compatibility; no remaining knobs
+        if noise_operator not in spectrum_data.matrixelem_table or (
+            spectrum_data.matrixelem_table[noise_operator].shape[1]
+            != spectrum_data.matrixelem_table[noise_operator].shape[2]
+        ):
             new_spec = self.get_matelements_vs_paramvals(
                 noise_operator,
                 spectrum_data.param_name,
@@ -1350,37 +897,14 @@ class QubitBase(ABC):
             )
             spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
 
-        # Validate spectrum_data is not None
-
-        if spectrum_data is None:
-            raise ValueError("spectrum_data cannot be None")
-
-        evals_array = spectrum_data.energy_table
-        transition_table = evals_array[:, :, np.newaxis] - evals_array[:, np.newaxis, :]
-
-        min_freq_cutoff = 1e-9  # Minimum frequency in GHz (1 Hz)
-        max_freq_cutoff = 80.0  # Maximum frequency in GHz (80 GHz)
-        transition_table = np.where(
-            np.abs(transition_table) < min_freq_cutoff, np.nan, transition_table
+        spectrum_data.t1_table[noise_channel] = (
+            _noise.t1_table_from_spectral_density(
+                evals_table=spectrum_data.energy_table,
+                matelems_table=spectrum_data.matrixelem_table[noise_operator],
+                spectral_density=spectral_density,
+                T=T,
+            )
         )
-        transition_table = np.where(
-            np.abs(transition_table) > max_freq_cutoff, np.nan, transition_table
-        )
-
-        omega = 2 * np.pi * transition_table * 1e9
-        s = spectral_density(omega, T)
-
-        matrix_element = spectrum_data.matrixelem_table[noise_operator]
-        rate = 2 * np.pi * np.abs(matrix_element) ** 2 * s
-
-        rate *= 1e9  # Convert to rad/s
-        rate = np.where(rate == 0, np.nan, rate)
-        t1_table = 1 / rate
-
-        for idx in range(t1_table.shape[0]):
-            np.fill_diagonal(t1_table[idx], np.nan)
-
-        spectrum_data.t1_table[noise_channel] = t1_table
         return spectrum_data
 
     def _get_tphi_1_over_f_vs_paramvals(
@@ -1394,34 +918,8 @@ class QubitBase(ABC):
         spectrum_data: Optional[SpectrumData] = None,
         **kwargs,
     ) -> SpectrumData:
-        """
-        Calculates the Tphi times for given noise channels over a range of parameter values.
-
-        Parameters
-        ----------
-        param_name : str, optional
-            The name of the parameter to vary. If not provided, extracted from spectrum_data.
-        param_vals : np.ndarray, optional
-            The values of the parameter to vary. If not provided, extracted from spectrum_data.
-        A_noise : float
-            The amplitude of the noise.
-        noise_channel : str
-            The noise channel to calculate ('flux', etc.).
-        noise_operators : Union[str, List[str]]
-            The noise operator(s) to use. The order of the operators must match the order of approximation.
-            i.e. ['d_hamiltonian_d_flux', 'd2_hamiltonian_d_flux2'].
-        evals_count : int, optional
-            The number of eigenvalues and eigenstates to calculate (default is 6).
-        spectrum_data : SpectrumData, optional
-            Precomputed spectral data to use (default is None).
-        **kwargs
-            Additional arguments to pass to the Tphi calculation method.
-
-        Returns
-        -------
-        SpectrumData
-            The Tphi times for the specified noise channels over the range of parameter values.
-        """
+        """Tphi (1/f) sweep wrapper: gather derivatives, delegate to
+        :func:`HybridSuperQubits.noise.tphi_1_over_f_table`."""
         if evals_count is None:
             evals_count = self.dimension
 
@@ -1432,19 +930,15 @@ class QubitBase(ABC):
             noise_operators = [noise_operators]
 
         first_op = noise_operators[0]
-        if "d_hamiltonian_d_" in first_op:
-            deriv_param = first_op.split("d_hamiltonian_d_")[1]
-        else:
+        if "d_hamiltonian_d_" not in first_op:
             raise ValueError("The operator must be of the form 'd_hamiltonian_d_X'")
+        deriv_param = first_op.split("d_hamiltonian_d_")[1]
 
-        # Extract param_name and param_vals from spectrum_data if not provided
         if spectrum_data is not None:
             if param_name is None:
                 param_name = spectrum_data.param_name
             if param_vals is None:
                 param_vals = spectrum_data.param_vals
-
-        # Validate that we have param_name and param_vals from either source
         if param_name is None or param_vals is None:
             raise ValueError(
                 "param_name and param_vals must be provided either as arguments "
@@ -1453,69 +947,47 @@ class QubitBase(ABC):
 
         if spectrum_data is None:
             spectrum_data = self.get_matelements_vs_paramvals(
-                noise_operators, param_name, param_vals, evals_count=evals_count
+                noise_operators, param_name, param_vals, evals_count=evals_count,
             )
-        # Verify if the noise operators are in the matrix elements table
         elif not all(op in spectrum_data.matrixelem_table for op in noise_operators):
-            missing_operators = [
+            missing = [
                 op for op in noise_operators if op not in spectrum_data.matrixelem_table
             ]
             new_spec = self.get_matelements_vs_paramvals(
-                missing_operators, param_name, param_vals, evals_count=evals_count
+                missing, param_name, param_vals, evals_count=evals_count,
             )
             spectrum_data.matrixelem_table.update(new_spec.matrixelem_table)
-        # Verify if the shape of the matrix elements is correct
         elif all(
             spectrum_data.matrixelem_table[op].shape[1]
             != spectrum_data.matrixelem_table[op].shape[2]
             for op in noise_operators
         ):
             new_spec = self.get_matelements_vs_paramvals(
-                noise_operators, param_name, param_vals, evals_count=evals_count
+                noise_operators, param_name, param_vals, evals_count=evals_count,
             )
             for op in noise_operators:
                 spectrum_data.matrixelem_table[op] = new_spec.matrixelem_table[op]
 
-        param_vals = spectrum_data.param_vals
-
         dE_d_lambda = np.diagonal(
-            spectrum_data.matrixelem_table[noise_operators[0]], axis1=1, axis2=2
-        )
-        dEij_d_lambda = dE_d_lambda[:, :, np.newaxis] - dE_d_lambda[:, np.newaxis, :]
-        rate_1er = (
-            np.abs(dEij_d_lambda)
-            * A_noise
-            * np.sqrt(2 * np.abs(np.log(p["omega_ir"] * p["t_exp"])))
+            spectrum_data.matrixelem_table[noise_operators[0]], axis1=1, axis2=2,
         )
 
         if len(noise_operators) > 1:
             spectrum_data = self.get_d2E_d_param_vs_paramvals(
-                operators=noise_operators, spectrum_data=spectrum_data
+                operators=noise_operators, spectrum_data=spectrum_data,
             )
-            d2E_dX2 = spectrum_data.d2E_table[f"d2E_d_{deriv_param}2"]
-            d2Eij_d_lambda2 = d2E_dX2[:, :, np.newaxis] - d2E_dX2[:, np.newaxis, :]
-            rate_2nd = (
-                np.abs(d2Eij_d_lambda2)
-                * A_noise**2
-                * np.sqrt(
-                    2 * np.log(p["omega_uv"] / p["omega_ir"]) ** 2
-                    + 2 * np.log(p["omega_ir"] * p["t_exp"]) ** 2
-                )
-            )
-        elif len(noise_operators) == 1:
-            rate_2nd = 0
+            d2E_table = spectrum_data.d2E_table[f"d2E_d_{deriv_param}2"]
+        else:
+            d2E_table = None
 
-        rate = np.sqrt(rate_1er**2 + rate_2nd**2)
-        epsilon = 1e-12  # Pequeña constante para evitar divisiones por cero
-        rate = np.where(rate == 0, epsilon, rate)
-        rate *= 2 * np.pi * 1e9  # Convert to rad/s
-        tphi_table = 1 / rate
-
-        for idx in range(tphi_table.shape[0]):
-            np.fill_diagonal(tphi_table[idx], np.nan)
-
-        spectrum_data.tphi_table[noise_channel] = tphi_table
-
+        spectrum_data.tphi_table[noise_channel] = _noise.tphi_1_over_f_table(
+            dE_d_lambda_table=dE_d_lambda,
+            A_noise=A_noise,
+            d2E_d_lambda2_table=d2E_table,
+            omega_ir=p["omega_ir"],
+            omega_uv=p["omega_uv"],
+            t_exp=p["t_exp"],
+        )
         return spectrum_data
 
     def get_tphi_flux_vs_paramvals(
@@ -1641,22 +1113,16 @@ class QubitBase(ABC):
         """
 
         if spectrum_data is None:
-            # Validate parameters before calling get_matelements_vs_paramvals
-
             if param_name is None or param_vals is None:
                 raise ValueError("param_name and param_vals cannot be None")
-
             spectrum_data = self.get_matelements_vs_paramvals(
-                "displacement_operator", param_name, param_vals, evals_count=evals_count
+                "displacement_operator", param_name, param_vals, evals_count=evals_count,
             )
         elif "displacement_operator" not in spectrum_data.matrixelem_table:
-            # Validate spectrum_data parameters
-
             if spectrum_data.param_name is None or spectrum_data.param_vals is None:
                 raise ValueError(
                     "spectrum_data.param_name and spectrum_data.param_vals cannot be None"
                 )
-
             new_spec = self.get_matelements_vs_paramvals(
                 "displacement_operator",
                 spectrum_data.param_name,
@@ -1666,38 +1132,20 @@ class QubitBase(ABC):
             spectrum_data.matrixelem_table["displacement_operator"] = (
                 new_spec.matrixelem_table["displacement_operator"]
             )
-        phase_slip_frequency = (
-            4 * np.sqrt(2) / np.pi * fp / np.sqrt(z) * np.exp(-4 / np.pi / z)
+
+        El_values = (
+            np.asarray(param_vals, dtype=float) if param_name == "El"
+            else np.full(spectrum_data.energy_table.shape[0], getattr(self, "El", 1.0))
         )
 
-        displacement_operator = spectrum_data.matrixelem_table["displacement_operator"]
-        displacement_operator_diagonal = np.diagonal(
-            displacement_operator, axis1=1, axis2=2
+        spectrum_data.tphi_table["CQPS"] = _noise.tphi_cqps_table(
+            displacement_op_matelems_table=spectrum_data.matrixelem_table[
+                "displacement_operator"
+            ],
+            El_values=El_values,
+            fp=fp,
+            z=z,
         )
-
-        structure_factor = (
-            displacement_operator_diagonal[:, :, np.newaxis]
-            - displacement_operator_diagonal[:, np.newaxis, :]
-        )
-
-        if param_name == "El":
-            N_junctions = fp / 2 / np.pi / (param_vals * 1e9) / z
-        else:
-            N_junctions = fp / 2 / np.pi / (getattr(self, "El", 1.0) * 1e9) / z
-
-        rate = (
-            np.pi
-            * np.sqrt(N_junctions)
-            * phase_slip_frequency
-            * np.abs(structure_factor)
-        )
-        rate[rate == 0] = np.inf
-        tphi_table = 1 / rate
-
-        noise_channel = "CQPS"
-
-        spectrum_data.tphi_table[noise_channel] = tphi_table
-
         return spectrum_data
 
     def get_tphi_vs_paramvals(

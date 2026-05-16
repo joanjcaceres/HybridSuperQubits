@@ -118,10 +118,10 @@ def test_t1_generic_matches_capacitive(two_level_evals, two_level_matelems):
     """``t1_from_spectral_density`` should reproduce ``t1_capacitive`` when fed
     the matching closure."""
     Ec = 1.0
-    Q_cap = noise._default_Q_cap
+    Q_cap = noise.default_Q_cap
 
     def sd(omega, T):
-        return noise._S_capacitive(omega, T, Ec, Q_cap)
+        return noise.S_capacitive(omega, T, Ec, Q_cap)
 
     t1_generic = noise.t1_from_spectral_density(
         evals=two_level_evals, matrix_elements=two_level_matelems,
