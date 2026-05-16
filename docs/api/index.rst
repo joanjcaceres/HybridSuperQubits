@@ -18,5 +18,6 @@ visualization.
    jja
    resonator
    operators
+   noise
    utilities
    storage

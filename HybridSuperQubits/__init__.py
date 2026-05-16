@@ -2,7 +2,7 @@ from importlib.metadata import version
 
 __version__ = version("HybridSuperQubits")
 
-from . import operators, storage, utilities
+from . import noise, operators, storage, utilities
 from .andreev import Andreev
 from .ferbo import Ferbo
 from .fluxonium import Fluxonium
@@ -35,6 +35,7 @@ __all__ = [
     "C_to_Ec",
     "El_to_L",
     "Ec_to_C",
+    "noise",
     "operators",
     "storage",
     "utilities",
