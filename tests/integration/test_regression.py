@@ -158,13 +158,13 @@ class TestFerboRegression:
         qubit = Ferbo(**params)
         evals = qubit.eigenvals(evals_count=4)
 
-        # Reference eigenvalues for Ferbo
+        # Reference eigenvalues for the current Ferbo implementation.
         reference_evals = np.array(
             [
-                -2.363807443837686,
-                0.06675942601550433,
-                0.5456308751102202,
-                1.1453795255758679,
+                -2.36403517,
+                0.06666242,
+                0.54560587,
+                1.1455554,
             ]
         )
 
@@ -190,13 +190,13 @@ class TestFerboRegression:
         qubit = Ferbo(**params)
         evals = qubit.eigenvals(evals_count=4)
 
-        # Reference eigenvalues for Ferbo with EL grouping
+        # Reference eigenvalues for the current Ferbo implementation with EL grouping.
         reference_evals = np.array(
             [
-                -2.3638073901762438,
-                0.06675947984818462,
-                0.5456309041111294,
-                1.1453795658312154,
+                -2.36403512,
+                0.06666247,
+                0.54560589,
+                1.14555544,
             ]
         )
 

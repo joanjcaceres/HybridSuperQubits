@@ -3,28 +3,43 @@ name: Tests
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - ".github/workflows/tests.yml"
+      - "HybridSuperQubits/**"
+      - "tests/**"
+      - "environment.yml"
+      - "pyproject.toml"
   pull_request:
     branches: [ main ]
+    paths:
+      - ".github/workflows/tests.yml"
+      - "HybridSuperQubits/**"
+      - "tests/**"
+      - "environment.yml"
+      - "pyproject.toml"
+  workflow_dispatch:
+  release:
+    types: [published, prereleased]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    name: Python ${{ matrix.python-version }} on Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
-        exclude:
-          # Reduce matrix size for faster CI
-          - os: windows-latest
-            python-version: "3.10"
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Set up Conda environment
       uses: conda-incubator/setup-miniconda@v2
@@ -33,34 +48,61 @@ jobs:
         activate-environment: hybridsuperqubits
         auto-activate-base: false
         miniconda-version: "latest"
+        python-version: ${{ matrix.python-version }}
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: latest
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+    - name: Verify Python version
+      run: conda run -n hybridsuperqubits python --version
 
-    - name: Load cached venv
-      if: false  # Disable venv cache since we use the conda env
-      id: cached-poetry-dependencies
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Install package
+      run: conda run -n hybridsuperqubits python -m pip install --no-deps -e .
+
+    - name: Run tests with coverage
+      run: conda run -n hybridsuperqubits pytest
+
+    - name: Verify coverage report exists
+      if: matrix.python-version == '3.11'
+      run: test -s coverage.xml
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      if: matrix.python-version == '3.11' && hashFiles('coverage.xml') != ''
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
 
+  macos:
+    name: Python 3.11 on macOS
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Conda environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        environment-file: environment.yml
+        activate-environment: hybridsuperqubits
+        auto-activate-base: false
+        miniconda-version: "latest"
+        python-version: "3.11"
+
+    - name: Verify Python version
+      run: conda run -n hybridsuperqubits python --version
+
+    - name: Install package
+      run: conda run -n hybridsuperqubits python -m pip install --no-deps -e .
+
+    - name: Run macOS test suite
+      run: conda run -n hybridsuperqubits pytest
+
   benchmark:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 30
     permissions:
       contents: write
 

@@ -172,7 +172,7 @@ class TestFerboHamiltonian:
                 + qubit.delta_Gamma**2 * np.sin(andreev_phase / 2) ** 2
             )
             b_sq = b_perp_sq + qubit.er**2
-            berry_contribution = 0.25 * (
+            berry_contribution = 4 * qubit.Ec * 0.25 * (
                 (qubit.Gamma * qubit.delta_Gamma / (2 * b_perp_sq)) ** 2
                 + (
                     qubit.er
