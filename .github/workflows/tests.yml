@@ -53,6 +53,9 @@ jobs:
     - name: Verify Python version
       run: conda run -n hybridsuperqubits python --version
 
+    - name: Install package
+      run: conda run -n hybridsuperqubits python -m pip install --no-deps -e .
+
     - name: Run tests with coverage
       run: conda run -n hybridsuperqubits pytest
 
@@ -88,6 +91,9 @@ jobs:
 
     - name: Verify Python version
       run: conda run -n hybridsuperqubits python --version
+
+    - name: Install package
+      run: conda run -n hybridsuperqubits python -m pip install --no-deps -e .
 
     - name: Run macOS test suite
       run: conda run -n hybridsuperqubits pytest
