@@ -31,6 +31,8 @@ class Ferbo(QubitBase):
 
     OPERATOR_LABELS = {
         "n_operator": r"\hat{n}",
+        "a_operator": r"\hat{a}",
+        "adag_operator": r"\hat{a}^\dagger",
         "phase_operator": r"\hat{\phi}",
         "d_hamiltonian_d_ng": r"\partial \hat{H} / \partial n_g",
         "d_hamiltonian_d_phase": r"\partial \hat{H} / \partial \phi_{{ext}}",
@@ -168,6 +170,28 @@ class Ferbo(QubitBase):
             * (creation(self.dimension // 2) - destroy(self.dimension // 2))
         )
         return np.kron(np.eye(2), single_mode_n_operator)
+
+    def a_operator(self) -> np.ndarray:
+        """
+        Returns the bosonic annihilation operator.
+
+        Returns
+        -------
+        np.ndarray
+            The annihilation operator acting on the oscillator subspace.
+        """
+        return np.kron(np.eye(2), destroy(self.dimension // 2))
+
+    def adag_operator(self) -> np.ndarray:
+        """
+        Returns the bosonic creation operator.
+
+        Returns
+        -------
+        np.ndarray
+            The creation operator acting on the oscillator subspace.
+        """
+        return np.kron(np.eye(2), creation(self.dimension // 2))
 
     def phase_operator(self) -> np.ndarray:
         """
