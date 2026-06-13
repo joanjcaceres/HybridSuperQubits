@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v0.12.1] - 2026-06-13
+### New Features
+- Added `Ferbo.a_operator()` and `Ferbo.adag_operator()` to expose the
+  bosonic annihilation and creation operators on the full Ferbo Hilbert space.
+
 ## [v0.12.0] - 2026-05-16
 ### New Features
 - Extended `HybridSuperQubits.noise` with table-level sweep functions:

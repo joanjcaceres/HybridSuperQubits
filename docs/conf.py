@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "HybridSuperQubits"
 copyright = "2025-2026, Joan Caceres"
 author = "Joan Caceres"
-release = "0.10.2"
+release = "0.12.1"
 
 # -- General configuration ---------------------------------------------------
 extensions = [

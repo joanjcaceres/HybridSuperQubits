@@ -23,6 +23,9 @@ applyTo: '**'
 - When updating version numbers, follow semantic versioning (MAJOR.MINOR.PATCH).
 - Always update CHANGELOG.md when making significant changes.
 - Remember that PyPI deployment occurs via GitHub Actions when tags are pushed.
+- After merging a change to `main`, also publish the corresponding PyPI update
+  unless explicitly instructed not to: bump the version, update CHANGELOG.md,
+  push the release commit to `main`, then push the matching `vX.Y.Z` tag.
 - Avoid duplicate version numbers - check existing versions on PyPI before publishing.
 
 ## Git Workflow
