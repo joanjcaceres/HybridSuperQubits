@@ -73,6 +73,26 @@ class TestFerboOperators:
         expected_shape = (ferbo.dimension, ferbo.dimension)
         assert n_op.shape == expected_shape
 
+    def test_a_operator_shape(self, ferbo: Ferbo):
+        """Test that a_operator returns correct shape."""
+        a_op = ferbo.a_operator()
+        expected_shape = (ferbo.dimension, ferbo.dimension)
+        assert a_op.shape == expected_shape
+
+    def test_adag_operator_shape(self, ferbo: Ferbo):
+        """Test that adag_operator returns correct shape."""
+        adag_op = ferbo.adag_operator()
+        expected_shape = (ferbo.dimension, ferbo.dimension)
+        assert adag_op.shape == expected_shape
+
+    def test_adag_operator_is_adjoint_of_a_operator(
+        self, ferbo: Ferbo, tolerance: float
+    ):
+        """Test that adag_operator is the adjoint of a_operator."""
+        assert np.allclose(
+            ferbo.adag_operator(), ferbo.a_operator().conj().T, atol=tolerance
+        )
+
     def test_phase_operator_shape(self, ferbo: Ferbo):
         """Test that phase_operator returns correct shape."""
         phase_op = ferbo.phase_operator()
